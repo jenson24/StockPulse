@@ -426,22 +426,20 @@ async function fetchOneTicker(ticker) {
   return res.json();
 }
 
+function parseMoneyStr(s) {
+  // Parses "$271.35" or "271.35" into a float, returns null if invalid
+  if (s == null) return null;
+  const n = parseFloat(String(s).replace(/[$,]/g, ''));
+  return isNaN(n) ? null : n;
+}
+
 function extractPrice(data, ticker) {
-  if (!data) return null;
-  // Shape 1: { body: { AAPL: { regularMarketPrice: ... } } }
-  if (data.body && typeof data.body === 'object' && !Array.isArray(data.body)) {
-    const v = data.body[ticker] || data.body[ticker.toUpperCase()] || data.body[ticker.toLowerCase()] || Object.values(data.body)[0];
-    if (v && v.regularMarketPrice != null) return parseFloat(v.regularMarketPrice);
-  }
-  // Shape 2: { body: [ { regularMarketPrice: ... } ] }
-  if (data.body && Array.isArray(data.body) && data.body[0]?.regularMarketPrice != null) {
-    return parseFloat(data.body[0].regularMarketPrice);
-  }
-  // Shape 3: flat { regularMarketPrice: ... }
-  if (data.regularMarketPrice != null) return parseFloat(data.regularMarketPrice);
-  // Shape 4: { quoteResponse: { result: [...] } }
-  if (data.quoteResponse?.result?.[0]?.regularMarketPrice != null) return parseFloat(data.quoteResponse.result[0].regularMarketPrice);
-  console.warn('Unknown API shape for', ticker, JSON.stringify(data).slice(0, 300));
+  if (!data || !data.body) return null;
+  const b = data.body;
+  // Actual API shape: body.primaryData.lastSalePrice = "$271.35"
+  const price = parseMoneyStr(b.primaryData?.lastSalePrice);
+  if (price !== null) return price;
+  console.warn('Could not extract price for', ticker, JSON.stringify(data).slice(0, 300));
   return null;
 }
 
@@ -644,15 +642,43 @@ function saveBuyCache(ideas) {
   localStorage.setItem('sp-buy-cache', JSON.stringify({ date: todayStr(), ideas }));
 }
 
-function extractQuote(data, ticker) {
-  if (!data) return null;
-  if (data.body && typeof data.body === 'object' && !Array.isArray(data.body)) {
-    return data.body[ticker] || data.body[ticker.toUpperCase()] || data.body[ticker.toLowerCase()] || Object.values(data.body)[0] || null;
+function extractQuoteFromBody(data, ticker) {
+  // Parses the actual API response shape into a normalized quote object
+  if (!data || !data.body) return null;
+  const b = data.body;
+  const price = parseMoneyStr(b.primaryData?.lastSalePrice);
+  if (price === null) return null;
+
+  // Parse "193.25 - 288.62" into low/high
+  let fiftyTwoWeekLow = null, fiftyTwoWeekHigh = null;
+  const rangeStr = b.keyStats?.fiftyTwoWeekHighLow?.value;
+  if (rangeStr && rangeStr !== 'NA') {
+    const parts = rangeStr.split('-').map(s => parseFloat(s.trim()));
+    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+      [fiftyTwoWeekLow, fiftyTwoWeekHigh] = parts;
+    }
   }
-  if (data.body && Array.isArray(data.body)) return data.body[0] || null;
-  if (data.regularMarketPrice != null) return data;
-  if (data.quoteResponse?.result?.[0]) return data.quoteResponse.result[0];
-  return null;
+
+  // Parse volume "91,857,038" -> number
+  const volume = parseInt((b.primaryData?.volume || '').replace(/,/g, '')) || null;
+
+  // Parse change "+0.44%" -> "+0.44%"
+  const change = b.primaryData?.percentageChange || '0%';
+
+  return {
+    ticker: ticker.toUpperCase(),
+    name: b.companyName || ticker,
+    price,
+    change,
+    volume,
+    avgVolume: null,      // not provided by this endpoint
+    fiftyTwoWeekHigh,
+    fiftyTwoWeekLow,
+    marketCap: null,      // not provided by this endpoint
+    peRatio: null,        // not provided by this endpoint
+    eps: null,
+    dividendYield: null,
+  };
 }
 
 async function fetchMarketDataForWatchlist(tickers) {
@@ -660,24 +686,8 @@ async function fetchMarketDataForWatchlist(tickers) {
   try {
     const results = await Promise.all(tickers.map(t => fetchOneTicker(t).catch(() => null)));
     return results.flatMap((data, i) => {
-      const v = extractQuote(data, tickers[i]);
-      if (!v || v.regularMarketPrice == null) return [];
-      return [{
-        ticker: tickers[i].toUpperCase(),
-        name: v.shortName || v.longName || tickers[i],
-        price: v.regularMarketPrice,
-        change: v.regularMarketChangePercent != null
-          ? (v.regularMarketChangePercent > 0 ? '+' : '') + v.regularMarketChangePercent.toFixed(2) + '%'
-          : '0%',
-        volume: v.regularMarketVolume,
-        avgVolume: v.averageDailyVolume3Month,
-        fiftyTwoWeekHigh: v.fiftyTwoWeekHigh,
-        fiftyTwoWeekLow: v.fiftyTwoWeekLow,
-        marketCap: v.marketCap,
-        peRatio: v.trailingPE,
-        eps: v.epsTrailingTwelveMonths,
-        dividendYield: v.trailingAnnualDividendYield,
-      }];
+      const q = extractQuoteFromBody(data, tickers[i]);
+      return q ? [q] : [];
     }).filter(s => s.price > 0);
   } catch(e) { return []; }
 }
@@ -689,13 +699,15 @@ async function generateBuyIdeasWithAI(marketData, portfolioTickers) {
     ? `The user currently holds: ${portfolioTickers.join(', ')}. Avoid recommending stocks already in the portfolio.`
     : 'The user has no current positions.';
 
-  const marketSummary = marketData.map(s =>
-    `${s.ticker} (${s.name}): $${s.price?.toFixed(2)}, ${s.change} today, ` +
-    `52w range $${s.fiftyTwoWeekLow?.toFixed(0)}–$${s.fiftyTwoWeekHigh?.toFixed(0)}, ` +
-    `P/E ${s.peRatio?.toFixed(1) || 'N/A'}, ` +
-    `Vol ${s.volume > 1e6 ? (s.volume/1e6).toFixed(1)+'M' : s.volume}, ` +
-    `AvgVol ${s.avgVolume > 1e6 ? (s.avgVolume/1e6).toFixed(1)+'M' : s.avgVolume}`
-  ).join('\n');
+  const marketSummary = marketData.map(s => {
+    const price = s.price?.toFixed(2) ?? 'N/A';
+    const range = (s.fiftyTwoWeekLow && s.fiftyTwoWeekHigh)
+      ? `52w $${s.fiftyTwoWeekLow.toFixed(0)}–$${s.fiftyTwoWeekHigh.toFixed(0)}, ` +
+        `pos ${Math.round(((s.price - s.fiftyTwoWeekLow) / (s.fiftyTwoWeekHigh - s.fiftyTwoWeekLow)) * 100)}% of range`
+      : '52w range N/A';
+    const vol = s.volume ? (s.volume > 1e6 ? (s.volume/1e6).toFixed(1)+'M' : s.volume) : 'N/A';
+    return `${s.ticker} (${s.name}): $${price}, ${s.change} today, ${range}, Vol ${vol}`;
+  }).join('\n');
 
   const prompt = `You are a technical stock analyst. Analyze the following market data and select the 5 best buy opportunities for today.
 
