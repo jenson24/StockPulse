@@ -406,13 +406,72 @@ function calcTax(gain, dateStr) {
   return { lt, fedRate, stateRate, totalRate, taxDue, netProceeds };
 }
 
-// RSI simulation (in production this comes from the API)
-function mockRSI(ticker, price, cost) {
-  const seed = ticker.split('').reduce((a,c) => a + c.charCodeAt(0), 0);
-  const pnlPct = (price - cost) / cost * 100;
-  let base = 50 + pnlPct * 0.8 + (seed % 20 - 10);
-  return Math.min(95, Math.max(15, Math.round(base)));
+// ─── Real RSI Engine ─────────────────────────────────────────────────────────
+const rsiCache = {};  // { AAPL: { value: 62, ts: Date.now() } }
+
+function calcRSI(closes, period = 14) {
+  if (closes.length < period + 1) return null;
+  let gains = 0, losses = 0;
+  for (let i = 1; i <= period; i++) {
+    const diff = closes[i] - closes[i - 1];
+    if (diff >= 0) gains += diff; else losses -= diff;
+  }
+  let avgGain = gains / period;
+  let avgLoss = losses / period;
+  for (let i = period + 1; i < closes.length; i++) {
+    const diff = closes[i] - closes[i - 1];
+    const gain = diff >= 0 ? diff : 0;
+    const loss = diff < 0 ? -diff : 0;
+    avgGain = (avgGain * (period - 1) + gain) / period;
+    avgLoss = (avgLoss * (period - 1) + loss) / period;
+  }
+  if (avgLoss === 0) return 100;
+  const rs = avgGain / avgLoss;
+  return Math.round(100 - (100 / (1 + rs)));
 }
+
+async function fetchRSI(ticker) {
+  const upper = ticker.toUpperCase();
+  const cached = rsiCache[upper];
+  if (cached && Date.now() - cached.ts < 3600000) return cached.value; // 1hr cache
+
+  if (!settings.apiKey) return null;
+  try {
+    const url = `https://yahoo-finance15.p.rapidapi.com/api/v1/markets/stock/history?symbol=${encodeURIComponent(upper)}&interval=1d&diffandsplits=false`;
+    const res = await fetch(url, {
+      headers: { 'X-RapidAPI-Key': settings.apiKey, 'X-RapidAPI-Host': 'yahoo-finance15.p.rapidapi.com' }
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+
+    // Extract closing prices — body is an object keyed by unix timestamp
+    let closes = [];
+    if (data.body && typeof data.body === 'object' && !Array.isArray(data.body)) {
+      closes = Object.values(data.body)
+        .map(d => parseFloat(d.close))
+        .filter(n => !isNaN(n));
+    } else if (data.body && Array.isArray(data.body)) {
+      closes = data.body.map(d => parseFloat(d.close)).filter(n => !isNaN(n));
+    }
+
+    if (closes.length < 15) return null;
+    // Use last 30 closes for a stable RSI(14)
+    const rsi = calcRSI(closes.slice(-30), 14);
+    if (rsi !== null) rsiCache[upper] = { value: rsi, ts: Date.now() };
+    return rsi;
+  } catch(e) {
+    console.warn('RSI fetch failed for', ticker, e);
+    return null;
+  }
+}
+
+async function fetchAllRSIs(tickers) {
+  const results = await Promise.all(tickers.map(t => fetchRSI(t)));
+  const map = {};
+  tickers.forEach((t, i) => { if (results[i] !== null) map[t.toUpperCase()] = results[i]; });
+  return map;
+}
+
 function rsiColor(v) { return v > 70 ? '#ff4d4d' : v < 30 ? '#00c97a' : '#999'; }
 function rsiLabel(v) { return v > 70 ? 'Overbought' : v < 30 ? 'Oversold' : 'Neutral'; }
 
@@ -494,7 +553,10 @@ function updateApiStatus(ok) {
 }
 
 // ─── Render ───────────────────────────────────────────────────────────────────
-function renderPortfolio() {
+let currentRSIs = {};  // populated by renderPortfolio, reused by renderAlerts & openDetail
+
+function renderPortfolioWithRSIs(rsiMap) {
+  currentRSIs = rsiMap;
   const el = $('positionsList');
   if (positions.length === 0) {
     el.innerHTML = `<div class="empty"><div class="empty-icon">📈</div><div class="empty-title">No positions yet</div><div class="empty-sub">Tap "Add position" to start tracking your portfolio.</div></div>`;
@@ -510,9 +572,10 @@ function renderPortfolio() {
     const cost = p.shares * p.cost;
     const gain = val - cost;
     const pnlPct = ((p.price - p.cost) / p.cost * 100);
-    const rsi = mockRSI(p.ticker, p.price, p.cost);
-    const isAlert = rsi > 70 || pnlPct > 25;
-    const isWarn = !isAlert && (rsi > 62 || pnlPct > 15);
+    const rsi = rsiMap[p.ticker.toUpperCase()] ?? null;
+    const rsiKnown = rsi !== null;
+    const isAlert = (rsiKnown && rsi > 70) || pnlPct > 25;
+    const isWarn = !isAlert && ((rsiKnown && rsi > 62) || pnlPct > 15);
     if (isAlert) alertCount++;
     totalVal += val; totalCost += cost;
 
@@ -522,8 +585,9 @@ function renderPortfolio() {
     const taxInfo = calcTax(gain, p.purchaseDate);
 
     const pnlColor = pnlPct >= 0 ? 'var(--green)' : 'var(--red)';
-    const rsiW = rsi + '%';
-    const rsiC = rsiColor(rsi);
+    const rsiW = rsiKnown ? rsi + '%' : '50%';
+    const rsiC = rsiKnown ? rsiColor(rsi) : 'var(--text3)';
+    const rsiText = rsiKnown ? `${rsi} · ${rsiLabel(rsi)}` : 'Loading…';
     const pnlBarW = Math.min(Math.abs(pnlPct) * 2, 100) + '%';
     const pnlBarC = pnlPct >= 0 ? 'var(--green)' : 'var(--red)';
 
@@ -549,7 +613,7 @@ function renderPortfolio() {
         <div class="ind">
           <div class="ind-label">RSI (14)</div>
           <div class="ind-track"><div class="ind-fill" style="width:${rsiW};background:${rsiC}"></div></div>
-          <div class="ind-val" style="color:${rsiC}">${rsi} · ${rsiLabel(rsi)}</div>
+          <div class="ind-val" style="color:${rsiC}">${rsiText}</div>
         </div>
         <div class="ind">
           <div class="ind-label">P&amp;L vs cost</div>
@@ -580,15 +644,24 @@ function renderPortfolio() {
   else badge.classList.remove('show');
 }
 
+async function renderPortfolio() {
+  // Render immediately with whatever RSIs we already have cached, then update when fresh data arrives
+  renderPortfolioWithRSIs(currentRSIs);
+  if (positions.length === 0) return;
+  const tickers = [...new Set(positions.map(p => p.ticker.toUpperCase()))];
+  const rsiMap = await fetchAllRSIs(tickers);
+  renderPortfolioWithRSIs(rsiMap);
+}
+
 function renderAlerts() {
   const el = $('alertsList');
   const alerts = positions.map((p, i) => {
-    const rsi = mockRSI(p.ticker, p.price, p.cost);
+    const rsi = currentRSIs[p.ticker.toUpperCase()] ?? null;
     const pnl = (p.price - p.cost) / p.cost * 100;
     const gain = (p.price - p.cost) * p.shares;
     const taxInfo = calcTax(gain, p.purchaseDate);
-    const isAlert = rsi > 70 || pnl > 25;
-    const isWarn = !isAlert && (rsi > 62 || pnl > 15);
+    const isAlert = (rsi !== null && rsi > 70) || pnl > 25;
+    const isWarn = !isAlert && ((rsi !== null && rsi > 62) || pnl > 15);
     return { ...p, i, rsi, pnl, gain, taxInfo, isAlert, isWarn };
   }).filter(p => p.isAlert || p.isWarn);
 
@@ -599,8 +672,8 @@ function renderAlerts() {
 
   el.innerHTML = alerts.map(p => {
     const reasons = [];
-    if (p.rsi > 70) reasons.push(`RSI ${p.rsi} — technically overbought`);
-    if (p.rsi > 62 && p.rsi <= 70) reasons.push(`RSI ${p.rsi} — approaching overbought`);
+    if (p.rsi !== null && p.rsi > 70) reasons.push(`RSI ${p.rsi} — technically overbought`);
+    if (p.rsi !== null && p.rsi > 62 && p.rsi <= 70) reasons.push(`RSI ${p.rsi} — approaching overbought`);
     if (p.pnl > 25) reasons.push(`Up ${fmt(p.pnl)}% — consider taking profits`);
     else if (p.pnl > 15) reasons.push(`Up ${fmt(p.pnl)}% — watch for exit opportunity`);
 
@@ -887,7 +960,7 @@ function renderAll() { renderPortfolio(); }
 function openDetail(idx) {
   const p = positions[idx];
   if (!p) return;
-  const rsi = mockRSI(p.ticker, p.price, p.cost);
+  const rsi = currentRSIs[p.ticker.toUpperCase()] ?? null;
   const val = p.shares * p.price;
   const costBasis = p.shares * p.cost;
   const gain = val - costBasis;
@@ -948,8 +1021,8 @@ function openDetail(idx) {
     </div>
     <div class="detail-section">
       <div class="detail-section-title">Technical signals</div>
-      <div class="detail-row"><span class="label">RSI (14)</span><span class="val" style="color:${rsiColor(rsi)}">${rsi} · ${rsiLabel(rsi)}</span></div>
-      <div class="detail-row"><span class="label">Signal strength</span><span class="val">${rsi > 70 ? '🔴 Sell signal' : rsi > 62 ? '🟡 Watch closely' : rsi < 30 ? '🟢 Oversold' : '⚪ Neutral'}</span></div>
+      <div class="detail-row"><span class="label">RSI (14)</span><span class="val" style="color:${rsi !== null ? rsiColor(rsi) : 'var(--text3)'}">${rsi !== null ? rsi + ' · ' + rsiLabel(rsi) : 'Unavailable'}</span></div>
+      <div class="detail-row"><span class="label">Signal strength</span><span class="val">${rsi === null ? '⚪ RSI unavailable' : rsi > 70 ? '🔴 Sell signal' : rsi > 62 ? '🟡 Watch closely' : rsi < 30 ? '🟢 Oversold' : '⚪ Neutral'}</span></div>
     </div>
     ${taxHTML}
     <button class="delete-btn" onclick="deletePosition(${idx})">Remove position</button>
