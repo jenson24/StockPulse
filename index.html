@@ -465,11 +465,11 @@ async function refreshPrices() {
   if (!settings.apiKey) { showToast('Add API key in Settings first'); return; }
   const icon = $('refreshIcon');
   icon.classList.add('spinning');
-  const tickers = [...new Set(positions.map(p => p.ticker))];
+  const tickers = [...new Set(positions.map(p => p.ticker.toUpperCase()))];
   const prices = await fetchPrices(tickers);
   icon.classList.remove('spinning');
   if (Object.keys(prices).length > 0) {
-    positions = positions.map(p => ({ ...p, price: prices[p.ticker] || p.price }));
+    positions = positions.map(p => ({ ...p, price: prices[p.ticker.toUpperCase()] ?? p.price }));
     save();
     renderAll();
     showToast('Prices updated ✓');
