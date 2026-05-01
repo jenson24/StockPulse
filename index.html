@@ -426,15 +426,35 @@ async function fetchOneTicker(ticker) {
   return res.json();
 }
 
+function extractPrice(data, ticker) {
+  if (!data) return null;
+  // Shape 1: { body: { AAPL: { regularMarketPrice: ... } } }
+  if (data.body && typeof data.body === 'object' && !Array.isArray(data.body)) {
+    const v = data.body[ticker] || data.body[ticker.toUpperCase()] || data.body[ticker.toLowerCase()] || Object.values(data.body)[0];
+    if (v && v.regularMarketPrice != null) return parseFloat(v.regularMarketPrice);
+  }
+  // Shape 2: { body: [ { regularMarketPrice: ... } ] }
+  if (data.body && Array.isArray(data.body) && data.body[0]?.regularMarketPrice != null) {
+    return parseFloat(data.body[0].regularMarketPrice);
+  }
+  // Shape 3: flat { regularMarketPrice: ... }
+  if (data.regularMarketPrice != null) return parseFloat(data.regularMarketPrice);
+  // Shape 4: { quoteResponse: { result: [...] } }
+  if (data.quoteResponse?.result?.[0]?.regularMarketPrice != null) return parseFloat(data.quoteResponse.result[0].regularMarketPrice);
+  console.warn('Unknown API shape for', ticker, JSON.stringify(data).slice(0, 300));
+  return null;
+}
+
 async function fetchPrices(tickers) {
   if (!settings.apiKey || tickers.length === 0) return {};
   try {
-    const results = await Promise.all(tickers.map(t => fetchOneTicker(t).catch(() => null)));
+    const results = await Promise.all(
+      tickers.map(t => fetchOneTicker(t).catch(e => { console.warn('Fetch failed for', t, e); return null; }))
+    );
     const out = {};
     results.forEach((data, i) => {
-      if (!data || !data.body) return;
-      const v = Object.values(data.body)[0];
-      if (v && v.regularMarketPrice) out[tickers[i].toUpperCase()] = parseFloat(v.regularMarketPrice);
+      const price = extractPrice(data, tickers[i]);
+      if (price !== null && !isNaN(price)) out[tickers[i].toUpperCase()] = price;
     });
     return out;
   } catch(e) {
@@ -624,14 +644,24 @@ function saveBuyCache(ideas) {
   localStorage.setItem('sp-buy-cache', JSON.stringify({ date: todayStr(), ideas }));
 }
 
+function extractQuote(data, ticker) {
+  if (!data) return null;
+  if (data.body && typeof data.body === 'object' && !Array.isArray(data.body)) {
+    return data.body[ticker] || data.body[ticker.toUpperCase()] || data.body[ticker.toLowerCase()] || Object.values(data.body)[0] || null;
+  }
+  if (data.body && Array.isArray(data.body)) return data.body[0] || null;
+  if (data.regularMarketPrice != null) return data;
+  if (data.quoteResponse?.result?.[0]) return data.quoteResponse.result[0];
+  return null;
+}
+
 async function fetchMarketDataForWatchlist(tickers) {
   if (!settings.apiKey || tickers.length === 0) return [];
   try {
     const results = await Promise.all(tickers.map(t => fetchOneTicker(t).catch(() => null)));
     return results.flatMap((data, i) => {
-      if (!data || !data.body) return [];
-      const v = Object.values(data.body)[0];
-      if (!v || !v.regularMarketPrice) return [];
+      const v = extractQuote(data, tickers[i]);
+      if (!v || v.regularMarketPrice == null) return [];
       return [{
         ticker: tickers[i].toUpperCase(),
         name: v.shortName || v.longName || tickers[i],
