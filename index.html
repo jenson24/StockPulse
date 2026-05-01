@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="StockPulse"/>
+  <meta name="theme-color" content="#0a0a0a"/>
+  <title>StockPulse</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --bg2: #141414;
+      --bg3: #1e1e1e;
+      --bg4: #282828;
+      --border: rgba(255,255,255,0.08);
+      --border2: rgba(255,255,255,0.14);
+      --text: #f0f0f0;
+      --text2: #999;
+      --text3: #666;
+      --green: #00c97a;
+      --green-bg: rgba(0,201,122,0.12);
+      --red: #ff4d4d;
+      --red-bg: rgba(255,77,77,0.12);
+      --amber: #f5a623;
+      --amber-bg: rgba(245,166,35,0.12);
+      --blue: #4a9eff;
+      --blue-bg: rgba(74,158,255,0.12);
+      --accent: #4a9eff;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif; overscroll-behavior: none; }
+    body { display: flex; flex-direction: column; max-width: 430px; margin: 0 auto; position: relative; }
+
+    /* Header */
+    .header { padding: calc(var(--safe-top) + 16px) 20px 12px; background: var(--bg); border-bottom: 0.5px solid var(--border); position: sticky; top: 0; z-index: 10; }
+    .header-row { display: flex; justify-content: space-between; align-items: flex-start; }
+    .app-name { font-size: 12px; font-weight: 600; letter-spacing: 2px; color: var(--text3); text-transform: uppercase; margin-bottom: 4px; }
+    .portfolio-value { font-size: 36px; font-weight: 700; letter-spacing: -1px; color: var(--text); }
+    .portfolio-sub { font-size: 13px; color: var(--text2); margin-top: 3px; display: flex; align-items: center; gap: 8px; }
+    .pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+    .pill-green { background: var(--green-bg); color: var(--green); }
+    .pill-red { background: var(--red-bg); color: var(--red); }
+    .pill-amber { background: var(--amber-bg); color: var(--amber); }
+    .pill-blue { background: var(--blue-bg); color: var(--blue); }
+    .refresh-btn { background: var(--bg3); border: 0.5px solid var(--border); border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: opacity 0.2s; }
+    .refresh-btn:active { opacity: 0.6; }
+    .refresh-btn svg { width: 16px; height: 16px; }
+    .spinning { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Tabs */
+    .tabs { display: flex; padding: 0 20px; border-bottom: 0.5px solid var(--border); background: var(--bg); position: sticky; top: calc(var(--safe-top) + 104px); z-index: 9; }
+    .tab { flex: 1; text-align: center; padding: 10px 0; font-size: 13px; color: var(--text3); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -0.5px; transition: color 0.15s; position: relative; }
+    .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+    .tab-badge { position: absolute; top: 8px; right: 12px; background: var(--red); color: #fff; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 99px; display: none; }
+    .tab-badge.show { display: inline-block; }
+
+    /* Content */
+    .content { flex: 1; overflow-y: auto; padding-bottom: calc(var(--safe-bottom) + 80px); }
+    .page { display: none; }
+    .page.active { display: block; }
+    .section { padding: 16px 20px 0; }
+    .section-label { font-size: 11px; font-weight: 600; letter-spacing: 1px; color: var(--text3); text-transform: uppercase; margin-bottom: 12px; }
+
+    /* Position cards */
+    .pos-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+    .pos-card:active { background: var(--bg3); }
+    .pos-card.sell-alert { border-color: rgba(255,77,77,0.4); background: rgba(255,77,77,0.04); }
+    .pos-card.sell-warn { border-color: rgba(245,166,35,0.35); background: rgba(245,166,35,0.04); }
+    .pos-row1 { display: flex; justify-content: space-between; align-items: flex-start; }
+    .pos-ticker-wrap { display: flex; align-items: center; gap: 8px; }
+    .pos-ticker { font-size: 17px; font-weight: 700; }
+    .pos-name { font-size: 12px; color: var(--text3); margin-top: 2px; }
+    .pos-right { text-align: right; }
+    .pos-price { font-size: 17px; font-weight: 600; }
+    .pos-val { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+    /* Indicators */
+    .indicators { margin-top: 12px; padding-top: 12px; border-top: 0.5px solid var(--border); display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .ind { }
+    .ind-label { font-size: 10px; color: var(--text3); margin-bottom: 4px; }
+    .ind-track { height: 3px; background: var(--bg4); border-radius: 99px; overflow: hidden; }
+    .ind-fill { height: 100%; border-radius: 99px; }
+    .ind-val { font-size: 11px; font-weight: 600; margin-top: 4px; }
+
+    /* Tax row */
+    .tax-row { margin-top: 10px; padding: 8px 10px; background: var(--bg3); border-radius: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .tax-label { font-size: 11px; color: var(--text2); }
+    .tax-val { font-size: 12px; font-weight: 600; }
+
+    /* Add button */
+    .add-btn { width: 100%; margin-top: 4px; padding: 14px; border: 0.5px dashed var(--border2); border-radius: 16px; background: transparent; color: var(--text3); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.15s, color 0.15s; }
+    .add-btn:active { background: var(--bg3); color: var(--text2); }
+
+    /* Alert cards */
+    .alert-card { background: var(--red-bg); border: 0.5px solid rgba(255,77,77,0.25); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; }
+    .alert-card.warn { background: var(--amber-bg); border-color: rgba(245,166,35,0.25); }
+    .alert-ticker { font-size: 15px; font-weight: 700; color: var(--red); display: flex; align-items: center; gap: 6px; }
+    .alert-card.warn .alert-ticker { color: var(--amber); }
+    .alert-desc { font-size: 13px; color: var(--text2); margin-top: 5px; line-height: 1.5; }
+    .alert-tax { margin-top: 10px; padding-top: 10px; border-top: 0.5px solid var(--border); font-size: 12px; color: var(--text2); }
+    .alert-tax strong { color: var(--text); }
+
+    /* Buy cards */
+    .buy-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s; }
+    .buy-card:active { background: var(--bg3); }
+    .buy-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    .buy-ticker { font-size: 16px; font-weight: 700; }
+    .buy-name { font-size: 12px; color: var(--text3); margin-top: 2px; }
+    .buy-price { font-size: 15px; font-weight: 600; text-align: right; }
+    .buy-chg { font-size: 12px; text-align: right; margin-top: 2px; }
+    .buy-reason { font-size: 13px; color: var(--text2); line-height: 1.55; }
+    .score-circle { width: 42px; height: 42px; flex-shrink: 0; }
+
+    /* Settings */
+    .settings-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 10px; }
+    .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 0.5px solid var(--border); }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-label { font-size: 14px; }
+    .settings-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+    .settings-input { background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 8px; padding: 6px 10px; color: var(--text); font-size: 13px; width: 180px; text-align: right; }
+    .settings-input:focus { outline: none; border-color: var(--accent); }
+    .save-settings-btn { width: 100%; padding: 14px; background: var(--accent); color: #fff; border: none; border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 4px; transition: opacity 0.15s; }
+    .save-settings-btn:active { opacity: 0.8; }
+    .api-status { font-size: 12px; padding: 8px 12px; border-radius: 8px; margin-bottom: 10px; }
+    .api-ok { background: var(--green-bg); color: var(--green); }
+    .api-err { background: var(--red-bg); color: var(--red); }
+    .api-none { background: var(--bg3); color: var(--text3); }
+
+    /* Modal */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 50; display: none; align-items: flex-end; }
+    .modal-backdrop.open { display: flex; }
+    .modal { background: var(--bg2); border-radius: 24px 24px 0 0; padding: 20px 20px calc(var(--safe-bottom) + 24px); width: 100%; max-height: 90vh; overflow-y: auto; }
+    .modal-handle { width: 36px; height: 4px; background: var(--bg4); border-radius: 99px; margin: 0 auto 18px; }
+    .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 18px; }
+    .modal-subtitle { font-size: 12px; color: var(--text2); margin-bottom: 18px; line-height: 1.5; }
+    .field { margin-bottom: 14px; }
+    .field label { font-size: 12px; color: var(--text3); display: block; margin-bottom: 6px; font-weight: 500; letter-spacing: 0.3px; }
+    .field input { width: 100%; padding: 12px 14px; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 12px; color: var(--text); font-size: 15px; }
+    .field input:focus { outline: none; border-color: var(--accent); }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .btn-primary { width: 100%; padding: 15px; background: var(--accent); color: #fff; border: none; border-radius: 14px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 6px; }
+    .btn-secondary { width: 100%; padding: 15px; background: var(--bg3); color: var(--text2); border: none; border-radius: 14px; font-size: 15px; cursor: pointer; margin-top: 8px; }
+
+    /* Detail modal */
+    .detail-section { margin-bottom: 18px; }
+    .detail-section-title { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+    .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 0.5px solid var(--border); font-size: 14px; }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-row .label { color: var(--text2); }
+    .detail-row .val { font-weight: 500; }
+    .tax-scenario { background: var(--bg3); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
+    .tax-scenario-title { font-size: 12px; font-weight: 600; margin-bottom: 8px; color: var(--text2); }
+    .tax-big { font-size: 22px; font-weight: 700; }
+    .delete-btn { width: 100%; padding: 14px; background: var(--red-bg); color: var(--red); border: 0.5px solid rgba(255,77,77,0.25); border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+
+    /* Empty state */
+    .empty { text-align: center; padding: 60px 20px; color: var(--text3); }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-title { font-size: 16px; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
+    .empty-sub { font-size: 13px; line-height: 1.6; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: calc(var(--safe-bottom) + 90px); left: 50%; transform: translateX(-50%) translateY(20px); background: var(--bg4); border: 0.5px solid var(--border2); border-radius: 99px; padding: 10px 18px; font-size: 13px; color: var(--text); opacity: 0; transition: opacity 0.3s, transform 0.3s; pointer-events: none; white-space: nowrap; z-index: 100; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* Bottom nav */
+    .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: rgba(10,10,10,0.92); backdrop-filter: blur(20px); border-top: 0.5px solid var(--border); padding: 10px 0 calc(var(--safe-bottom) + 6px); display: flex; z-index: 20; }
+    .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 4px 0; }
+    .nav-icon { width: 24px; height: 24px; opacity: 0.4; transition: opacity 0.15s; }
+    .nav-label { font-size: 10px; color: var(--text3); transition: color 0.15s; }
+    .nav-item.active .nav-icon { opacity: 1; }
+    .nav-item.active .nav-label { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="app-name">StockPulse</div>
+  <div class="header-row">
+    <div>
+      <div class="portfolio-value" id="totalValue">$0.00</div>
+      <div class="portfolio-sub">
+        <span id="totalReturn">—</span>
+        <span id="alertPill" class="pill pill-red" style="display:none"></span>
+      </div>
+    </div>
+    <button class="refresh-btn" id="refreshBtn" title="Refresh prices">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" id="refreshIcon">
+        <path d="M23 4v6h-6M1 20v-6h6"/>
+        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="portfolio">Portfolio<span class="tab-badge" id="badge-portfolio"></span></div>
+  <div class="tab" data-tab="alerts">Signals<span class="tab-badge" id="badge-alerts"></span></div>
+  <div class="tab" data-tab="buys">Buy Ideas</div>
+  <div class="tab" data-tab="settings">Settings</div>
+</div>
+
+<div class="content">
+
+  <!-- PORTFOLIO -->
+  <div class="page active" id="page-portfolio">
+    <div class="section">
+      <div class="section-label">Positions</div>
+      <div id="positionsList"></div>
+      <button class="add-btn" id="addBtn">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v14M1 8h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Add position
+      </button>
+    </div>
+  </div>
+
+  <!-- ALERTS -->
+  <div class="page" id="page-alerts">
+    <div class="section">
+      <div class="section-label">Sell signals</div>
+      <div id="alertsList"></div>
+    </div>
+  </div>
+
+  <!-- BUY IDEAS -->
+  <div class="page" id="page-buys">
+    <div class="section">
+      <div class="section-label">Today's picks</div>
+      <div id="buysList"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="page" id="page-settings">
+    <div class="section">
+      <div class="section-label">API & Account</div>
+      <div id="apiStatus" class="api-status api-none">No API key saved — prices won't auto-refresh.</div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Yahoo Finance API Key</div>
+            <div class="settings-sub">From RapidAPI / Yahoo Finance</div>
+          </div>
+        </div>
+        <div class="settings-row">
+          <input class="settings-input" id="apiKeyInput" type="password" placeholder="Paste key here" style="width:100%"/>
+        </div>
+      </div>
+
+      <div class="section-label" style="margin-top:16px">AI Buy Ideas (Anthropic)</div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Anthropic API Key</div>
+            <div class="settings-sub">Powers dynamic daily buy ideas</div>
+          </div>
+        </div>
+        <div class="settings-row">
+          <input class="settings-input" id="anthropicKeyInput" type="password" placeholder="sk-ant-..." style="width:100%"/>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Watchlist tickers</div>
+            <div class="settings-sub">Comma-separated tickers to scan daily</div>
+          </div>
+        </div>
+        <div class="settings-row">
+          <input class="settings-input" id="watchlistInput" type="text" placeholder="AAPL,MSFT,NVDA,AMZN,GOOGL" style="width:100%;font-size:12px"/>
+        </div>
+      </div>
+
+      <div class="section-label" style="margin-top:16px">Tax settings</div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Short-term rate</div>
+            <div class="settings-sub">Ordinary income tax rate</div>
+          </div>
+          <input class="settings-input" id="stRateInput" type="number" placeholder="32" style="width:80px"/> <span style="color:var(--text3);font-size:14px;margin-left:4px">%</span>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Long-term rate</div>
+            <div class="settings-sub">Capital gains rate (0%, 15%, or 20%)</div>
+          </div>
+          <input class="settings-input" id="ltRateInput" type="number" placeholder="15" style="width:80px"/> <span style="color:var(--text3);font-size:14px;margin-left:4px">%</span>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">State tax rate</div>
+            <div class="settings-sub">Added to both ST and LT</div>
+          </div>
+          <input class="settings-input" id="stateRateInput" type="number" placeholder="0" style="width:80px"/> <span style="color:var(--text3);font-size:14px;margin-left:4px">%</span>
+        </div>
+      </div>
+      <button class="save-settings-btn" id="saveSettingsBtn">Save settings</button>
+
+      <div class="section-label" style="margin-top:16px">About</div>
+      <div class="settings-card">
+        <div class="settings-row"><div class="settings-label">Version</div><div style="font-size:13px;color:var(--text3)">1.0.0</div></div>
+        <div class="settings-row"><div class="settings-label">Data source</div><div style="font-size:13px;color:var(--text3)">Yahoo Finance</div></div>
+        <div class="settings-row"><div><div class="settings-label">Disclaimer</div><div class="settings-sub" style="max-width:220px">Not financial advice. For informational use only.</div></div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <div class="nav-item active" data-nav="portfolio">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>
+    <span class="nav-label">Portfolio</span>
+  </div>
+  <div class="nav-item" data-nav="alerts">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+    <span class="nav-label">Signals</span>
+  </div>
+  <div class="nav-item" data-nav="buys">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+    <span class="nav-label">Buy Ideas</span>
+  </div>
+  <div class="nav-item" data-nav="settings">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    <span class="nav-label">Settings</span>
+  </div>
+</nav>
+
+<!-- ADD POSITION MODAL -->
+<div class="modal-backdrop" id="addModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add position</div>
+    <div class="modal-subtitle">Purchase date determines long vs. short-term capital gains treatment (1 year threshold).</div>
+    <div class="field-row">
+      <div class="field"><label>TICKER *</label><input id="f-ticker" placeholder="AAPL" style="text-transform:uppercase"/></div>
+      <div class="field"><label>COMPANY NAME</label><input id="f-name" placeholder="Apple Inc."/></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>SHARES *</label><input id="f-shares" type="number" placeholder="10"/></div>
+      <div class="field"><label>AVG COST / SHARE *</label><input id="f-cost" type="number" step="0.01" placeholder="150.00"/></div>
+    </div>
+    <div class="field"><label>PURCHASE DATE *</label><input id="f-date" type="date"/></div>
+    <div class="field"><label>CURRENT PRICE (auto-fetched if API key set)</label><input id="f-price" type="number" step="0.01" placeholder="178.50"/></div>
+    <button class="btn-primary" id="savePositionBtn">Add position</button>
+    <button class="btn-secondary" id="cancelAddBtn">Cancel</button>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-backdrop" id="detailModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+let positions = JSON.parse(localStorage.getItem('sp-positions') || '[]');
+let settings = JSON.parse(localStorage.getItem('sp-settings') || '{"apiKey":"","anthropicKey":"","watchlist":"","stRate":32,"ltRate":15,"stateRate":0}');
+let liveprices = {};
+let cachedBuyIdeas = null;
+let buyIdeasGeneratedDate = null;
+
+// ─── Utilities ────────────────────────────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+function fmt(n, d=2) { return n.toLocaleString('en-US', {minimumFractionDigits:d, maximumFractionDigits:d}); }
+function fmtUSD(n) { return '$' + fmt(n); }
+function showToast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+function save() { localStorage.setItem('sp-positions', JSON.stringify(positions)); }
+
+function daysSince(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr + 'T00:00:00');
+  return Math.floor((Date.now() - d.getTime()) / 86400000);
+}
+function isLongTerm(dateStr) { const d = daysSince(dateStr); return d !== null && d > 365; }
+function holdingLabel(dateStr) {
+  const d = daysSince(dateStr);
+  if (d === null) return '—';
+  if (d > 365) return Math.floor(d/365) + 'y ' + (Math.floor((d%365)/30)) + 'm';
+  return d + ' days';
+}
+
+function calcTax(gain, dateStr) {
+  if (gain <= 0) return null;
+  const lt = isLongTerm(dateStr);
+  const fedRate = lt ? (settings.ltRate || 15) : (settings.stRate || 32);
+  const stateRate = settings.stateRate || 0;
+  const totalRate = fedRate + stateRate;
+  const taxDue = gain * (totalRate / 100);
+  const netProceeds = gain - taxDue;
+  return { lt, fedRate, stateRate, totalRate, taxDue, netProceeds };
+}
+
+// RSI simulation (in production this comes from the API)
+function mockRSI(ticker, price, cost) {
+  const seed = ticker.split('').reduce((a,c) => a + c.charCodeAt(0), 0);
+  const pnlPct = (price - cost) / cost * 100;
+  let base = 50 + pnlPct * 0.8 + (seed % 20 - 10);
+  return Math.min(95, Math.max(15, Math.round(base)));
+}
+function rsiColor(v) { return v > 70 ? '#ff4d4d' : v < 30 ? '#00c97a' : '#999'; }
+function rsiLabel(v) { return v > 70 ? 'Overbought' : v < 30 ? 'Oversold' : 'Neutral'; }
+
+// ─── API: Yahoo Finance via RapidAPI ──────────────────────────────────────────
+async function fetchPrices(tickers) {
+  if (!settings.apiKey || tickers.length === 0) return {};
+  const url = `https://yahoo-finance15.p.rapidapi.com/api/v1/markets/quote?ticker=${tickers.join(',')}&type=STOCKS`;
+  try {
+    const res = await fetch(url, {
+      headers: { 'X-RapidAPI-Key': settings.apiKey, 'X-RapidAPI-Host': 'yahoo-finance15.p.rapidapi.com' }
+    });
+    if (!res.ok) throw new Error('API error ' + res.status);
+    const data = await res.json();
+    const out = {};
+    if (data && data.body) {
+      Object.entries(data.body).forEach(([k, v]) => {
+        if (v && v.regularMarketPrice) out[k.toUpperCase()] = parseFloat(v.regularMarketPrice);
+      });
+    }
+    return out;
+  } catch(e) {
+    console.error('Price fetch failed:', e);
+    return {};
+  }
+}
+
+async function refreshPrices() {
+  if (!settings.apiKey) { showToast('Add API key in Settings first'); return; }
+  const icon = $('refreshIcon');
+  icon.classList.add('spinning');
+  const tickers = [...new Set(positions.map(p => p.ticker))];
+  const prices = await fetchPrices(tickers);
+  icon.classList.remove('spinning');
+  if (Object.keys(prices).length > 0) {
+    positions = positions.map(p => ({ ...p, price: prices[p.ticker] || p.price }));
+    save();
+    renderAll();
+    showToast('Prices updated ✓');
+    updateApiStatus(true);
+  } else {
+    showToast('Could not fetch prices — check API key');
+    updateApiStatus(false);
+  }
+}
+
+function updateApiStatus(ok) {
+  const el = $('apiStatus');
+  if (!settings.apiKey) {
+    el.className = 'api-status api-none'; el.textContent = 'No API key — prices are manually entered.';
+  } else if (ok === true) {
+    el.className = 'api-status api-ok'; el.textContent = '✓ API connected — prices auto-refresh on open.';
+  } else if (ok === false) {
+    el.className = 'api-status api-err'; el.textContent = '✗ API error — check your key in Settings.';
+  } else {
+    el.className = 'api-status api-none'; el.textContent = 'API key saved — tap refresh to test.';
+  }
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function renderPortfolio() {
+  const el = $('positionsList');
+  if (positions.length === 0) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">📈</div><div class="empty-title">No positions yet</div><div class="empty-sub">Tap "Add position" to start tracking your portfolio.</div></div>`;
+    $('totalValue').textContent = '$0.00';
+    $('totalReturn').textContent = '—';
+    $('alertPill').style.display = 'none';
+    return;
+  }
+
+  let totalVal = 0, totalCost = 0, alertCount = 0;
+  el.innerHTML = positions.map((p, i) => {
+    const val = p.shares * p.price;
+    const cost = p.shares * p.cost;
+    const gain = val - cost;
+    const pnlPct = ((p.price - p.cost) / p.cost * 100);
+    const rsi = mockRSI(p.ticker, p.price, p.cost);
+    const isAlert = rsi > 70 || pnlPct > 25;
+    const isWarn = !isAlert && (rsi > 62 || pnlPct > 15);
+    if (isAlert) alertCount++;
+    totalVal += val; totalCost += cost;
+
+    const cardClass = isAlert ? 'pos-card sell-alert' : isWarn ? 'pos-card sell-warn' : 'pos-card';
+    const holdLabel = holdingLabel(p.purchaseDate);
+    const lt = isLongTerm(p.purchaseDate);
+    const taxInfo = calcTax(gain, p.purchaseDate);
+
+    const pnlColor = pnlPct >= 0 ? 'var(--green)' : 'var(--red)';
+    const rsiW = rsi + '%';
+    const rsiC = rsiColor(rsi);
+    const pnlBarW = Math.min(Math.abs(pnlPct) * 2, 100) + '%';
+    const pnlBarC = pnlPct >= 0 ? 'var(--green)' : 'var(--red)';
+
+    const alertPill = isAlert ? `<span class="pill pill-red">Sell signal</span>` : isWarn ? `<span class="pill pill-amber">Watch</span>` : '';
+    const termPill = p.purchaseDate ? `<span class="pill ${lt ? 'pill-green' : 'pill-amber'}" style="font-size:10px">${lt ? 'Long-term' : 'Short-term'}</span>` : '';
+    const taxLine = taxInfo ? `<div class="tax-row"><span class="tax-label">Est. tax if sold today</span><span class="tax-val" style="color:var(--red)">${fmtUSD(taxInfo.taxDue)} <span style="color:var(--text3);font-weight:400;font-size:10px">(${taxInfo.totalRate}%)</span></span></div>` : '';
+
+    return `<div class="${cardClass}" onclick="openDetail(${i})">
+      <div class="pos-row1">
+        <div>
+          <div class="pos-ticker-wrap">
+            <span class="pos-ticker">${p.ticker}</span>
+            ${alertPill}
+          </div>
+          <div class="pos-name">${p.name || ''} ${termPill}</div>
+        </div>
+        <div class="pos-right">
+          <div class="pos-price">${fmtUSD(p.price)}</div>
+          <div class="pos-val" style="color:${pnlColor}">${pnlPct >= 0 ? '+' : ''}${fmt(pnlPct)}% · ${fmtUSD(val)}</div>
+        </div>
+      </div>
+      <div class="indicators">
+        <div class="ind">
+          <div class="ind-label">RSI (14)</div>
+          <div class="ind-track"><div class="ind-fill" style="width:${rsiW};background:${rsiC}"></div></div>
+          <div class="ind-val" style="color:${rsiC}">${rsi} · ${rsiLabel(rsi)}</div>
+        </div>
+        <div class="ind">
+          <div class="ind-label">P&amp;L vs cost</div>
+          <div class="ind-track"><div class="ind-fill" style="width:${pnlBarW};background:${pnlBarC}"></div></div>
+          <div class="ind-val" style="color:${pnlBarC}">${pnlPct >= 0 ? '+' : ''}${fmt(pnlPct)}%</div>
+        </div>
+        <div class="ind">
+          <div class="ind-label">Held</div>
+          <div class="ind-track"><div class="ind-fill" style="width:${lt ? '100' : '50'}%;background:${lt ? 'var(--green)' : 'var(--amber)'}"></div></div>
+          <div class="ind-val" style="color:${lt ? 'var(--green)' : 'var(--amber)'}">${holdLabel}</div>
+        </div>
+      </div>
+      ${taxLine}
+    </div>`;
+  }).join('');
+
+  const totalPnl = totalCost > 0 ? (totalVal - totalCost) / totalCost * 100 : 0;
+  const totalGain = totalVal - totalCost;
+  $('totalValue').textContent = fmtUSD(totalVal);
+  $('totalReturn').innerHTML = `<span style="color:${totalGain >= 0 ? 'var(--green)' : 'var(--red)'}">${totalGain >= 0 ? '+' : ''}${fmtUSD(totalGain)} (${fmt(totalPnl)}%)</span>`;
+
+  const pill = $('alertPill');
+  if (alertCount > 0) { pill.style.display = 'inline-flex'; pill.textContent = alertCount + ' sell signal' + (alertCount > 1 ? 's' : ''); }
+  else { pill.style.display = 'none'; }
+
+  const badge = $('badge-alerts');
+  if (alertCount > 0) { badge.textContent = alertCount; badge.classList.add('show'); }
+  else badge.classList.remove('show');
+}
+
+function renderAlerts() {
+  const el = $('alertsList');
+  const alerts = positions.map((p, i) => {
+    const rsi = mockRSI(p.ticker, p.price, p.cost);
+    const pnl = (p.price - p.cost) / p.cost * 100;
+    const gain = (p.price - p.cost) * p.shares;
+    const taxInfo = calcTax(gain, p.purchaseDate);
+    const isAlert = rsi > 70 || pnl > 25;
+    const isWarn = !isAlert && (rsi > 62 || pnl > 15);
+    return { ...p, i, rsi, pnl, gain, taxInfo, isAlert, isWarn };
+  }).filter(p => p.isAlert || p.isWarn);
+
+  if (alerts.length === 0) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">No signals right now</div><div class="empty-sub">Your positions are all within healthy RSI ranges. Check back daily.</div></div>`;
+    return;
+  }
+
+  el.innerHTML = alerts.map(p => {
+    const reasons = [];
+    if (p.rsi > 70) reasons.push(`RSI ${p.rsi} — technically overbought`);
+    if (p.rsi > 62 && p.rsi <= 70) reasons.push(`RSI ${p.rsi} — approaching overbought`);
+    if (p.pnl > 25) reasons.push(`Up ${fmt(p.pnl)}% — consider taking profits`);
+    else if (p.pnl > 15) reasons.push(`Up ${fmt(p.pnl)}% — watch for exit opportunity`);
+
+    const lt = isLongTerm(p.purchaseDate);
+    const taxLine = p.taxInfo ? `<div class="alert-tax">
+      If sold today: <strong style="color:var(--red)">${fmtUSD(p.taxInfo.taxDue)}</strong> in estimated ${lt ? 'long-term' : 'short-term'} cap gains tax
+      (${p.taxInfo.fedRate}% fed${p.taxInfo.stateRate > 0 ? ' + ' + p.taxInfo.stateRate + '% state' : ''}) ·
+      Net proceeds: <strong>${fmtUSD(p.gain - p.taxInfo.taxDue)}</strong>
+    </div>` : '';
+
+    return `<div class="${p.isAlert ? 'alert-card' : 'alert-card warn'}" onclick="openDetail(${p.i})">
+      <div class="alert-ticker">
+        ${p.ticker}
+        <span class="pill ${p.isAlert ? 'pill-red' : 'pill-amber'}" style="font-size:10px">${p.isAlert ? 'Sell signal' : 'Watch'}</span>
+        <span class="pill ${lt ? 'pill-green' : 'pill-amber'}" style="font-size:10px">${lt ? 'LT gains' : 'ST gains'}</span>
+      </div>
+      <div class="alert-desc">${reasons.join(' · ')}</div>
+      ${taxLine}
+    </div>`;
+  }).join('');
+}
+
+// ─── AI Buy Ideas Engine ──────────────────────────────────────────────────────
+const DEFAULT_WATCHLIST = 'AAPL,MSFT,NVDA,AMZN,GOOGL,META,TSLA,JPM,BRK.B,XLV,V,UNH,HD,PG,JNJ';
+
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+
+function loadCachedBuys() {
+  try {
+    const raw = localStorage.getItem('sp-buy-cache');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed.date === todayStr()) return parsed.ideas;
+  } catch(e) {}
+  return null;
+}
+
+function saveBuyCache(ideas) {
+  localStorage.setItem('sp-buy-cache', JSON.stringify({ date: todayStr(), ideas }));
+}
+
+async function fetchMarketDataForWatchlist(tickers) {
+  if (!settings.apiKey || tickers.length === 0) return [];
+  const url = `https://yahoo-finance15.p.rapidapi.com/api/v1/markets/quote?ticker=${tickers.join(',')}&type=STOCKS`;
+  try {
+    const res = await fetch(url, { headers: { 'X-RapidAPI-Key': settings.apiKey, 'X-RapidAPI-Host': 'yahoo-finance15.p.rapidapi.com' } });
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!data || !data.body) return [];
+    return Object.entries(data.body).map(([ticker, v]) => ({
+      ticker: ticker.toUpperCase(),
+      name: v.shortName || v.longName || ticker,
+      price: v.regularMarketPrice,
+      change: v.regularMarketChangePercent ? (v.regularMarketChangePercent > 0 ? '+' : '') + v.regularMarketChangePercent.toFixed(2) + '%' : '0%',
+      volume: v.regularMarketVolume,
+      avgVolume: v.averageDailyVolume3Month,
+      fiftyTwoWeekHigh: v.fiftyTwoWeekHigh,
+      fiftyTwoWeekLow: v.fiftyTwoWeekLow,
+      marketCap: v.marketCap,
+      peRatio: v.trailingPE,
+      eps: v.epsTrailingTwelveMonths,
+      dividendYield: v.trailingAnnualDividendYield,
+    })).filter(s => s.price > 0);
+  } catch(e) { return []; }
+}
+
+async function generateBuyIdeasWithAI(marketData, portfolioTickers) {
+  if (!settings.anthropicKey) return null;
+
+  const portfolioContext = portfolioTickers.length > 0
+    ? `The user currently holds: ${portfolioTickers.join(', ')}. Avoid recommending stocks already in the portfolio.`
+    : 'The user has no current positions.';
+
+  const marketSummary = marketData.map(s =>
+    `${s.ticker} (${s.name}): $${s.price?.toFixed(2)}, ${s.change} today, ` +
+    `52w range $${s.fiftyTwoWeekLow?.toFixed(0)}–$${s.fiftyTwoWeekHigh?.toFixed(0)}, ` +
+    `P/E ${s.peRatio?.toFixed(1) || 'N/A'}, ` +
+    `Vol ${s.volume > 1e6 ? (s.volume/1e6).toFixed(1)+'M' : s.volume}, ` +
+    `AvgVol ${s.avgVolume > 1e6 ? (s.avgVolume/1e6).toFixed(1)+'M' : s.avgVolume}`
+  ).join('\n');
+
+  const prompt = `You are a technical stock analyst. Analyze the following market data and select the 5 best buy opportunities for today.
+
+${portfolioContext}
+
+Today's market data:
+${marketSummary}
+
+For each pick, evaluate:
+- Momentum signals (price vs. 52-week range position, recent price change, volume vs. average)
+- Value signals (P/E ratio relative to sector, EPS)
+- Diversification (recommend a mix of sectors/categories)
+
+Score each pick 0–100 where:
+- 80–100: Strong setup, multiple confirming signals
+- 65–79: Good setup, 1–2 confirming signals  
+- 50–64: Speculative, early-stage signal
+
+Respond with ONLY a valid JSON array, no markdown, no preamble:
+[
+  {
+    "ticker": "AAPL",
+    "name": "Apple Inc.",
+    "price": 178.50,
+    "change": "+1.2%",
+    "score": 82,
+    "tag": "Momentum",
+    "reason": "2-3 sentence technical rationale citing specific data points from the market data above."
+  }
+]
+
+Tag must be one of: Momentum, Value, Sector, Dividend, Growth`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.map(c => c.text || '').join('');
+    const clean = text.replace(/```json|```/g, '').trim();
+    return JSON.parse(clean);
+  } catch(e) {
+    console.error('AI generation failed:', e);
+    return null;
+  }
+}
+
+async function loadBuyIdeas(forceRefresh = false) {
+  const el = $('buysList');
+
+  // Use cache if available and not forcing refresh
+  if (!forceRefresh) {
+    const cached = loadCachedBuys();
+    if (cached) { cachedBuyIdeas = cached; renderBuyCards(cached); return; }
+  }
+
+  // Show loading state
+  el.innerHTML = `<div style="text-align:center;padding:40px 20px">
+    <div style="font-size:13px;color:var(--text3);margin-bottom:12px">Analyzing market data with AI...</div>
+    <div style="display:flex;justify-content:center;gap:6px">
+      <div style="width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.2s ease-in-out infinite"></div>
+      <div style="width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.2s ease-in-out 0.4s infinite"></div>
+      <div style="width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.2s ease-in-out 0.8s infinite"></div>
+    </div>
+  </div>
+  <style>@keyframes pulse{0%,100%{opacity:0.2}50%{opacity:1}}</style>`;
+
+  const watchlistRaw = settings.watchlist || DEFAULT_WATCHLIST;
+  const tickers = watchlistRaw.split(',').map(t => t.trim().toUpperCase()).filter(Boolean);
+  const portfolioTickers = positions.map(p => p.ticker);
+
+  let ideas = null;
+
+  // Step 1: Fetch live market data if API key available
+  let marketData = [];
+  if (settings.apiKey) {
+    marketData = await fetchMarketDataForWatchlist(tickers);
+  }
+
+  // Step 2: Generate AI analysis if Anthropic key available
+  if (settings.anthropicKey && marketData.length > 0) {
+    ideas = await generateBuyIdeasWithAI(marketData, portfolioTickers);
+  }
+
+  // Step 3: Fallback — AI with no market data (uses training knowledge)
+  if (!ideas && settings.anthropicKey) {
+    ideas = await generateBuyIdeasWithAI(
+      tickers.slice(0,10).map(t => ({ ticker: t, name: t, price: null, change: null,
+        fiftyTwoWeekLow: null, fiftyTwoWeekHigh: null, peRatio: null, volume: null, avgVolume: null })),
+      portfolioTickers
+    );
+  }
+
+  if (ideas && ideas.length > 0) {
+    // Merge live prices into AI results if available
+    if (marketData.length > 0) {
+      ideas = ideas.map(idea => {
+        const live = marketData.find(m => m.ticker === idea.ticker);
+        if (live) { idea.price = live.price; idea.change = live.change; }
+        return idea;
+      });
+    }
+    saveBuyCache(ideas);
+    cachedBuyIdeas = ideas;
+    renderBuyCards(ideas);
+    showToast('Buy ideas refreshed ✓');
+  } else {
+    el.innerHTML = `<div class="empty">
+      <div class="empty-icon">🤖</div>
+      <div class="empty-title">Add API keys to enable AI picks</div>
+      <div class="empty-sub">Go to Settings and add your Anthropic API key (for AI analysis) and optionally your Yahoo Finance key (for live market data).</div>
+    </div>`;
+  }
+}
+
+function renderBuyCards(ideas) {
+  const el = $('buysList');
+  const cached = loadCachedBuys();
+  const isToday = !!cached;
+  const lastUpdated = isToday ? `Today · ${new Date().toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'})}` : 'Cached';
+
+  el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <span style="font-size:11px;color:var(--text3)">Generated ${lastUpdated}</span>
+    <button onclick="loadBuyIdeas(true)" style="background:var(--bg3);border:0.5px solid var(--border2);border-radius:99px;padding:4px 12px;color:var(--text2);font-size:11px;cursor:pointer">↻ Refresh</button>
+  </div>` + ideas.map(b => {
+    const score = Math.round(b.score);
+    const c = score >= 80 ? '#00c97a' : score >= 65 ? '#f5a623' : '#999';
+    const arc = 2 * Math.PI * 16;
+    const dash = (score / 100) * arc;
+    const chgColor = (b.change || '').startsWith('+') ? 'var(--green)' : 'var(--red)';
+    const tagClass = b.tag === 'Momentum' || b.tag === 'Growth' ? 'pill-green' : b.tag === 'Value' || b.tag === 'Dividend' ? 'pill-amber' : 'pill-blue';
+    const priceStr = b.price ? '$' + parseFloat(b.price).toFixed(2) : 'N/A';
+    return `<div class="buy-card">
+      <div class="buy-top">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="buy-ticker">${b.ticker}</span>
+            <span class="pill ${tagClass}" style="font-size:10px">${b.tag}</span>
+          </div>
+          <div class="buy-name">${b.name}</div>
+          <div class="buy-price">${priceStr}</div>
+          ${b.change ? `<div class="buy-chg" style="color:${chgColor}">${b.change} today</div>` : ''}
+        </div>
+        <svg class="score-circle" viewBox="0 0 42 42" role="img" aria-label="Score ${score} out of 100">
+          <circle cx="21" cy="21" r="16" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="3.5"/>
+          <circle cx="21" cy="21" r="16" fill="none" stroke="${c}" stroke-width="3.5"
+            stroke-dasharray="${dash.toFixed(1)} ${arc.toFixed(1)}" stroke-linecap="round" transform="rotate(-90 21 21)"/>
+          <text x="21" y="26" text-anchor="middle" font-size="11" font-weight="700" fill="${c}">${score}</text>
+        </svg>
+      </div>
+      <div class="buy-reason">${b.reason}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderBuys() { loadBuyIdeas(false); }
+
+function renderSettings() {
+  $('apiKeyInput').value = settings.apiKey || '';
+  $('anthropicKeyInput').value = settings.anthropicKey || '';
+  $('watchlistInput').value = settings.watchlist || DEFAULT_WATCHLIST;
+  $('stRateInput').value = settings.stRate || 32;
+  $('ltRateInput').value = settings.ltRate || 15;
+  $('stateRateInput').value = settings.stateRate || 0;
+  updateApiStatus(settings.apiKey ? null : false);
+}
+
+function renderAll() { renderPortfolio(); }
+
+// ─── Detail modal ─────────────────────────────────────────────────────────────
+function openDetail(idx) {
+  const p = positions[idx];
+  if (!p) return;
+  const rsi = mockRSI(p.ticker, p.price, p.cost);
+  const val = p.shares * p.price;
+  const costBasis = p.shares * p.cost;
+  const gain = val - costBasis;
+  const pnlPct = (p.price - p.cost) / p.cost * 100;
+  const lt = isLongTerm(p.purchaseDate);
+  const taxInfo = calcTax(gain, p.purchaseDate);
+
+  const stTax = gain > 0 ? gain * ((settings.stRate + settings.stateRate) / 100) : 0;
+  const ltTax = gain > 0 ? gain * ((settings.ltRate + settings.stateRate) / 100) : 0;
+
+  let taxHTML = '';
+  if (gain > 0) {
+    taxHTML = `
+    <div class="detail-section">
+      <div class="detail-section-title">Tax implications — if sold today</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div class="tax-scenario" style="${lt ? 'border:1px solid rgba(0,201,122,0.3)' : ''}">
+          <div class="tax-scenario-title" style="color:${lt ? 'var(--green)' : 'var(--text3)'}">Long-term ${lt ? '✓ Applies' : '(not yet)'}</div>
+          <div class="tax-big" style="color:var(--red)">${fmtUSD(ltTax)}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">${settings.ltRate}% fed + ${settings.stateRate}% state = ${settings.ltRate + settings.stateRate}%</div>
+          <div style="font-size:12px;color:var(--green);margin-top:6px">Net: ${fmtUSD(gain - ltTax)}</div>
+        </div>
+        <div class="tax-scenario" style="${!lt ? 'border:1px solid rgba(245,166,35,0.3)' : ''}">
+          <div class="tax-scenario-title" style="color:${!lt ? 'var(--amber)' : 'var(--text3)'}">Short-term ${!lt ? '✓ Applies' : '(was applicable)'}</div>
+          <div class="tax-big" style="color:var(--red)">${fmtUSD(stTax)}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">${settings.stRate}% fed + ${settings.stateRate}% state = ${settings.stRate + settings.stateRate}%</div>
+          <div style="font-size:12px;color:var(--green);margin-top:6px">Net: ${fmtUSD(gain - stTax)}</div>
+        </div>
+      </div>
+      ${p.purchaseDate && !lt ? `<div style="background:var(--amber-bg);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--amber)">
+        ⚠️ Holding ${holdingLabel(p.purchaseDate)} — wait until ${new Date(new Date(p.purchaseDate+'T00:00:00').getTime() + 366*86400000).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} for long-term rate. Tax savings: ${fmtUSD(stTax - ltTax)}.
+      </div>` : ''}
+      ${lt ? `<div style="background:var(--green-bg);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--green)">
+        ✓ Held over 1 year — long-term capital gains rate applies. Savings vs. short-term: ${fmtUSD(stTax - ltTax)}.
+      </div>` : ''}
+    </div>`;
+  } else if (gain < 0) {
+    taxHTML = `<div class="detail-section">
+      <div class="detail-section-title">Tax implications</div>
+      <div style="background:var(--green-bg);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--green)">
+        This position has an unrealized loss of ${fmtUSD(Math.abs(gain))}. Selling would harvest a tax loss you can use to offset other gains (tax-loss harvesting).
+      </div>
+    </div>`;
+  }
+
+  $('detailContent').innerHTML = `
+    <div class="modal-title">${p.ticker} <span style="font-size:14px;color:var(--text3);font-weight:400">${p.name || ''}</span></div>
+    <div class="detail-section">
+      <div class="detail-section-title">Position summary</div>
+      <div class="detail-row"><span class="label">Shares</span><span class="val">${fmt(p.shares, 4)}</span></div>
+      <div class="detail-row"><span class="label">Avg cost</span><span class="val">${fmtUSD(p.cost)}</span></div>
+      <div class="detail-row"><span class="label">Current price</span><span class="val">${fmtUSD(p.price)}</span></div>
+      <div class="detail-row"><span class="label">Market value</span><span class="val">${fmtUSD(val)}</span></div>
+      <div class="detail-row"><span class="label">Cost basis</span><span class="val">${fmtUSD(costBasis)}</span></div>
+      <div class="detail-row"><span class="label">Unrealized gain/loss</span><span class="val" style="color:${gain >= 0 ? 'var(--green)' : 'var(--red)'}">${gain >= 0 ? '+' : ''}${fmtUSD(gain)} (${fmt(pnlPct)}%)</span></div>
+      <div class="detail-row"><span class="label">Purchase date</span><span class="val">${p.purchaseDate ? new Date(p.purchaseDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'}</span></div>
+      <div class="detail-row"><span class="label">Holding period</span><span class="val">${holdingLabel(p.purchaseDate)} <span class="pill ${lt ? 'pill-green' : 'pill-amber'}" style="font-size:10px">${lt ? 'Long-term' : 'Short-term'}</span></span></div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Technical signals</div>
+      <div class="detail-row"><span class="label">RSI (14)</span><span class="val" style="color:${rsiColor(rsi)}">${rsi} · ${rsiLabel(rsi)}</span></div>
+      <div class="detail-row"><span class="label">Signal strength</span><span class="val">${rsi > 70 ? '🔴 Sell signal' : rsi > 62 ? '🟡 Watch closely' : rsi < 30 ? '🟢 Oversold' : '⚪ Neutral'}</span></div>
+    </div>
+    ${taxHTML}
+    <button class="delete-btn" onclick="deletePosition(${idx})">Remove position</button>
+    <button class="btn-secondary" onclick="closeDetail()">Close</button>
+  `;
+  $('detailModal').classList.add('open');
+}
+
+function closeDetail() { $('detailModal').classList.remove('open'); }
+
+function deletePosition(idx) {
+  const t = positions[idx].ticker;
+  positions.splice(idx, 1);
+  save();
+  closeDetail();
+  renderAll();
+  showToast(`${t} removed`);
+}
+
+// ─── Event listeners ──────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    t.classList.add('active');
+    $('page-' + t.dataset.tab).classList.add('active');
+    if (t.dataset.tab === 'alerts') renderAlerts();
+    if (t.dataset.tab === 'buys') renderBuys();
+    if (t.dataset.tab === 'settings') renderSettings();
+  });
+});
+
+document.querySelectorAll('.nav-item').forEach(n => {
+  n.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    n.classList.add('active');
+    const tab = n.dataset.nav;
+    document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+    $('page-' + tab).classList.add('active');
+    if (tab === 'alerts') renderAlerts();
+    if (tab === 'buys') renderBuys();
+    if (tab === 'settings') renderSettings();
+  });
+});
+
+$('addBtn').addEventListener('click', () => {
+  $('f-date').valueAsDate = new Date();
+  $('addModal').classList.add('open');
+});
+$('cancelAddBtn').addEventListener('click', () => $('addModal').classList.remove('open'));
+$('detailModal').addEventListener('click', e => { if (e.target === $('detailModal')) closeDetail(); });
+$('addModal').addEventListener('click', e => { if (e.target === $('addModal')) $('addModal').classList.remove('open'); });
+
+$('savePositionBtn').addEventListener('click', () => {
+  const ticker = $('f-ticker').value.trim().toUpperCase();
+  const shares = parseFloat($('f-shares').value);
+  const cost = parseFloat($('f-cost').value);
+  const price = parseFloat($('f-price').value);
+  const purchaseDate = $('f-date').value;
+  if (!ticker || isNaN(shares) || isNaN(cost)) { showToast('Fill in required fields'); return; }
+  positions.push({ ticker, name: $('f-name').value.trim(), shares, cost, price: isNaN(price) ? cost : price, purchaseDate });
+  save();
+  $('addModal').classList.remove('open');
+  ['f-ticker','f-name','f-shares','f-cost','f-price'].forEach(id => $(id).value = '');
+  renderAll();
+  showToast(`${ticker} added`);
+  if (settings.apiKey) refreshPrices();
+});
+
+$('saveSettingsBtn').addEventListener('click', () => {
+  const oldWatchlist = settings.watchlist;
+  settings.apiKey = $('apiKeyInput').value.trim();
+  settings.anthropicKey = $('anthropicKeyInput').value.trim();
+  settings.watchlist = $('watchlistInput').value.trim();
+  settings.stRate = parseFloat($('stRateInput').value) || 32;
+  settings.ltRate = parseFloat($('ltRateInput').value) || 15;
+  settings.stateRate = parseFloat($('stateRateInput').value) || 0;
+  localStorage.setItem('sp-settings', JSON.stringify(settings));
+  // Bust buy cache if watchlist changed
+  if (oldWatchlist !== settings.watchlist) localStorage.removeItem('sp-buy-cache');
+  showToast('Settings saved');
+  updateApiStatus(settings.apiKey ? null : false);
+  renderAll();
+});
+
+$('refreshBtn').addEventListener('click', refreshPrices);
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+renderBuys();
+renderAll();
+updateApiStatus(settings.apiKey ? null : false);
+if (settings.apiKey && positions.length > 0) refreshPrices();
+</script>
+</body>
+</html>
