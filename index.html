@@ -417,21 +417,25 @@ function rsiColor(v) { return v > 70 ? '#ff4d4d' : v < 30 ? '#00c97a' : '#999'; 
 function rsiLabel(v) { return v > 70 ? 'Overbought' : v < 30 ? 'Oversold' : 'Neutral'; }
 
 // ─── API: Yahoo Finance via RapidAPI ──────────────────────────────────────────
+async function fetchOneTicker(ticker) {
+  const url = `https://yahoo-finance15.p.rapidapi.com/api/v1/markets/quote?ticker=${encodeURIComponent(ticker)}&type=STOCKS`;
+  const res = await fetch(url, {
+    headers: { 'X-RapidAPI-Key': settings.apiKey, 'X-RapidAPI-Host': 'yahoo-finance15.p.rapidapi.com' }
+  });
+  if (!res.ok) throw new Error('API error ' + res.status);
+  return res.json();
+}
+
 async function fetchPrices(tickers) {
   if (!settings.apiKey || tickers.length === 0) return {};
-  const url = `https://yahoo-finance15.p.rapidapi.com/api/v1/markets/quote?ticker=${tickers.join(',')}&type=STOCKS`;
   try {
-    const res = await fetch(url, {
-      headers: { 'X-RapidAPI-Key': settings.apiKey, 'X-RapidAPI-Host': 'yahoo-finance15.p.rapidapi.com' }
-    });
-    if (!res.ok) throw new Error('API error ' + res.status);
-    const data = await res.json();
+    const results = await Promise.all(tickers.map(t => fetchOneTicker(t).catch(() => null)));
     const out = {};
-    if (data && data.body) {
-      Object.entries(data.body).forEach(([k, v]) => {
-        if (v && v.regularMarketPrice) out[k.toUpperCase()] = parseFloat(v.regularMarketPrice);
-      });
-    }
+    results.forEach((data, i) => {
+      if (!data || !data.body) return;
+      const v = Object.values(data.body)[0];
+      if (v && v.regularMarketPrice) out[tickers[i].toUpperCase()] = parseFloat(v.regularMarketPrice);
+    });
     return out;
   } catch(e) {
     console.error('Price fetch failed:', e);
@@ -622,26 +626,29 @@ function saveBuyCache(ideas) {
 
 async function fetchMarketDataForWatchlist(tickers) {
   if (!settings.apiKey || tickers.length === 0) return [];
-  const url = `https://yahoo-finance15.p.rapidapi.com/api/v1/markets/quote?ticker=${tickers.join(',')}&type=STOCKS`;
   try {
-    const res = await fetch(url, { headers: { 'X-RapidAPI-Key': settings.apiKey, 'X-RapidAPI-Host': 'yahoo-finance15.p.rapidapi.com' } });
-    if (!res.ok) return [];
-    const data = await res.json();
-    if (!data || !data.body) return [];
-    return Object.entries(data.body).map(([ticker, v]) => ({
-      ticker: ticker.toUpperCase(),
-      name: v.shortName || v.longName || ticker,
-      price: v.regularMarketPrice,
-      change: v.regularMarketChangePercent ? (v.regularMarketChangePercent > 0 ? '+' : '') + v.regularMarketChangePercent.toFixed(2) + '%' : '0%',
-      volume: v.regularMarketVolume,
-      avgVolume: v.averageDailyVolume3Month,
-      fiftyTwoWeekHigh: v.fiftyTwoWeekHigh,
-      fiftyTwoWeekLow: v.fiftyTwoWeekLow,
-      marketCap: v.marketCap,
-      peRatio: v.trailingPE,
-      eps: v.epsTrailingTwelveMonths,
-      dividendYield: v.trailingAnnualDividendYield,
-    })).filter(s => s.price > 0);
+    const results = await Promise.all(tickers.map(t => fetchOneTicker(t).catch(() => null)));
+    return results.flatMap((data, i) => {
+      if (!data || !data.body) return [];
+      const v = Object.values(data.body)[0];
+      if (!v || !v.regularMarketPrice) return [];
+      return [{
+        ticker: tickers[i].toUpperCase(),
+        name: v.shortName || v.longName || tickers[i],
+        price: v.regularMarketPrice,
+        change: v.regularMarketChangePercent != null
+          ? (v.regularMarketChangePercent > 0 ? '+' : '') + v.regularMarketChangePercent.toFixed(2) + '%'
+          : '0%',
+        volume: v.regularMarketVolume,
+        avgVolume: v.averageDailyVolume3Month,
+        fiftyTwoWeekHigh: v.fiftyTwoWeekHigh,
+        fiftyTwoWeekLow: v.fiftyTwoWeekLow,
+        marketCap: v.marketCap,
+        peRatio: v.trailingPE,
+        eps: v.epsTrailingTwelveMonths,
+        dividendYield: v.trailingAnnualDividendYield,
+      }];
+    }).filter(s => s.price > 0);
   } catch(e) { return []; }
 }
 
@@ -988,7 +995,22 @@ $('saveSettingsBtn').addEventListener('click', () => {
   renderAll();
 });
 
-$('refreshBtn').addEventListener('click', refreshPrices);
+let activeTab = 'portfolio';
+
+document.querySelectorAll('.tab, .nav-item').forEach(el => {
+  el.addEventListener('click', () => {
+    const tab = el.dataset.tab || el.dataset.nav;
+    if (tab) activeTab = tab;
+  });
+});
+
+$('refreshBtn').addEventListener('click', () => {
+  if (activeTab === 'buys') {
+    loadBuyIdeas(true);
+  } else {
+    refreshPrices();
+  }
+});
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 renderBuys();
