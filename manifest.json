@@ -2,7 +2,7 @@
   "name": "StockPulse Portfolio Tracker",
   "short_name": "StockPulse",
   "description": "Track your stock portfolio with live prices, technical signals, and tax implications.",
-  "start_url": "/",
+  "start_url": "/StockPulse/",
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",
