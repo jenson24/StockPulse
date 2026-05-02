@@ -406,57 +406,156 @@ function calcTax(gain, dateStr) {
   return { lt, fedRate, stateRate, totalRate, taxDue, netProceeds };
 }
 
-// ─── Real RSI Engine ─────────────────────────────────────────────────────────
-const rsiCache = {};  // { AAPL: { value: 62, ts: Date.now() } }
+// ─── Technical Indicator Engine ──────────────────────────────────────────────
+const indicatorCache = {};  // { AAPL: { indicators: {...}, ts: Date.now() } }
 
 function calcRSI(closes, period = 14) {
   if (closes.length < period + 1) return null;
-  let gains = 0, losses = 0;
+  let avgGain = 0, avgLoss = 0;
   for (let i = 1; i <= period; i++) {
     const diff = closes[i] - closes[i - 1];
-    if (diff >= 0) gains += diff; else losses -= diff;
+    if (diff >= 0) avgGain += diff; else avgLoss -= diff;
   }
-  let avgGain = gains / period;
-  let avgLoss = losses / period;
+  avgGain /= period; avgLoss /= period;
   for (let i = period + 1; i < closes.length; i++) {
     const diff = closes[i] - closes[i - 1];
-    const gain = diff >= 0 ? diff : 0;
-    const loss = diff < 0 ? -diff : 0;
-    avgGain = (avgGain * (period - 1) + gain) / period;
-    avgLoss = (avgLoss * (period - 1) + loss) / period;
+    avgGain = (avgGain * (period - 1) + Math.max(diff, 0)) / period;
+    avgLoss = (avgLoss * (period - 1) + Math.max(-diff, 0)) / period;
   }
   if (avgLoss === 0) return 100;
-  const rs = avgGain / avgLoss;
-  return Math.round(100 - (100 / (1 + rs)));
+  return Math.round(100 - (100 / (1 + avgGain / avgLoss)));
 }
 
-async function fetchRSI(ticker) {
-  const upper = ticker.toUpperCase();
-  const cached = rsiCache[upper];
-  if (cached && Date.now() - cached.ts < 3600000) return cached.value; // 1hr cache
+function calcSMA(closes, period) {
+  if (closes.length < period) return null;
+  const slice = closes.slice(-period);
+  return slice.reduce((a, b) => a + b, 0) / period;
+}
 
+function calcEMA(closes, period) {
+  if (closes.length < period) return null;
+  const k = 2 / (period + 1);
+  let ema = closes.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < closes.length; i++) ema = closes[i] * k + ema * (1 - k);
+  return ema;
+}
+
+function calcMACD(closes) {
+  // Standard MACD: EMA(12) - EMA(26), signal = EMA(9) of MACD line
+  if (closes.length < 35) return null;
+  const ema12 = calcEMA(closes, 12);
+  const ema26 = calcEMA(closes, 26);
+  if (ema12 === null || ema26 === null) return null;
+  const macdLine = ema12 - ema26;
+  // Approximate signal with last 9 MACD values
+  const macdSeries = [];
+  for (let i = closes.length - 9; i <= closes.length - 1; i++) {
+    const e12 = calcEMA(closes.slice(0, i + 1), 12);
+    const e26 = calcEMA(closes.slice(0, i + 1), 26);
+    if (e12 !== null && e26 !== null) macdSeries.push(e12 - e26);
+  }
+  const signal = macdSeries.length > 0
+    ? macdSeries.reduce((a, b) => a + b, 0) / macdSeries.length : null;
+  const histogram = signal !== null ? macdLine - signal : null;
+  return { macdLine, signal, histogram };
+}
+
+function calcBollinger(closes, period = 20, multiplier = 2) {
+  if (closes.length < period) return null;
+  const slice = closes.slice(-period);
+  const sma = slice.reduce((a, b) => a + b, 0) / period;
+  const variance = slice.reduce((a, b) => a + Math.pow(b - sma, 2), 0) / period;
+  const stdDev = Math.sqrt(variance);
+  const upper = sma + multiplier * stdDev;
+  const lower = sma - multiplier * stdDev;
+  const price = closes[closes.length - 1];
+  const pct = (price - lower) / (upper - lower); // 0=at lower band, 1=at upper band
+  return { upper, lower, mid: sma, pct: Math.round(pct * 100) };
+}
+
+function computeAllIndicators(candles) {
+  // candles: { c: closes[], v: volumes[], h: highs[], l: lows[] }
+  const c = candles.c;
+  const v = candles.v || [];
+  if (!c || c.length < 20) return null;
+
+  const rsi = calcRSI(c, 14);
+  const sma50 = calcSMA(c, Math.min(50, c.length));
+  const sma200 = calcSMA(c, Math.min(200, c.length));
+  const macd = calcMACD(c);
+  const bb = calcBollinger(c, 20, 2);
+  const price = c[c.length - 1];
+
+  // Volume: compare last day vs 20-day avg
+  const avgVol20 = v.length >= 20
+    ? v.slice(-20).reduce((a, b) => a + b, 0) / 20 : null;
+  const lastVol = v.length > 0 ? v[v.length - 1] : null;
+  const volRatio = (avgVol20 && lastVol) ? lastVol / avgVol20 : null;
+
+  // 52-week high/low from all available data
+  const high52 = Math.max(...c);
+  const low52 = Math.min(...c);
+  const rangePos = high52 > low52
+    ? Math.round(((price - low52) / (high52 - low52)) * 100) : null;
+
+  // Signal strength: count confirming sell signals
+  const sellSignals = [];
+  const buySignals = [];
+
+  if (rsi !== null) {
+    if (rsi > 70) sellSignals.push(`RSI ${rsi} overbought`);
+    else if (rsi > 62) sellSignals.push(`RSI ${rsi} elevated`);
+    if (rsi < 30) buySignals.push(`RSI ${rsi} oversold`);
+    else if (rsi < 40) buySignals.push(`RSI ${rsi} low`);
+  }
+  if (bb !== null) {
+    if (bb.pct >= 90) sellSignals.push('Near upper Bollinger Band');
+    if (bb.pct <= 10) buySignals.push('Near lower Bollinger Band');
+  }
+  if (sma50 !== null && price < sma50) sellSignals.push('Below 50-day MA');
+  if (sma50 !== null && price > sma50) buySignals.push('Above 50-day MA');
+  if (sma50 !== null && sma200 !== null) {
+    if (sma50 < sma200) sellSignals.push('Death cross (50MA < 200MA)');
+    if (sma50 > sma200) buySignals.push('Golden cross (50MA > 200MA)');
+  }
+  if (macd !== null && macd.histogram !== null) {
+    if (macd.histogram < 0 && macd.macdLine < 0) sellSignals.push('MACD bearish');
+    if (macd.histogram > 0 && macd.macdLine > 0) buySignals.push('MACD bullish');
+  }
+  if (volRatio !== null && volRatio > 1.5) {
+    if (sellSignals.length > 0) sellSignals.push('High volume confirms');
+    if (buySignals.length > 0) buySignals.push('High volume confirms');
+  }
+
+  return { rsi, sma50, sma200, macd, bb, price, high52, low52, rangePos,
+           volRatio, sellSignals, buySignals };
+}
+
+async function fetchIndicators(ticker) {
+  const upper = ticker.toUpperCase();
+  const cached = indicatorCache[upper];
+  if (cached && Date.now() - cached.ts < 3600000) return cached.indicators;
   if (!settings.apiKey) return null;
   try {
-    // Finnhub /indicator endpoint returns RSI(14) directly — no manual calculation needed
+    // 210 days gives us enough for SMA200 + RSI(14) + MACD(26) with buffer
     const to = Math.floor(Date.now() / 1000);
-    const from = to - (60 * 86400); // 60 days back to ensure enough data
-    const url = `https://finnhub.io/api/v1/indicator?symbol=${encodeURIComponent(upper)}&resolution=D&from=${from}&to=${to}&indicator=rsi&timeperiod=14&token=${settings.apiKey}`;
+    const from = to - (210 * 86400);
+    const url = `https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(upper)}&resolution=D&from=${from}&to=${to}&token=${settings.apiKey}`;
     const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json();
-    // Response: { rsi: [...values], t: [...timestamps], s: "ok" }
-    if (data.s !== 'ok' || !data.rsi || data.rsi.length === 0) return null;
-    const rsi = Math.round(data.rsi[data.rsi.length - 1]); // most recent value
-    rsiCache[upper] = { value: rsi, ts: Date.now() };
-    return rsi;
+    if (data.s !== 'ok' || !data.c || data.c.length < 20) return null;
+    const indicators = computeAllIndicators(data);
+    if (indicators) indicatorCache[upper] = { indicators, ts: Date.now() };
+    return indicators;
   } catch(e) {
-    console.warn('RSI fetch failed for', ticker, e);
+    console.warn('Indicator fetch failed for', ticker, e);
     return null;
   }
 }
 
-async function fetchAllRSIs(tickers) {
-  const results = await Promise.all(tickers.map(t => fetchRSI(t)));
+async function fetchAllIndicators(tickers) {
+  const results = await Promise.all(tickers.map(t => fetchIndicators(t)));
   const map = {};
   tickers.forEach((t, i) => { if (results[i] !== null) map[t.toUpperCase()] = results[i]; });
   return map;
@@ -464,6 +563,12 @@ async function fetchAllRSIs(tickers) {
 
 function rsiColor(v) { return v > 70 ? '#ff4d4d' : v < 30 ? '#00c97a' : '#999'; }
 function rsiLabel(v) { return v > 70 ? 'Overbought' : v < 30 ? 'Oversold' : 'Neutral'; }
+function indColor(val, goodHigh) {
+  // goodHigh=true: higher is better (e.g. range position for buys)
+  return val === null ? 'var(--text3)' : goodHigh
+    ? (val > 60 ? 'var(--green)' : val < 40 ? 'var(--red)' : 'var(--text2)')
+    : (val > 60 ? 'var(--red)' : val < 40 ? 'var(--green)' : 'var(--text2)');
+}
 
 // ─── API: Finnhub ─────────────────────────────────────────────────────────────
 async function fetchFinnhubQuote(ticker) {
@@ -535,10 +640,10 @@ function updateApiStatus(ok) {
 }
 
 // ─── Render ───────────────────────────────────────────────────────────────────
-let currentRSIs = {};  // populated by renderPortfolio, reused by renderAlerts & openDetail
+let currentIndicators = {};  // populated by renderPortfolio, reused by renderAlerts & openDetail
 
 function renderPortfolioWithRSIs(rsiMap) {
-  currentRSIs = rsiMap;
+  currentIndicators = rsiMap;
   const el = $('positionsList');
   if (positions.length === 0) {
     el.innerHTML = `<div class="empty"><div class="empty-icon">📈</div><div class="empty-title">No positions yet</div><div class="empty-sub">Tap "Add position" to start tracking your portfolio.</div></div>`;
@@ -554,10 +659,11 @@ function renderPortfolioWithRSIs(rsiMap) {
     const cost = p.shares * p.cost;
     const gain = val - cost;
     const pnlPct = ((p.price - p.cost) / p.cost * 100);
-    const rsi = rsiMap[p.ticker.toUpperCase()] ?? null;
-    const rsiKnown = rsi !== null;
-    const isAlert = (rsiKnown && rsi > 70) || pnlPct > 25;
-    const isWarn = !isAlert && ((rsiKnown && rsi > 62) || pnlPct > 15);
+    const ind = rsiMap[p.ticker.toUpperCase()] ?? null;
+    const rsi = ind?.rsi ?? null;
+    const sellCount = ind?.sellSignals?.length ?? 0;
+    const isAlert = sellCount >= 2 || pnlPct > 25;
+    const isWarn = !isAlert && (sellCount === 1 || pnlPct > 15);
     if (isAlert) alertCount++;
     totalVal += val; totalCost += cost;
 
@@ -567,11 +673,20 @@ function renderPortfolioWithRSIs(rsiMap) {
     const taxInfo = calcTax(gain, p.purchaseDate);
 
     const pnlColor = pnlPct >= 0 ? 'var(--green)' : 'var(--red)';
-    const rsiW = rsiKnown ? rsi + '%' : '50%';
-    const rsiC = rsiKnown ? rsiColor(rsi) : 'var(--text3)';
-    const rsiText = rsiKnown ? `${rsi} · ${rsiLabel(rsi)}` : 'Loading…';
-    const pnlBarW = Math.min(Math.abs(pnlPct) * 2, 100) + '%';
-    const pnlBarC = pnlPct >= 0 ? 'var(--green)' : 'var(--red)';
+    const rsiC = rsi !== null ? rsiColor(rsi) : 'var(--text3)';
+    const rsiText = rsi !== null ? `${rsi} · ${rsiLabel(rsi)}` : 'Loading…';
+    const rsiW = rsi !== null ? rsi + '%' : '50%';
+
+    // Bollinger band position bar (0–100%)
+    const bbPct = ind?.bb?.pct ?? null;
+    const bbC = bbPct !== null ? (bbPct > 80 ? 'var(--red)' : bbPct < 20 ? 'var(--green)' : 'var(--text2)') : 'var(--text3)';
+    const bbText = bbPct !== null ? `${bbPct}% · ${bbPct > 80 ? 'Near upper' : bbPct < 20 ? 'Near lower' : 'Mid-band'}` : 'Loading…';
+
+    // MACD signal
+    const macdH = ind?.macd?.histogram ?? null;
+    const macdC = macdH !== null ? (macdH > 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)';
+    const macdText = macdH !== null ? (macdH > 0 ? '▲ Bullish' : '▼ Bearish') : 'Loading…';
+    const macdBarW = macdH !== null ? Math.min(Math.abs(macdH) * 200, 100) + '%' : '50%';
 
     const alertPill = isAlert ? `<span class="pill pill-red">Sell signal</span>` : isWarn ? `<span class="pill pill-amber">Watch</span>` : '';
     const termPill = p.purchaseDate ? `<span class="pill ${lt ? 'pill-green' : 'pill-amber'}" style="font-size:10px">${lt ? 'Long-term' : 'Short-term'}</span>` : '';
@@ -598,14 +713,14 @@ function renderPortfolioWithRSIs(rsiMap) {
           <div class="ind-val" style="color:${rsiC}">${rsiText}</div>
         </div>
         <div class="ind">
-          <div class="ind-label">P&amp;L vs cost</div>
-          <div class="ind-track"><div class="ind-fill" style="width:${pnlBarW};background:${pnlBarC}"></div></div>
-          <div class="ind-val" style="color:${pnlBarC}">${pnlPct >= 0 ? '+' : ''}${fmt(pnlPct)}%</div>
+          <div class="ind-label">Bollinger %B</div>
+          <div class="ind-track"><div class="ind-fill" style="width:${bbPct !== null ? bbPct+'%' : '50%'};background:${bbC}"></div></div>
+          <div class="ind-val" style="color:${bbC}">${bbText}</div>
         </div>
         <div class="ind">
-          <div class="ind-label">Held</div>
-          <div class="ind-track"><div class="ind-fill" style="width:${lt ? '100' : '50'}%;background:${lt ? 'var(--green)' : 'var(--amber)'}"></div></div>
-          <div class="ind-val" style="color:${lt ? 'var(--green)' : 'var(--amber)'}">${holdLabel}</div>
+          <div class="ind-label">MACD</div>
+          <div class="ind-track"><div class="ind-fill" style="width:${macdBarW};background:${macdC}"></div></div>
+          <div class="ind-val" style="color:${macdC}">${macdText}</div>
         </div>
       </div>
       ${taxLine}
@@ -628,34 +743,33 @@ function renderPortfolioWithRSIs(rsiMap) {
 
 async function renderPortfolio() {
   // Render immediately with whatever RSIs we already have cached, then update when fresh data arrives
-  renderPortfolioWithRSIs(currentRSIs);
+  renderPortfolioWithRSIs(currentIndicators);
   if (positions.length === 0) return;
   const tickers = [...new Set(positions.map(p => p.ticker.toUpperCase()))];
-  const rsiMap = await fetchAllRSIs(tickers);
+  const rsiMap = await fetchAllIndicators(tickers);
   renderPortfolioWithRSIs(rsiMap);
 }
 
 function renderAlerts() {
   const el = $('alertsList');
   const alerts = positions.map((p, i) => {
-    const rsi = currentRSIs[p.ticker.toUpperCase()] ?? null;
+    const ind = currentIndicators[p.ticker.toUpperCase()] ?? null;
     const pnl = (p.price - p.cost) / p.cost * 100;
     const gain = (p.price - p.cost) * p.shares;
     const taxInfo = calcTax(gain, p.purchaseDate);
-    const isAlert = (rsi !== null && rsi > 70) || pnl > 25;
-    const isWarn = !isAlert && ((rsi !== null && rsi > 62) || pnl > 15);
-    return { ...p, i, rsi, pnl, gain, taxInfo, isAlert, isWarn };
+    const sellCount = ind?.sellSignals?.length ?? 0;
+    const isAlert = sellCount >= 2 || pnl > 25;
+    const isWarn = !isAlert && (sellCount === 1 || pnl > 15);
+    return { ...p, i, ind, pnl, gain, taxInfo, isAlert, isWarn };
   }).filter(p => p.isAlert || p.isWarn);
 
   if (alerts.length === 0) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">No signals right now</div><div class="empty-sub">Your positions are all within healthy RSI ranges. Check back daily.</div></div>`;
+    el.innerHTML = `<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">No signals right now</div><div class="empty-sub">All positions are within healthy indicator ranges. Check back daily.</div></div>`;
     return;
   }
 
   el.innerHTML = alerts.map(p => {
-    const reasons = [];
-    if (p.rsi !== null && p.rsi > 70) reasons.push(`RSI ${p.rsi} — technically overbought`);
-    if (p.rsi !== null && p.rsi > 62 && p.rsi <= 70) reasons.push(`RSI ${p.rsi} — approaching overbought`);
+    const reasons = [...(p.ind?.sellSignals || [])];
     if (p.pnl > 25) reasons.push(`Up ${fmt(p.pnl)}% — consider taking profits`);
     else if (p.pnl > 15) reasons.push(`Up ${fmt(p.pnl)}% — watch for exit opportunity`);
 
@@ -721,36 +835,40 @@ async function fetchMarketDataForWatchlist(tickers) {
   } catch(e) { return []; }
 }
 
-async function generateBuyIdeasWithAI(marketData, portfolioTickers) {
+async function generateBuyIdeasWithAI(marketData, portfolioTickers, universeIndicators = {}) {
   if (!settings.anthropicKey) return null;
 
   const portfolioContext = portfolioTickers.length > 0
-    ? `The user currently holds: ${portfolioTickers.join(', ')}. Avoid recommending stocks already in the portfolio.`
+    ? `The user currently holds: ${portfolioTickers.join(', ')}. Do NOT recommend any of these.`
     : 'The user has no current positions.';
 
   const marketSummary = marketData.map(s => {
+    const ind = universeIndicators[s.ticker] || {};
     const price = s.price?.toFixed(2) ?? 'N/A';
-    const prevClose = s.prevClose?.toFixed(2) ?? 'N/A';
-    const dayRange = (s.low && s.high) ? `Day $${s.low.toFixed(2)}–$${s.high.toFixed(2)}` : '';
-    return `${s.ticker}: $${price}, ${s.change} today, prev close $${prevClose}${dayRange ? ', ' + dayRange : ''}`;
+    const rsi = ind.rsi != null ? `RSI ${ind.rsi}` : '';
+    const bb = ind.bb != null ? `BB%B ${ind.bb.pct}%` : '';
+    const macd = ind.macd?.histogram != null ? `MACD ${ind.macd.histogram > 0 ? '▲' : '▼'}` : '';
+    const ma = (ind.sma50 && ind.sma200) ? (ind.sma50 > ind.sma200 ? 'golden cross' : 'death cross') : '';
+    const vol = ind.volRatio != null ? `vol ${(ind.volRatio * 100).toFixed(0)}% of avg` : '';
+    const buys = ind.buySignals?.length ? `buy signals: ${ind.buySignals.join(', ')}` : '';
+    const sells = ind.sellSignals?.length ? `sell signals: ${ind.sellSignals.join(', ')}` : '';
+    const indicators = [rsi, bb, macd, ma, vol, buys, sells].filter(Boolean).join(' | ');
+    return `${s.ticker}: $${price} (${s.change})${indicators ? ' — ' + indicators : ''}`;
   }).join('\n');
 
-  const prompt = `You are a technical stock analyst. Analyze the following market data and select the 5 best buy opportunities for today.
+  const prompt = `You are a technical stock analyst. Select the 5 best buy opportunities from the list below based on the computed technical indicators.
 
 ${portfolioContext}
 
-Today's market data:
-${marketSummary}
+Today's technical data:
+${marketSummary || 'No live data available — use your training knowledge for these tickers.'}
 
-For each pick, evaluate:
-- Momentum signals (price vs. 52-week range position, recent price change, volume vs. average)
-- Value signals (P/E ratio relative to sector, EPS)
-- Diversification (recommend a mix of sectors/categories)
-
-Score each pick 0–100 where:
-- 80–100: Strong setup, multiple confirming signals
-- 65–79: Good setup, 1–2 confirming signals  
-- 50–64: Speculative, early-stage signal
+Scoring rules:
+- 80–100: Multiple confirming buy signals (e.g. RSI oversold + near lower BB + MACD bullish + golden cross)
+- 65–79: 1–2 buy signals, no major sell signals
+- 50–64: Speculative or mixed signals
+- Penalise heavily for sell signals (RSI overbought, near upper BB, death cross)
+- Reward for volume confirmation of a move
 
 Respond with ONLY a valid JSON array, no markdown, no preamble:
 [
@@ -761,7 +879,7 @@ Respond with ONLY a valid JSON array, no markdown, no preamble:
     "change": "+1.2%",
     "score": 82,
     "tag": "Momentum",
-    "reason": "2-3 sentence technical rationale citing specific data points from the market data above."
+    "reason": "2-3 sentence rationale citing the specific indicator values above."
   }
 ]
 
@@ -787,18 +905,70 @@ Tag must be one of: Momentum, Value, Sector, Dividend, Growth`;
   }
 }
 
+async function askAIForUniverse(portfolioTickers, portfolioIndicators) {
+  // Step 1: Ask Claude to pick 20 tickers worth scanning based on portfolio context
+  if (!settings.anthropicKey) return null;
+  const portSummary = portfolioTickers.map(t => {
+    const ind = portfolioIndicators[t] || {};
+    const sectors = ''; // could be enriched later
+    return `${t} (RSI ${ind.rsi ?? 'N/A'}, ${ind.sma50 && ind.sma200 ? (ind.sma50 > ind.sma200 ? 'golden cross' : 'death cross') : 'MA N/A'})`;
+  }).join(', ');
+
+  const prompt = `You are a portfolio analyst. A user holds: ${portSummary || 'no positions yet'}.
+
+Pick exactly 20 US stock tickers that would be worth scanning for buy opportunities today. Consider:
+- Sectors not already represented in the portfolio (diversification)
+- Stocks with current momentum or value setups based on your knowledge
+- Mix of large-cap, mid-cap, and sector ETFs
+- Avoid any tickers already held: ${portfolioTickers.join(', ') || 'none'}
+
+Respond with ONLY a JSON array of ticker strings, e.g. ["AAPL","MSFT",...]. No markdown, no explanation.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 200,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.map(c => c.text || '').join('').replace(/```json|```/g, '').trim();
+    return JSON.parse(text);
+  } catch(e) {
+    console.warn('Universe generation failed:', e);
+    return null;
+  }
+}
+
 async function loadBuyIdeas(forceRefresh = false) {
   const el = $('buysList');
 
-  // Use cache if available and not forcing refresh
-  if (!forceRefresh) {
-    const cached = loadCachedBuys();
-    if (cached) { cachedBuyIdeas = cached; renderBuyCards(cached); return; }
+  // Show cached picks immediately if available, with Generate button
+  const cached = loadCachedBuys();
+  if (!forceRefresh && cached) {
+    cachedBuyIdeas = cached;
+    renderBuyCards(cached);
+    return;
+  }
+
+  // On-demand generation: show prompt if no cache and not forcing
+  if (!forceRefresh && !cached) {
+    el.innerHTML = `<div style="text-align:center;padding:50px 20px">
+      <div style="font-size:32px;margin-bottom:12px">🤖</div>
+      <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">Ready to generate today's picks</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:24px;line-height:1.6">Claude will select a universe of stocks to scan based on your portfolio, fetch live data, and score each one using RSI, Bollinger Bands, MACD, and momentum.</div>
+      <button onclick="loadBuyIdeas(true)" style="background:var(--accent);color:#fff;border:none;border-radius:14px;padding:14px 28px;font-size:15px;font-weight:600;cursor:pointer">Generate today's picks</button>
+    </div>`;
+    return;
   }
 
   // Show loading state
   el.innerHTML = `<div style="text-align:center;padding:40px 20px">
-    <div style="font-size:13px;color:var(--text3);margin-bottom:12px">Analyzing market data with AI...</div>
+    <div style="font-size:13px;color:var(--text3);margin-bottom:6px">Step 1/3 — AI selecting universe…</div>
+    <div id="buyLoadStatus" style="font-size:11px;color:var(--text3);margin-bottom:16px">Asking Claude which stocks to scan</div>
     <div style="display:flex;justify-content:center;gap:6px">
       <div style="width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.2s ease-in-out infinite"></div>
       <div style="width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.2s ease-in-out 0.4s infinite"></div>
@@ -807,45 +977,45 @@ async function loadBuyIdeas(forceRefresh = false) {
   </div>
   <style>@keyframes pulse{0%,100%{opacity:0.2}50%{opacity:1}}</style>`;
 
-  const watchlistRaw = settings.watchlist || DEFAULT_WATCHLIST;
-  const tickers = watchlistRaw.split(',').map(t => t.trim().toUpperCase()).filter(Boolean);
-  const portfolioTickers = positions.map(p => p.ticker);
+  const setStatus = (step, msg) => {
+    const el2 = $('buyLoadStatus');
+    if (el2) { el2.previousElementSibling.textContent = `Step ${step}/3 — ${msg}`; }
+  };
 
-  let ideas = null;
+  const portfolioTickers = positions.map(p => p.ticker.toUpperCase());
 
-  // Step 1: Fetch live market data if API key available
+  // Step 1: Ask AI to pick scanning universe
+  let universe = await askAIForUniverse(portfolioTickers, currentIndicators);
+  if (!universe || universe.length === 0) {
+    // Fallback to default watchlist
+    universe = (settings.watchlist || DEFAULT_WATCHLIST).split(',').map(t => t.trim().toUpperCase()).filter(Boolean);
+  }
+  // Limit to 20 to stay within rate limits
+  universe = universe.slice(0, 20);
+  setStatus(2, `Fetching live data for ${universe.length} stocks…`);
+
+  // Step 2: Fetch live market data + indicators for universe
   let marketData = [];
+  let universeIndicators = {};
   if (settings.apiKey) {
-    marketData = await fetchMarketDataForWatchlist(tickers);
+    marketData = await fetchMarketDataForWatchlist(universe);
+    const indResults = await fetchAllIndicators(universe);
+    universeIndicators = indResults;
   }
 
-  // Step 2: Generate AI analysis if Anthropic key available
-  if (settings.anthropicKey && marketData.length > 0) {
-    ideas = await generateBuyIdeasWithAI(marketData, portfolioTickers);
-  }
+  setStatus(3, 'Scoring picks with AI…');
 
-  // Step 3: Fallback — AI with no market data (uses training knowledge)
-  if (!ideas && settings.anthropicKey) {
-    ideas = await generateBuyIdeasWithAI(
-      tickers.slice(0,10).map(t => ({ ticker: t, name: t, price: null, change: null,
-        fiftyTwoWeekLow: null, fiftyTwoWeekHigh: null, peRatio: null, volume: null, avgVolume: null })),
-      portfolioTickers
-    );
+  // Step 3: Generate scored picks
+  let ideas = null;
+  if (settings.anthropicKey) {
+    ideas = await generateBuyIdeasWithAI(marketData, portfolioTickers, universeIndicators);
   }
 
   if (ideas && ideas.length > 0) {
-    // Merge live prices into AI results if available
-    if (marketData.length > 0) {
-      ideas = ideas.map(idea => {
-        const live = marketData.find(m => m.ticker === idea.ticker);
-        if (live) { idea.price = live.price; idea.change = live.change; }
-        return idea;
-      });
-    }
     saveBuyCache(ideas);
     cachedBuyIdeas = ideas;
     renderBuyCards(ideas);
-    showToast('Buy ideas refreshed ✓');
+    showToast('Buy ideas ready ✓');
   } else {
     el.innerHTML = `<div class="empty">
       <div class="empty-icon">🤖</div>
@@ -895,7 +1065,7 @@ function renderBuyCards(ideas) {
   }).join('');
 }
 
-function renderBuys() { loadBuyIdeas(false); }
+function renderBuys() { loadBuyIdeas(false); }  // shows cache or prompt, never auto-fetches
 
 function renderSettings() {
   $('apiKeyInput').value = settings.apiKey || '';
@@ -913,7 +1083,8 @@ function renderAll() { renderPortfolio(); }
 function openDetail(idx) {
   const p = positions[idx];
   if (!p) return;
-  const rsi = currentRSIs[p.ticker.toUpperCase()] ?? null;
+  const ind = currentIndicators[p.ticker.toUpperCase()] ?? null;
+  const rsi = ind?.rsi ?? null;
   const val = p.shares * p.price;
   const costBasis = p.shares * p.cost;
   const gain = val - costBasis;
@@ -975,7 +1146,13 @@ function openDetail(idx) {
     <div class="detail-section">
       <div class="detail-section-title">Technical signals</div>
       <div class="detail-row"><span class="label">RSI (14)</span><span class="val" style="color:${rsi !== null ? rsiColor(rsi) : 'var(--text3)'}">${rsi !== null ? rsi + ' · ' + rsiLabel(rsi) : 'Unavailable'}</span></div>
-      <div class="detail-row"><span class="label">Signal strength</span><span class="val">${rsi === null ? '⚪ RSI unavailable' : rsi > 70 ? '🔴 Sell signal' : rsi > 62 ? '🟡 Watch closely' : rsi < 30 ? '🟢 Oversold' : '⚪ Neutral'}</span></div>
+      <div class="detail-row"><span class="label">SMA 50 / 200</span><span class="val" style="color:var(--text2)">${ind?.sma50 ? '$'+ind.sma50.toFixed(2) : '—'} / ${ind?.sma200 ? '$'+ind.sma200.toFixed(2) : '—'}</span></div>
+      <div class="detail-row"><span class="label">MA trend</span><span class="val">${ind?.sma50 && ind?.sma200 ? (ind.sma50 > ind.sma200 ? '🟢 Golden cross' : '🔴 Death cross') : '—'}</span></div>
+      <div class="detail-row"><span class="label">Bollinger %B</span><span class="val" style="color:${ind?.bb ? (ind.bb.pct > 80 ? 'var(--red)' : ind.bb.pct < 20 ? 'var(--green)' : 'var(--text2)') : 'var(--text3)'}">${ind?.bb ? ind.bb.pct + '% (' + (ind.bb.pct > 80 ? 'near upper band' : ind.bb.pct < 20 ? 'near lower band' : 'mid-band') + ')' : 'Unavailable'}</span></div>
+      <div class="detail-row"><span class="label">MACD</span><span class="val" style="color:${ind?.macd?.histogram != null ? (ind.macd.histogram > 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)'}">${ind?.macd?.histogram != null ? (ind.macd.histogram > 0 ? '▲ Bullish histogram' : '▼ Bearish histogram') : 'Unavailable'}</span></div>
+      <div class="detail-row"><span class="label">Volume vs avg</span><span class="val" style="color:${ind?.volRatio != null ? (ind.volRatio > 1.5 ? 'var(--amber)' : 'var(--text2)') : 'var(--text3)'}">${ind?.volRatio != null ? (ind.volRatio * 100).toFixed(0) + '% of 20-day avg' : 'Unavailable'}</span></div>
+      <div class="detail-row"><span class="label">Sell signals</span><span class="val" style="color:${ind?.sellSignals?.length ? 'var(--red)' : 'var(--green)'}">${ind?.sellSignals?.length ? ind.sellSignals.join(', ') : '✓ None'}</span></div>
+      <div class="detail-row"><span class="label">Buy signals</span><span class="val" style="color:${ind?.buySignals?.length ? 'var(--green)' : 'var(--text3)'}">${ind?.buySignals?.length ? ind.buySignals.join(', ') : 'None'}</span></div>
     </div>
     ${taxHTML}
     <button class="delete-btn" onclick="deletePosition(${idx})">Remove position</button>
