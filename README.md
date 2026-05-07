@@ -1,92 +1,159 @@
-# StockPulse — iPhone Stock Portfolio Tracker
+# StockPulse — Schwab API Cloudflare Worker
 
-A Progressive Web App (PWA) for tracking your stock portfolio with live prices, RSI/moving average sell signals, daily buy ideas, and tax implications.
-
-## Features
-
-- **Portfolio tracking** — Add positions with ticker, shares, cost basis, and purchase date
-- **Live prices** — Auto-refresh via Yahoo Finance API (RapidAPI)
-- **Sell signals** — RSI (14) and P&L-based alerts flag overbought positions
-- **Tax calculator** — Long vs. short-term capital gains based on your purchase date and personal tax rates
-- **Buy ideas** — Daily curated picks across momentum, value, and sector categories
-- **Offline support** — Works without internet via service worker caching
+Secure OAuth 2.0 proxy between your StockPulse PWA and the Charles Schwab API.
+Your Schwab credentials never touch the browser.
 
 ---
 
-## Deploy to GitHub Pages (5 minutes)
+## Prerequisites
 
-### Step 1 — Create a new GitHub repository
+- A [Cloudflare account](https://dash.cloudflare.com/sign-up) (free)
+- [Node.js](https://nodejs.org) installed
+- Wrangler CLI: `npm install -g wrangler`
+- Your Schwab Developer app **Client ID** and **Client Secret**
 
-1. Go to [github.com/new](https://github.com/new)
-2. Name it `stockpulse` (or anything you like)
-3. Set it to **Public**
-4. Click **Create repository**
+---
 
-### Step 2 — Upload the files
+## Step 1 — Generate your PWA secret
 
-**Option A: GitHub web interface (easiest)**
-1. In your new repo, click **Add file → Upload files**
-2. Upload everything in this folder (drag the whole folder contents)
-3. Click **Commit changes**
+This is a shared secret between the Worker and your PWA. It prevents
+unauthorized access to your Worker endpoints.
 
-**Option B: Git CLI**
 ```bash
-cd portfolio-pwa
-git init
-git add .
-git commit -m "Initial StockPulse PWA"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/stockpulse.git
-git push -u origin main
+openssl rand -hex 32
 ```
 
-### Step 3 — Enable GitHub Pages
-
-1. Go to your repo → **Settings → Pages**
-2. Under **Source**, select **GitHub Actions**
-3. The included `.github/workflows/deploy.yml` will auto-deploy on every push
-
-Your app will be live at: `https://YOUR_USERNAME.github.io/stockpulse/`
+Save this output — you'll need it in Step 3 and in the PWA settings.
 
 ---
 
-## Add to iPhone Home Screen
+## Step 2 — Create the KV namespace
 
-1. Open the URL above in **Safari** on your iPhone
-2. Tap the **Share** button (box with arrow)
-3. Scroll down and tap **Add to Home Screen**
-4. Tap **Add**
+Tokens are stored encrypted in Cloudflare KV.
 
-The app will appear on your home screen and behave like a native app — full screen, no browser chrome.
+```bash
+wrangler login
+wrangler kv:namespace create SCHWAB_TOKENS
+```
 
----
+Copy the `id` from the output and paste it into `wrangler.toml`:
 
-## Yahoo Finance API Setup
-
-1. Go to [rapidapi.com](https://rapidapi.com)
-2. Search for **"Yahoo Finance"** — subscribe to the **yahoo-finance15** API (free tier available)
-3. Copy your **RapidAPI Key**
-4. Open StockPulse → tap **Settings** → paste your key → **Save settings**
-
-Prices will now auto-refresh when you open the app and when you add a new position.
+```toml
+[[kv_namespaces]]
+binding = "SCHWAB_TOKENS"
+id = "YOUR_ID_HERE"   # ← paste here
+```
 
 ---
 
-## Tax Settings
+## Step 3 — Set secrets (never put these in wrangler.toml)
 
-In **Settings**, enter your:
-- **Short-term rate** — your federal income tax bracket (e.g. 22%, 24%, 32%)
-- **Long-term rate** — your capital gains bracket (0%, 15%, or 20%)
-- **State rate** — your state capital gains rate (e.g. CA = 13.3%, TX = 0%)
+```bash
+wrangler secret put SCHWAB_CLIENT_ID
+# paste your Schwab Client ID when prompted
 
-The app determines long vs. short-term treatment based on your purchase date (>1 year = long-term). Each position detail view shows both scenarios side-by-side and alerts you if waiting longer would save on taxes.
+wrangler secret put SCHWAB_CLIENT_SECRET
+# paste your Schwab Client Secret when prompted
+
+wrangler secret put SCHWAB_REDIRECT_URI
+# paste: https://stockpulse-schwab-proxy.YOUR-SUBDOMAIN.workers.dev/auth/callback
+
+wrangler secret put PWA_SECRET
+# paste the hex string from Step 1
+```
 
 ---
 
-## Updating the App
+## Step 4 — Register the callback URL with Schwab
 
-Any time you push a change to the `main` branch, GitHub Actions re-deploys automatically within ~60 seconds.
+In the [Schwab Developer Portal](https://developer.schwab.com):
+
+1. Open your app → Edit
+2. Add this exact URL to **Callback URLs**:
+   `https://stockpulse-schwab-proxy.YOUR-SUBDOMAIN.workers.dev/auth/callback`
+3. Save (may require re-approval)
+
+The URL must match **exactly** including no trailing slash.
 
 ---
 
-*Not financial advice. For informational use only.*
+## Step 5 — Deploy
+
+```bash
+wrangler deploy
+```
+
+Your Worker will be live at:
+`https://stockpulse-schwab-proxy.YOUR-SUBDOMAIN.workers.dev`
+
+---
+
+## Step 6 — Initial authentication
+
+Open this URL in your browser to connect your Schwab account:
+
+```
+https://stockpulse-schwab-proxy.YOUR-SUBDOMAIN.workers.dev/auth/login
+```
+
+This redirects you to Schwab's login page. After approving access, you'll
+be redirected back with a success message showing the re-auth deadline.
+
+---
+
+## Step 7 — Add Worker URL to PWA Settings
+
+In StockPulse → Settings:
+- **Schwab Worker URL**: `https://stockpulse-schwab-proxy.YOUR-SUBDOMAIN.workers.dev`
+- **PWA Secret**: the hex string from Step 1
+
+---
+
+## Weekly re-authentication
+
+Schwab refresh tokens expire after **7 days**. The app will show a warning
+banner when re-auth is due. Simply revisit:
+
+```
+https://stockpulse-schwab-proxy.YOUR-SUBDOMAIN.workers.dev/auth/login
+```
+
+**Recommended:** Set a weekly calendar reminder.
+
+---
+
+## Worker endpoints
+
+| Method | Path | Auth required | Description |
+|--------|------|---------------|-------------|
+| GET | `/health` | None | Worker health check |
+| GET | `/auth/login` | None | Start Schwab OAuth flow |
+| GET | `/auth/callback` | None | OAuth callback (Schwab redirects here) |
+| GET | `/auth/status` | None | Check connection + days until re-auth |
+| GET | `/quotes?symbols=AAPL,MSFT` | X-PWA-Secret | Batch quotes |
+| GET | `/history?symbol=AAPL&days=210` | X-PWA-Secret | OHLCV for indicators |
+| GET | `/accounts` | X-PWA-Secret | Portfolio positions (stubbed) |
+
+---
+
+## Security notes
+
+- Schwab credentials live **only** in Cloudflare encrypted secrets — never in code or config files
+- Tokens stored in KV are **AES-GCM encrypted** using your PWA secret as the key
+- All data endpoints require the `X-PWA-Secret` header
+- Schwab app is registered with **read-only** scope — no trading permissions
+- Lock down your Cloudflare account with a strong password and hardware 2FA
+
+---
+
+## Troubleshooting
+
+**401 on data endpoints** — check that PWA secret in Settings matches `wrangler secret put PWA_SECRET`
+
+**`NOT_AUTHENTICATED`** — visit `/auth/login` to connect your Schwab account
+
+**`REFRESH_TOKEN_EXPIRED`** — visit `/auth/login` to re-authenticate (weekly)
+
+**Callback URL mismatch** — the URL in Schwab portal must match `SCHWAB_REDIRECT_URI` secret exactly
+
+**KV not found** — make sure the namespace ID in `wrangler.toml` matches `wrangler kv:namespace list`
