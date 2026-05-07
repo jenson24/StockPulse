@@ -8,7 +8,7 @@ compatibility_flags = ["nodejs_compat"]
 # paste the resulting id below
 [[kv_namespaces]]
 binding = "SCHWAB_TOKENS"
-id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+id = "7cf444366d0142ed83e46479b73ffe73"
 
 # Environment variables — set secrets via CLI, not here:
 # wrangler secret put SCHWAB_CLIENT_ID
