@@ -240,18 +240,32 @@
   <!-- SETTINGS -->
   <div class="page" id="page-settings">
     <div class="section">
-      <div class="section-label">API & Account</div>
-      <div id="apiStatus" class="api-status api-none">No API key saved — prices won't auto-refresh.</div>
+      <div class="section-label">Schwab Connection</div>
+      <div id="apiStatus" class="api-status api-none">Worker URL not set — prices won't auto-refresh.</div>
       <div class="settings-card">
         <div class="settings-row">
           <div>
-            <div class="settings-label">Finnhub API Key</div>
-            <div class="settings-sub">From finnhub.io (free tier: 60 req/min)</div>
+            <div class="settings-label">Worker URL</div>
+            <div class="settings-sub">Your Cloudflare Worker base URL</div>
           </div>
         </div>
         <div class="settings-row">
-          <input class="settings-input" id="apiKeyInput" type="password" placeholder="e.g. d1a2b3c4d5e6f7..." style="width:100%"/>
+          <input class="settings-input" id="apiKeyInput" type="text" placeholder="https://stockpulse-xxx.workers.dev" style="width:100%;font-size:12px"/>
         </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">PWA Secret</div>
+            <div class="settings-sub">Must match Worker's PWA_SECRET env var</div>
+          </div>
+        </div>
+        <div class="settings-row">
+          <input class="settings-input" id="pwaSecretInput" type="password" placeholder="hex secret from openssl rand -hex 32" style="width:100%;font-size:12px"/>
+        </div>
+        <div class="settings-row" style="justify-content:center">
+          <button onclick="checkWorkerStatus()" style="background:var(--bg4);border:0.5px solid var(--border2);border-radius:10px;padding:8px 18px;color:var(--text2);font-size:13px;cursor:pointer">Test connection</button>
+          <a id="authLink" href="#" target="_blank" style="display:none;background:var(--accent);color:#fff;border-radius:10px;padding:8px 18px;font-size:13px;font-weight:600;text-decoration:none;margin-left:8px">Connect Schwab →</a>
+        </div>
+        <div id="workerStatusMsg" style="padding:0 16px 12px;font-size:12px;color:var(--text3)"></div>
       </div>
 
       <div class="section-label" style="margin-top:16px">AI Buy Ideas (Anthropic)</div>
@@ -305,7 +319,7 @@
       <div class="section-label" style="margin-top:16px">About</div>
       <div class="settings-card">
         <div class="settings-row"><div class="settings-label">Version</div><div style="font-size:13px;color:var(--text3)">1.0.0</div></div>
-        <div class="settings-row"><div class="settings-label">Data source</div><div style="font-size:13px;color:var(--text3)">Finnhub</div></div>
+        <div class="settings-row"><div class="settings-label">Data source</div><div style="font-size:13px;color:var(--text3)">Charles Schwab API</div></div>
         <div class="settings-row"><div><div class="settings-label">Disclaimer</div><div class="settings-sub" style="max-width:220px">Not financial advice. For informational use only.</div></div></div>
       </div>
     </div>
@@ -367,7 +381,7 @@
 <script>
 // ─── State ───────────────────────────────────────────────────────────────────
 let positions = JSON.parse(localStorage.getItem('sp-positions') || '[]');
-let settings = JSON.parse(localStorage.getItem('sp-settings') || '{"apiKey":"","anthropicKey":"","watchlist":"","stRate":32,"ltRate":15,"stateRate":0}');
+let settings = JSON.parse(localStorage.getItem('sp-settings') || '{"apiKey":"","pwaSecret":"","anthropicKey":"","watchlist":"","stRate":32,"ltRate":15,"stateRate":0}');
 let liveprices = {};
 let cachedBuyIdeas = null;
 let buyIdeasGeneratedDate = null;
@@ -535,16 +549,10 @@ async function fetchIndicators(ticker) {
   const upper = ticker.toUpperCase();
   const cached = indicatorCache[upper];
   if (cached && Date.now() - cached.ts < 3600000) return cached.indicators;
-  if (!settings.apiKey) return null;
+  if (!settings.apiKey || !settings.pwaSecret) return null;
   try {
-    // 210 days gives us enough for SMA200 + RSI(14) + MACD(26) with buffer
-    const to = Math.floor(Date.now() / 1000);
-    const from = to - (210 * 86400);
-    const url = `https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(upper)}&resolution=D&from=${from}&to=${to}&token=${settings.apiKey}`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data.s !== 'ok' || !data.c || data.c.length < 20) return null;
+    const data = await workerGet(`/history?symbol=${encodeURIComponent(upper)}&days=210`).catch(() => null);
+    if (!data || !data.ok || !data.c || data.c.length < 20) return null;
     const indicators = computeAllIndicators(data);
     if (indicators) indicatorCache[upper] = { indicators, ts: Date.now() };
     return indicators;
@@ -570,45 +578,77 @@ function indColor(val, goodHigh) {
     : (val > 60 ? 'var(--red)' : val < 40 ? 'var(--green)' : 'var(--text2)');
 }
 
-// ─── API: Finnhub ─────────────────────────────────────────────────────────────
-async function fetchFinnhubQuote(ticker) {
-  // GET /quote — returns: c (current), d (change), dp (% change), h (high), l (low),
-  //              o (open), pc (prev close), t (timestamp), v (volume not included — use separate call)
-  const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(ticker.toUpperCase())}&token=${settings.apiKey}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Finnhub API error ' + res.status);
-  const data = await res.json();
-  if (!data || data.c === 0) throw new Error('No data for ' + ticker);
-  return data;
+// ─── API: Schwab via Cloudflare Worker ───────────────────────────────────────
+function workerHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    'X-PWA-Secret': settings.pwaSecret || '',
+  };
 }
 
-async function fetchFinnhubProfile(ticker) {
-  // GET /stock/profile2 — returns name, 52-week data, market cap etc.
-  const url = `https://finnhub.io/api/v1/stock/profile2?symbol=${encodeURIComponent(ticker.toUpperCase())}&token=${settings.apiKey}`;
-  const res = await fetch(url);
-  if (!res.ok) return null;
+function workerUrl(path) {
+  const base = (settings.apiKey || '').replace(/\/+$/, '');
+  return base + path;
+}
+
+async function workerGet(path) {
+  if (!settings.apiKey || !settings.pwaSecret) throw new Error('Worker not configured');
+  const res = await fetch(workerUrl(path), { headers: workerHeaders() });
+  if (res.status === 401) throw new Error('NOT_AUTHENTICATED');
+  if (!res.ok) throw new Error(`Worker error ${res.status}`);
   return res.json();
 }
 
-async function fetchPrices(tickers) {
-  if (!settings.apiKey || tickers.length === 0) return {};
+async function checkWorkerStatus() {
+  const msgEl = $('workerStatusMsg');
+  const authLink = $('authLink');
+  if (!settings.apiKey) {
+    if (msgEl) msgEl.textContent = 'Enter your Worker URL first.';
+    return;
+  }
   try {
-    const results = await Promise.all(
-      tickers.map(t => fetchFinnhubQuote(t).catch(e => { console.warn('Price fetch failed for', t, e); return null; }))
-    );
+    // Check health first (no secret needed)
+    const health = await fetch(workerUrl('/health'));
+    if (!health.ok) throw new Error('Worker unreachable');
+    // Check auth status (no secret needed)
+    const statusRes = await fetch(workerUrl('/auth/status'));
+    const status = await statusRes.json();
+    if (status.connected) {
+      const warn = status.daysRemaining <= 1;
+      if (msgEl) msgEl.innerHTML = `<span style="color:${warn ? 'var(--amber)' : 'var(--green)'}">✓ Connected · Re-auth in ${status.daysRemaining} day${status.daysRemaining !== 1 ? 's' : ''}</span>`;
+      updateApiStatus(true);
+      if (authLink) authLink.style.display = 'none';
+    } else {
+      if (msgEl) msgEl.innerHTML = `<span style="color:var(--amber)">⚠ ${status.reason === 'REFRESH_TOKEN_EXPIRED' ? 'Token expired — re-authenticate' : 'Not connected — click Connect Schwab'}</span>`;
+      if (authLink) { authLink.href = workerUrl('/auth/login'); authLink.style.display = 'inline-block'; }
+      updateApiStatus(false);
+    }
+  } catch(e) {
+    if (msgEl) msgEl.innerHTML = `<span style="color:var(--red)">✗ ${e.message}</span>`;
+    updateApiStatus(false);
+  }
+}
+
+async function fetchPrices(tickers) {
+  if (!settings.apiKey || !settings.pwaSecret || tickers.length === 0) return {};
+  try {
+    // Worker /quotes accepts all tickers in one call — very efficient
+    const data = await workerGet(`/quotes?symbols=${tickers.join(',')}`);
+    if (!data.ok || !data.quotes) return {};
     const out = {};
-    results.forEach((data, i) => {
-      if (data && data.c > 0) out[tickers[i].toUpperCase()] = data.c;
+    Object.entries(data.quotes).forEach(([sym, q]) => {
+      if (q.price != null) out[sym.toUpperCase()] = q.price;
     });
     return out;
   } catch(e) {
     console.error('fetchPrices failed:', e);
+    if (e.message === 'NOT_AUTHENTICATED') showToast('Schwab auth expired — re-authenticate in Settings');
     return {};
   }
 }
 
 async function refreshPrices() {
-  if (!settings.apiKey) { showToast('Add API key in Settings first'); return; }
+  if (!settings.apiKey || !settings.pwaSecret) { showToast('Configure Worker URL & secret in Settings'); return; }
   const icon = $('refreshIcon');
   icon.classList.add('spinning');
   const tickers = [...new Set(positions.map(p => p.ticker.toUpperCase()))];
@@ -621,21 +661,21 @@ async function refreshPrices() {
     showToast('Prices updated ✓');
     updateApiStatus(true);
   } else {
-    showToast('Could not fetch prices — check API key');
+    showToast('Could not fetch prices — check Worker URL & Schwab auth');
     updateApiStatus(false);
   }
 }
 
 function updateApiStatus(ok) {
   const el = $('apiStatus');
-  if (!settings.apiKey) {
-    el.className = 'api-status api-none'; el.textContent = 'No API key — prices are manually entered.';
+  if (!settings.apiKey || !settings.pwaSecret) {
+    el.className = 'api-status api-none'; el.textContent = 'Worker not configured — prices are manually entered.';
   } else if (ok === true) {
-    el.className = 'api-status api-ok'; el.textContent = '✓ API connected — prices auto-refresh on open.';
+    el.className = 'api-status api-ok'; el.textContent = '✓ Schwab connected — prices auto-refresh on open.';
   } else if (ok === false) {
-    el.className = 'api-status api-err'; el.textContent = '✗ API error — check your key in Settings.';
+    el.className = 'api-status api-err'; el.textContent = '✗ Not connected — authenticate in Settings.';
   } else {
-    el.className = 'api-status api-none'; el.textContent = 'API key saved — tap refresh to test.';
+    el.className = 'api-status api-none'; el.textContent = 'Worker URL saved — tap "Test connection".';
   }
 }
 
@@ -813,26 +853,30 @@ function saveBuyCache(ideas) {
 
 
 async function fetchMarketDataForWatchlist(tickers) {
-  if (!settings.apiKey || tickers.length === 0) return [];
+  if (!settings.apiKey || !settings.pwaSecret || tickers.length === 0) return [];
   try {
-    const results = await Promise.all(
-      tickers.map(t => fetchFinnhubQuote(t).catch(() => null))
-    );
-    return results.flatMap((data, i) => {
-      if (!data || data.c <= 0) return [];
-      const dp = data.dp != null ? ((data.dp > 0 ? '+' : '') + data.dp.toFixed(2) + '%') : '0%';
+    // Worker /quotes handles all tickers in one Schwab API call
+    const data = await workerGet(`/quotes?symbols=${tickers.join(',')}`);
+    if (!data.ok || !data.quotes) return [];
+    return Object.entries(data.quotes).flatMap(([sym, q]) => {
+      if (q.price == null || q.price <= 0) return [];
+      const pct = q.changePct != null
+        ? (q.changePct > 0 ? '+' : '') + q.changePct.toFixed(2) + '%' : '0%';
       return [{
-        ticker: tickers[i].toUpperCase(),
-        name: tickers[i].toUpperCase(), // profile name fetched separately for AI context
-        price: data.c,
-        change: dp,
-        high: data.h,
-        low: data.l,
-        prevClose: data.pc,
-        open: data.o,
+        ticker: sym.toUpperCase(),
+        name: sym.toUpperCase(),
+        price: q.price,
+        change: pct,
+        high: q.high,
+        low: q.low,
+        prevClose: q.prevClose,
+        open: q.openPrice,
       }];
     }).filter(s => s.price > 0);
-  } catch(e) { return []; }
+  } catch(e) {
+    console.warn('fetchMarketDataForWatchlist failed:', e);
+    return [];
+  }
 }
 
 async function generateBuyIdeasWithAI(marketData, portfolioTickers, universeIndicators = {}) {
@@ -1020,7 +1064,7 @@ async function loadBuyIdeas(forceRefresh = false) {
     el.innerHTML = `<div class="empty">
       <div class="empty-icon">🤖</div>
       <div class="empty-title">Add API keys to enable AI picks</div>
-      <div class="empty-sub">Go to Settings and add your Anthropic API key (for AI analysis) and optionally your Finnhub API key (for live market data).</div>
+      <div class="empty-sub">Go to Settings and add your Anthropic API key (for AI analysis) and configure your Schwab Worker URL to enable live market data.</div>
     </div>`;
   }
 }
@@ -1069,12 +1113,14 @@ function renderBuys() { loadBuyIdeas(false); }  // shows cache or prompt, never 
 
 function renderSettings() {
   $('apiKeyInput').value = settings.apiKey || '';
+  $('pwaSecretInput').value = settings.pwaSecret || '';
   $('anthropicKeyInput').value = settings.anthropicKey || '';
   $('watchlistInput').value = settings.watchlist || DEFAULT_WATCHLIST;
   $('stRateInput').value = settings.stRate || 32;
   $('ltRateInput').value = settings.ltRate || 15;
   $('stateRateInput').value = settings.stateRate || 0;
-  updateApiStatus(settings.apiKey ? null : false);
+  updateApiStatus(settings.apiKey && settings.pwaSecret ? null : false);
+  if (settings.apiKey) checkWorkerStatus();
 }
 
 function renderAll() { renderPortfolio(); }
@@ -1226,7 +1272,8 @@ $('savePositionBtn').addEventListener('click', () => {
 
 $('saveSettingsBtn').addEventListener('click', () => {
   const oldWatchlist = settings.watchlist;
-  settings.apiKey = $('apiKeyInput').value.trim();
+  settings.apiKey = $('apiKeyInput').value.trim().replace(/\/+$/, '');  // strip trailing slash
+  settings.pwaSecret = $('pwaSecretInput').value.trim();
   settings.anthropicKey = $('anthropicKeyInput').value.trim();
   settings.watchlist = $('watchlistInput').value.trim();
   settings.stRate = parseFloat($('stRateInput').value) || 32;
@@ -1260,8 +1307,8 @@ $('refreshBtn').addEventListener('click', () => {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 renderBuys();
 renderAll();
-updateApiStatus(settings.apiKey ? null : false);
-if (settings.apiKey && positions.length > 0) refreshPrices();
+updateApiStatus(settings.apiKey && settings.pwaSecret ? null : false);
+if (settings.apiKey && settings.pwaSecret && positions.length > 0) refreshPrices();
 </script>
 </body>
 </html>
