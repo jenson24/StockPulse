@@ -1,0 +1,23 @@
+name = "stockpulse-schwab-proxy"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# KV namespace for token storage
+# After running `wrangler kv:namespace create SCHWAB_TOKENS`,
+# paste the resulting id below
+[[kv_namespaces]]
+binding = "SCHWAB_TOKENS"
+id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+
+# Environment variables — set secrets via CLI, not here:
+# wrangler secret put SCHWAB_CLIENT_ID
+# wrangler secret put SCHWAB_CLIENT_SECRET
+# wrangler secret put SCHWAB_REDIRECT_URI
+# wrangler secret put PWA_SECRET
+#
+# Never put actual secret values in this file.
+# This file is safe to commit to version control.
+
+[observability]
+enabled = true
