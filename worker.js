@@ -25,7 +25,7 @@ function corsHeaders(request) {
   const origin = request.headers.get('Origin') || '';
   // In production, replace '*' with your exact GitHub Pages URL:
   // e.g. 'https://yourusername.github.io'
-  const allowed = 'https://jenson24.github.io/StockPulse/';
+  const allowed = 'https://jenson24.github.io';
   return {
     'Access-Control-Allow-Origin': allowed,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -87,17 +87,30 @@ async function decryptTokens(encryptedStr, secret) {
 
 // ─── Token storage ────────────────────────────────────────────────────────────
 async function saveTokens(env, tokens) {
+  if (!env.SCHWAB_TOKENS) {
+    console.error('saveTokens: SCHWAB_TOKENS KV binding is undefined — check wrangler.toml');
+    throw new Error('KV binding SCHWAB_TOKENS not found');
+  }
   const encrypted = await encryptTokens(tokens, env.PWA_SECRET);
   await env.SCHWAB_TOKENS.put(TOKEN_KV_KEY, encrypted);
+  console.log('saveTokens: tokens saved to KV successfully');
 }
 
 async function loadTokens(env) {
+  if (!env.SCHWAB_TOKENS) {
+    console.error('loadTokens: SCHWAB_TOKENS KV binding is undefined — check wrangler.toml');
+    return null;
+  }
   const encrypted = await env.SCHWAB_TOKENS.get(TOKEN_KV_KEY);
+  console.log('loadTokens: KV get result present:', !!encrypted);
   if (!encrypted) return null;
   try {
-    return await decryptTokens(encrypted, env.PWA_SECRET);
+    const tokens = await decryptTokens(encrypted, env.PWA_SECRET);
+    console.log('loadTokens: decryption succeeded');
+    return tokens;
   } catch(e) {
-    console.error('Token decryption failed:', e);
+    console.error('loadTokens: decryption failed —', e.message,
+      '— this usually means PWA_SECRET changed since tokens were saved. Clear KV and re-authenticate.');
     return null;
   }
 }
@@ -152,22 +165,31 @@ async function refreshAccessToken(env, refreshToken) {
 
 async function getValidAccessToken(env) {
   const tokens = await loadTokens(env);
-  if (!tokens) throw new Error('NOT_AUTHENTICATED');
+  if (!tokens) {
+    console.log('getValidAccessToken: no tokens found in KV');
+    throw new Error('NOT_AUTHENTICATED');
+  }
 
-  // Check if refresh token is near expiry (7 days)
-  const refreshAge = Date.now() - (tokens.obtained_at || 0);
+  console.log('getValidAccessToken: tokens loaded, access_token present:', !!tokens.access_token);
+
+  // Use refresh_obtained_at (set at initial auth) for the 7-day refresh token check.
+  // obtained_at is reset on every access token refresh, so it can't be used here.
+  const refreshObtainedAt = tokens.refresh_obtained_at || tokens.obtained_at || 0;
+  const refreshAge = Date.now() - refreshObtainedAt;
   const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
-  if (refreshAge > SEVEN_DAYS - 60 * 60 * 1000) { // warn 1hr before
+  if (refreshAge > SEVEN_DAYS - 60 * 60 * 1000) {
+    console.log('getValidAccessToken: refresh token expired or near expiry, age ms:', refreshAge);
     throw new Error('REFRESH_TOKEN_EXPIRED');
   }
 
-  // Refresh access token if it's near expiry (30min window, refresh at 25min)
+  // Use obtained_at (reset on each access token refresh) for the 30-min access token check
   const accessAge = Date.now() - (tokens.obtained_at || 0);
+  console.log('getValidAccessToken: access token age ms:', accessAge, 'TTL ms:', ACCESS_TOKEN_TTL);
   if (accessAge > ACCESS_TOKEN_TTL) {
+    console.log('getValidAccessToken: refreshing access token');
     const refreshed = await refreshAccessToken(env, tokens.refresh_token);
-    // Preserve the original obtained_at for refresh token age tracking
-    refreshed.obtained_at = tokens.obtained_at;
-    refreshed.refresh_obtained_at = tokens.refresh_obtained_at || tokens.obtained_at;
+    refreshed.obtained_at = Date.now();
+    refreshed.refresh_obtained_at = refreshObtainedAt; // preserve original refresh token timestamp
     await saveTokens(env, refreshed);
     return refreshed.access_token;
   }
@@ -378,6 +400,67 @@ async function handleHistory(request, env) {
   }
 }
 
+// GET /auth/debug — diagnose KV binding and token state (no secret needed)
+// Remove or restrict this in production once everything is working
+async function handleAuthDebug(request, env) {
+  const kvBound = !!env.SCHWAB_TOKENS;
+  const pwaSecretSet = !!env.PWA_SECRET;
+  const clientIdSet = !!env.SCHWAB_CLIENT_ID;
+  const clientSecretSet = !!env.SCHWAB_CLIENT_SECRET;
+  const redirectUriSet = !!env.SCHWAB_REDIRECT_URI;
+
+  let kvReadResult = 'not attempted';
+  let tokenPresent = false;
+  let decryptOk = false;
+  let tokenFields = null;
+
+  if (kvBound) {
+    try {
+      const raw = await env.SCHWAB_TOKENS.get(TOKEN_KV_KEY);
+      kvReadResult = raw ? `found (${raw.length} chars)` : 'empty (null)';
+      if (raw && pwaSecretSet) {
+        try {
+          const tokens = await decryptTokens(raw, env.PWA_SECRET);
+          decryptOk = true;
+          tokenPresent = !!tokens.access_token;
+          tokenFields = {
+            has_access_token: !!tokens.access_token,
+            has_refresh_token: !!tokens.refresh_token,
+            obtained_at: tokens.obtained_at ? new Date(tokens.obtained_at).toISOString() : null,
+            refresh_obtained_at: tokens.refresh_obtained_at
+              ? new Date(tokens.refresh_obtained_at).toISOString() : null,
+            access_token_age_min: tokens.obtained_at
+              ? Math.round((Date.now() - tokens.obtained_at) / 60000) : null,
+            refresh_token_age_days: tokens.refresh_obtained_at
+              ? Math.round((Date.now() - tokens.refresh_obtained_at) / 86400000) : null,
+          };
+        } catch(e) {
+          kvReadResult += ' — decryption failed: ' + e.message;
+        }
+      }
+    } catch(e) {
+      kvReadResult = 'KV read error: ' + e.message;
+    }
+  }
+
+  const body = {
+    bindings: { SCHWAB_TOKENS: kvBound, PWA_SECRET: pwaSecretSet,
+                SCHWAB_CLIENT_ID: clientIdSet, SCHWAB_CLIENT_SECRET: clientSecretSet,
+                SCHWAB_REDIRECT_URI: redirectUriSet },
+    kv: { bound: kvBound, readResult: kvReadResult, decryptOk, tokenPresent },
+    token: tokenFields,
+    hint: !kvBound
+      ? 'KV binding missing — check wrangler.toml [[kv_namespaces]] id and redeploy'
+      : !tokenPresent
+      ? 'KV bound but no token — visit /auth/login to authenticate'
+      : 'Everything looks good',
+  };
+
+  return new Response(JSON.stringify(body, null, 2), {
+    headers: { 'Content-Type': 'application/json', ...corsHeaders(request) }
+  });
+}
+
 // GET /accounts — STUBBED: returns empty until user enables it
 async function handleAccounts(request, env) {
   // Intentionally stubbed — enable after testing is complete
@@ -404,6 +487,7 @@ export default {
     if (path === '/auth/login')    return handleAuthLogin(env);
     if (path === '/auth/callback') return handleAuthCallback(request, env);
     if (path === '/auth/status')   return handleAuthStatus(request, env);
+    if (path === '/auth/debug')    return handleAuthDebug(request, env);
 
     // ── Health check ──────────────────────────────────────────────────────────
     if (path === '/health') {
