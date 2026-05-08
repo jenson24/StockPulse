@@ -25,7 +25,7 @@ function corsHeaders(request) {
   const origin = request.headers.get('Origin') || '';
   // In production, replace '*' with your exact GitHub Pages URL:
   // e.g. 'https://yourusername.github.io'
-  const allowed = '*';
+  const allowed = 'https://jenson24.github.io/StockPulse/';
   return {
     'Access-Control-Allow-Origin': allowed,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
