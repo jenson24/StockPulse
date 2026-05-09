@@ -366,37 +366,68 @@ async function handleHistory(request, env) {
 
   if (!symbol) return error('symbol parameter required', 400, request);
 
+  console.log(`handleHistory: fetching ${days} days for ${symbol}`);
+
   try {
-    const data = await schwabGet(env, `/pricehistory`, {
-      symbol,
-      periodType:    'month',
-      period:        Math.ceil(days / 30),
-      frequencyType: 'daily',
-      frequency:     1,
-      needExtendedHoursData: false,
+    // Verify token state before attempting Schwab call
+    const accessToken = await getValidAccessToken(env);
+    console.log(`handleHistory: access token obtained, calling Schwab pricehistory`);
+
+    // Schwab spec: startDate/endDate in milliseconds since epoch (not seconds)
+    // periodType=year with frequencyType=daily is the correct combo for multi-month history
+    const endDate = Date.now();
+    const startDate = endDate - (days * 24 * 60 * 60 * 1000);
+
+    const schwabUrl = new URL(SCHWAB_API_BASE + '/pricehistory');
+    schwabUrl.searchParams.set('symbol', symbol);
+    schwabUrl.searchParams.set('periodType', 'year');
+    schwabUrl.searchParams.set('frequencyType', 'daily');
+    schwabUrl.searchParams.set('frequency', '1');
+    schwabUrl.searchParams.set('startDate', String(Math.floor(startDate)));
+    schwabUrl.searchParams.set('endDate', String(Math.floor(endDate)));
+    schwabUrl.searchParams.set('needExtendedHoursData', 'false');
+    schwabUrl.searchParams.set('needPreviousClose', 'false');
+
+    console.log(`handleHistory: requesting URL ${schwabUrl.toString()}`);
+
+    const res = await fetch(schwabUrl.toString(), {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
     });
 
-    if (!data.candles || data.candles.length === 0) {
-      return json({ ok: false, error: 'No history data returned' }, 404, request);
+    console.log(`handleHistory: Schwab responded with status ${res.status}`);
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`handleHistory: Schwab error ${res.status}: ${body}`);
+      return error(`Schwab API error ${res.status}: ${body}`, 500, request);
     }
 
-    // Normalize to the same { c, h, l, o, v, t } shape the PWA already uses
+    const data = await res.json();
+    console.log(`handleHistory: candles received: ${data.candles?.length ?? 0}, empty: ${data.empty}`);
+
+    if (!data.candles || data.candles.length === 0 || data.empty === true) {
+      return json({ ok: false, error: 'No history data returned', symbol, empty: data.empty }, 404, request);
+    }
+
+    // Normalize to { c, h, l, o, v, t } — shape PWA's computeAllIndicators expects
     const candles = data.candles;
     return json({
       ok: true,
       symbol,
-      c: candles.map(c => c.close),
-      h: candles.map(c => c.high),
-      l: candles.map(c => c.low),
-      o: candles.map(c => c.open),
-      v: candles.map(c => c.volume),
-      t: candles.map(c => c.datetime),
+      c: candles.map(d => d.close),
+      h: candles.map(d => d.high),
+      l: candles.map(d => d.low),
+      o: candles.map(d => d.open),
+      v: candles.map(d => d.volume),
+      t: candles.map(d => d.datetime),
     }, 200, request);
+
   } catch(e) {
+    console.error(`handleHistory error for ${symbol}:`, e.message, e.stack);
     if (e.message === 'NOT_AUTHENTICATED' || e.message === 'REFRESH_TOKEN_EXPIRED') {
       return json({ ok: false, error: e.message }, 401, request);
     }
-    return error(e.message, 500, request);
+    return error(`History fetch failed: ${e.message}`, 500, request);
   }
 }
 
