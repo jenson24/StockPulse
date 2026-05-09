@@ -288,6 +288,10 @@
         <div class="settings-row">
           <input class="settings-input" id="watchlistInput" type="text" placeholder="AAPL,MSFT,NVDA,AMZN,GOOGL" style="width:100%;font-size:12px"/>
         </div>
+        <div class="settings-row" style="justify-content:center">
+          <button onclick="testAnthropicConnection()" style="background:var(--bg4);border:0.5px solid var(--border2);border-radius:10px;padding:8px 18px;color:var(--text2);font-size:13px;cursor:pointer">Test connection</button>
+        </div>
+        <div id="anthropicStatusMsg" style="padding:0 16px 12px;font-size:12px;color:var(--text3)"></div>
       </div>
 
       <div class="section-label" style="margin-top:16px">Tax settings</div>
@@ -690,7 +694,7 @@ async function testAnthropicConnection() {
   } catch(e) {
     // A CORS error here means the browser blocked the request — likely missing the dangerous-direct-browser-calls header
     if (e.message.includes('fetch') || e.name === 'TypeError') {
-      msgEl.innerHTML = '<span style="color:var(--red)">✗ Network/CORS error — the request was blocked before reaching Anthropic. Make sure you are on HTTPS.</span>';
+      msgEl.innerHTML = '<span style="color:var(--red)">✗ Network/CORS error — the request was blocked before reaching Anthropic. Make sure you\'re on HTTPS.</span>';
     } else {
       msgEl.innerHTML = `<span style="color:var(--red)">✗ ${e.message}</span>`;
     }
