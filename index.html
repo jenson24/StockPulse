@@ -629,6 +629,75 @@ async function checkWorkerStatus() {
   }
 }
 
+async function testAnthropicConnection() {
+  const msgEl = $('anthropicStatusMsg');
+  if (!msgEl) return;
+
+  const key = $('anthropicKeyInput')?.value.trim() || settings.anthropicKey;
+  if (!key) {
+    msgEl.innerHTML = '<span style="color:var(--amber)">⚠ Enter an API key first</span>';
+    return;
+  }
+
+  msgEl.innerHTML = '<span style="color:var(--text3)">Testing…</span>';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-calls': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 20,
+        messages: [{ role: 'user', content: 'Reply with just the word CONNECTED.' }]
+      })
+    });
+
+    const raw = await res.text();
+    console.log('Anthropic test response:', res.status, raw);
+
+    if (res.status === 401) {
+      msgEl.innerHTML = '<span style="color:var(--red)">✗ Invalid API key (401) — check the key and try again</span>';
+      return;
+    }
+    if (res.status === 403) {
+      msgEl.innerHTML = '<span style="color:var(--red)">✗ Forbidden (403) — browser calls may not be enabled for this key. Check your Anthropic console settings.</span>';
+      return;
+    }
+    if (!res.ok) {
+      msgEl.innerHTML = `<span style="color:var(--red)">✗ API error ${res.status}: ${raw.slice(0, 120)}</span>`;
+      return;
+    }
+
+    let data;
+    try { data = JSON.parse(raw); } catch(e) {
+      msgEl.innerHTML = `<span style="color:var(--red)">✗ Could not parse response: ${raw.slice(0, 120)}</span>`;
+      return;
+    }
+
+    if (data.error) {
+      msgEl.innerHTML = `<span style="color:var(--red)">✗ ${data.error.type}: ${data.error.message}</span>`;
+      return;
+    }
+
+    const reply = data.content?.[0]?.text || '';
+    msgEl.innerHTML = `<span style="color:var(--green)">✓ Connected — model replied: "${reply}"</span>`;
+
+  } catch(e) {
+    // A CORS error here means the browser blocked the request — likely missing the dangerous-direct-browser-calls header
+    if (e.message.includes('fetch') || e.name === 'TypeError') {
+      msgEl.innerHTML = '<span style="color:var(--red)">✗ Network/CORS error — the request was blocked before reaching Anthropic. Make sure you're on HTTPS.</span>';
+    } else {
+      msgEl.innerHTML = `<span style="color:var(--red)">✗ ${e.message}</span>`;
+    }
+    console.error('Anthropic test error:', e);
+  }
+}
+
 async function fetchPrices(tickers) {
   if (!settings.apiKey || !settings.pwaSecret || tickers.length === 0) return {};
   try {
