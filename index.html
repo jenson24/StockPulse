@@ -690,7 +690,7 @@ async function testAnthropicConnection() {
   } catch(e) {
     // A CORS error here means the browser blocked the request — likely missing the dangerous-direct-browser-calls header
     if (e.message.includes('fetch') || e.name === 'TypeError') {
-      msgEl.innerHTML = '<span style="color:var(--red)">✗ Network/CORS error — the request was blocked before reaching Anthropic. Make sure you\'re on HTTPS.</span>';
+      msgEl.innerHTML = '<span style="color:var(--red)">✗ Network/CORS error — the request was blocked before reaching Anthropic. Make sure you are on HTTPS.</span>';
     } else {
       msgEl.innerHTML = `<span style="color:var(--red)">✗ ${e.message}</span>`;
     }
