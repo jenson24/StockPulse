@@ -932,13 +932,23 @@ Tag must be one of: Momentum, Value, Sector, Dividend, Growth`;
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': settings.anthropicKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-calls': 'true',
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
         messages: [{ role: 'user', content: prompt }]
       })
     });
+    if (!res.ok) {
+      const errBody = await res.text();
+      console.error('Anthropic API error in generateBuyIdeasWithAI:', res.status, errBody);
+      return null;
+    }
     const data = await res.json();
     const text = data.content?.map(c => c.text || '').join('');
     const clean = text.replace(/```json|```/g, '').trim();
@@ -971,13 +981,23 @@ Respond with ONLY a JSON array of ticker strings, e.g. ["AAPL","MSFT",...]. No m
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': settings.anthropicKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-calls': 'true',
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 200,
         messages: [{ role: 'user', content: prompt }]
       })
     });
+    if (!res.ok) {
+      const errBody = await res.text();
+      console.error('Anthropic API error in askAIForUniverse:', res.status, errBody);
+      return null;
+    }
     const data = await res.json();
     const text = data.content?.map(c => c.text || '').join('').replace(/```json|```/g, '').trim();
     return JSON.parse(text);
