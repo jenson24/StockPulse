@@ -54,12 +54,7 @@
     .spinning { animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Tabs */
-    .tabs { display: flex; padding: 0 20px; border-bottom: 0.5px solid var(--border); background: var(--bg); position: sticky; top: calc(var(--safe-top) + 104px); z-index: 9; }
-    .tab { flex: 1; text-align: center; padding: 10px 0; font-size: 13px; color: var(--text3); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -0.5px; transition: color 0.15s; position: relative; }
-    .tab.active { color: var(--text); border-bottom-color: var(--accent); }
-    .tab-badge { position: absolute; top: 8px; right: 12px; background: var(--red); color: #fff; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 99px; display: none; }
-    .tab-badge.show { display: inline-block; }
+
 
     /* Content */
     .content { flex: 1; overflow-y: auto; padding-bottom: calc(var(--safe-bottom) + 80px); }
@@ -200,13 +195,6 @@
   </div>
 </div>
 
-<div class="tabs">
-  <div class="tab active" data-tab="portfolio">Portfolio<span class="tab-badge" id="badge-portfolio"></span></div>
-  <div class="tab" data-tab="alerts">Signals<span class="tab-badge" id="badge-alerts"></span></div>
-  <div class="tab" data-tab="buys">Buy Ideas</div>
-  <div class="tab" data-tab="settings">Settings</div>
-</div>
-
 <div class="content">
 
   <!-- PORTFOLIO -->
@@ -337,8 +325,9 @@
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>
     <span class="nav-label">Portfolio</span>
   </div>
-  <div class="nav-item" data-nav="alerts">
+  <div class="nav-item" data-nav="alerts" style="position:relative">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+    <span id="badge-alerts" style="display:none;position:absolute;top:2px;right:18px;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px"></span>
     <span class="nav-label">Signals</span>
   </div>
   <div class="nav-item" data-nav="buys">
@@ -862,8 +851,10 @@ function renderPortfolioWithRSIs(rsiMap) {
   else { pill.style.display = 'none'; }
 
   const badge = $('badge-alerts');
-  if (alertCount > 0) { badge.textContent = alertCount; badge.classList.add('show'); }
-  else badge.classList.remove('show');
+  if (badge) {
+    if (alertCount > 0) { badge.textContent = alertCount; badge.style.display = 'inline-block'; }
+    else badge.style.display = 'none';
+  }
 }
 
 async function renderPortfolio() {
@@ -1580,31 +1571,20 @@ function deletePosition(idx) {
 }
 
 // ─── Event listeners ──────────────────────────────────────────────────────────
-document.querySelectorAll('.tab').forEach(t => {
-  t.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    t.classList.add('active');
-    $('page-' + t.dataset.tab).classList.add('active');
-    if (t.dataset.tab === 'alerts') renderAlerts();
-    if (t.dataset.tab === 'buys') renderBuys();
-    if (t.dataset.tab === 'settings') renderSettings();
-  });
-});
+function navigateTo(tab) {
+  document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const navItem = document.querySelector(`.nav-item[data-nav="${tab}"]`);
+  if (navItem) navItem.classList.add('active');
+  $('page-' + tab).classList.add('active');
+  activeTab = tab;
+  if (tab === 'alerts') renderAlerts();
+  if (tab === 'buys') renderBuys();
+  if (tab === 'settings') renderSettings();
+}
 
 document.querySelectorAll('.nav-item').forEach(n => {
-  n.addEventListener('click', () => {
-    document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
-    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    n.classList.add('active');
-    const tab = n.dataset.nav;
-    document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
-    $('page-' + tab).classList.add('active');
-    if (tab === 'alerts') renderAlerts();
-    if (tab === 'buys') renderBuys();
-    if (tab === 'settings') renderSettings();
-  });
+  n.addEventListener('click', () => navigateTo(n.dataset.nav));
 });
 
 $('addBtn').addEventListener('click', () => {
@@ -1648,14 +1628,7 @@ $('saveSettingsBtn').addEventListener('click', () => {
   renderAll();
 });
 
-let activeTab = 'portfolio';
-
-document.querySelectorAll('.tab, .nav-item').forEach(el => {
-  el.addEventListener('click', () => {
-    const tab = el.dataset.tab || el.dataset.nav;
-    if (tab) activeTab = tab;
-  });
-});
+let activeTab = 'portfolio';  // updated by navigateTo()
 
 $('refreshBtn').addEventListener('click', () => {
   if (activeTab === 'buys') {
