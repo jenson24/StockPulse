@@ -492,6 +492,67 @@ async function handleAuthDebug(request, env) {
   });
 }
 
+// GET /fundamentals?symbols=AAPL,MSFT
+// Returns dividend yield, P/E, EPS, 52wk high/low via Schwab /instruments endpoint
+async function handleFundamentals(request, env) {
+  const url = new URL(request.url);
+  const symbols = url.searchParams.get('symbols');
+  if (!symbols) return error('symbols parameter required', 400, request);
+
+  const symbolList = symbols.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+  if (symbolList.length === 0) return error('No valid symbols', 400, request);
+
+  try {
+    // Schwab /instruments accepts symbol + projection=fundamental for fundamental data
+    // Must be called per-symbol; fan out in parallel
+    const results = await Promise.all(symbolList.map(async sym => {
+      try {
+        const data = await schwabGet(env, '/instruments', {
+          symbol: sym,
+          projection: 'fundamental',
+        });
+        // Response: { instruments: [ { fundamental: {...}, symbol, cusip, ... } ] }
+        const instruments = data.instruments || (Array.isArray(data) ? data : [data]);
+        const inst = instruments.find(i => i.symbol === sym) || instruments[0];
+        if (!inst) return [sym, null];
+        const f = inst.fundamental || {};
+
+        // Map dividend frequency number to label (per Schwab: 1=annual,2=semi,4=quarterly,12=monthly)
+        const freqMap = { 1:'Annual', 2:'Semi-annual', 4:'Quarterly', 12:'Monthly' };
+        const divFreqLabel = f.dividendFreq ? (freqMap[f.dividendFreq] || `${f.dividendFreq}x/year`) : null;
+
+        return [sym, {
+          peRatio:           f.peRatio ?? null,
+          eps:               f.epsTTM ?? null,
+          dividendYield:     f.dividendYield ?? null,   // already a percentage e.g. 0.3682
+          dividendAmount:    f.dividendAmount ?? null,   // annual dividend e.g. 1.08
+          dividendPayAmount: f.dividendPayAmount ?? null, // per-payment amount e.g. 0.27
+          dividendFrequency: divFreqLabel,
+          dividendDate:      f.dividendDate ?? null,     // ex-dividend date
+          dividendPayDate:   f.dividendPayDate ?? null,  // next pay date
+          nextDividendDate:  f.nextDividendDate ?? null, // next ex-dividend date
+          high52:            f.high52 ?? null,
+          low52:             f.low52 ?? null,
+          beta:              f.beta ?? null,
+          marketCap:         f.marketCap ?? null,
+          pegRatio:          f.pegRatio ?? null,
+        }];
+      } catch(e) {
+        console.warn(`Fundamentals fetch failed for ${sym}:`, e.message);
+        return [sym, null];
+      }
+    }));
+
+    const fundamentals = Object.fromEntries(results.filter(([, v]) => v !== null));
+    return json({ ok: true, fundamentals }, 200, request);
+  } catch(e) {
+    if (e.message === 'NOT_AUTHENTICATED' || e.message === 'REFRESH_TOKEN_EXPIRED') {
+      return json({ ok: false, error: e.message }, 401, request);
+    }
+    return error(e.message, 500, request);
+  }
+}
+
 // GET /accounts — STUBBED: returns empty until user enables it
 async function handleAccounts(request, env) {
   // Intentionally stubbed — enable after testing is complete
@@ -530,7 +591,8 @@ export default {
       return error('Unauthorized', 401, request);
     }
 
-    if (path === '/quotes')   return handleQuotes(request, env);
+    if (path === '/quotes')       return handleQuotes(request, env);
+  if (path === '/fundamentals') return handleFundamentals(request, env);
     if (path === '/history')  return handleHistory(request, env);
     if (path === '/accounts') return handleAccounts(request, env);
 
