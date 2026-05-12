@@ -655,7 +655,7 @@ async function testAnthropicConnection() {
         'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 20,
         messages: [{ role: 'user', content: 'Reply with just the word CONNECTED.' }]
       })
@@ -1012,7 +1012,7 @@ Tag must be one of: Momentum, Value, Sector, Dividend, Growth`;
         'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1000,
         messages: [{ role: 'user', content: prompt }]
       })
@@ -1061,7 +1061,7 @@ Respond with ONLY a JSON array of ticker strings, e.g. ["AAPL","MSFT",...]. No m
         'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 200,
         messages: [{ role: 'user', content: prompt }]
       })
