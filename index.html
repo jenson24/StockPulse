@@ -382,6 +382,14 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- BUY DETAIL MODAL -->
+<div class="modal-backdrop" id="buyDetailModal">
+  <div class="modal" style="max-height:88vh">
+    <div class="modal-handle"></div>
+    <div id="buyDetailContent"></div>
+  </div>
+</div>
+
 <script>
 // ─── State ───────────────────────────────────────────────────────────────────
 let positions = JSON.parse(localStorage.getItem('sp-positions') || '[]');
@@ -558,7 +566,11 @@ async function fetchIndicators(ticker) {
     const data = await workerGet(`/history?symbol=${encodeURIComponent(upper)}&days=210`).catch(() => null);
     if (!data || !data.ok || !data.c || data.c.length < 20) return null;
     const indicators = computeAllIndicators(data);
-    if (indicators) indicatorCache[upper] = { indicators, ts: Date.now() };
+    if (indicators) {
+      // Store raw candle data alongside indicators for price chart rendering
+      const raw = data.c.map((c, i) => ({ c, h: data.h?.[i], l: data.l?.[i], o: data.o?.[i], v: data.v?.[i], t: data.t?.[i] }));
+      indicatorCache[upper] = { indicators, raw, ts: Date.now() };
+    }
     return indicators;
   } catch(e) {
     console.warn('Indicator fetch failed for', ticker, e);
@@ -925,6 +937,20 @@ function saveBuyCache(ideas) {
 }
 
 
+async function fetchFundamentals(tickers) {
+  // Schwab /instruments endpoint returns dividend info, P/E, 52wk range etc.
+  // One call returns all tickers at once via comma-separated symbols param
+  if (!settings.apiKey || !settings.pwaSecret || tickers.length === 0) return {};
+  try {
+    const data = await workerGet(`/fundamentals?symbols=${tickers.join(',')}`);
+    if (!data.ok || !data.fundamentals) return {};
+    return data.fundamentals; // { AAPL: { dividendYield, dividendAmount, peRatio, ... } }
+  } catch(e) {
+    console.warn('fetchFundamentals failed:', e);
+    return {};
+  }
+}
+
 async function fetchMarketDataForWatchlist(tickers) {
   if (!settings.apiKey || !settings.pwaSecret || tickers.length === 0) return [];
   try {
@@ -1149,6 +1175,18 @@ async function loadBuyIdeas(forceRefresh = false) {
   }
 
   if (ideas && ideas.length > 0) {
+    // Pre-fetch fundamentals for the 5 picked tickers so detail cards are instant
+    setStatus(3, 'Fetching fundamentals…');
+    const pickedTickers = ideas.map(i => i.ticker);
+    const fundamentals = settings.apiKey ? await fetchFundamentals(pickedTickers) : {};
+
+    // Attach indicator data and fundamentals to each idea for the detail view
+    ideas = ideas.map(idea => ({
+      ...idea,
+      indicators: universeIndicators[idea.ticker] || null,
+      fundamentals: fundamentals[idea.ticker] || null,
+    }));
+
     saveBuyCache(ideas);
     cachedBuyIdeas = ideas;
     renderBuyCards(ideas);
@@ -1171,7 +1209,7 @@ function renderBuyCards(ideas) {
   el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
     <span style="font-size:11px;color:var(--text3)">Generated ${lastUpdated}</span>
     <button onclick="loadBuyIdeas(true)" style="background:var(--bg3);border:0.5px solid var(--border2);border-radius:99px;padding:4px 12px;color:var(--text2);font-size:11px;cursor:pointer">↻ Refresh</button>
-  </div>` + ideas.map(b => {
+  </div>` + ideas.map((b, idx) => {
     const score = Math.round(b.score);
     const c = score >= 80 ? '#00c97a' : score >= 65 ? '#f5a623' : '#999';
     const arc = 2 * Math.PI * 16;
@@ -1179,7 +1217,7 @@ function renderBuyCards(ideas) {
     const chgColor = (b.change || '').startsWith('+') ? 'var(--green)' : 'var(--red)';
     const tagClass = b.tag === 'Momentum' || b.tag === 'Growth' ? 'pill-green' : b.tag === 'Value' || b.tag === 'Dividend' ? 'pill-amber' : 'pill-blue';
     const priceStr = b.price ? '$' + parseFloat(b.price).toFixed(2) : 'N/A';
-    return `<div class="buy-card">
+    return `<div class="buy-card" onclick="openBuyDetail(${idx})" style="cursor:pointer">
       <div class="buy-top">
         <div>
           <div style="display:flex;align-items:center;gap:8px">
@@ -1198,11 +1236,241 @@ function renderBuyCards(ideas) {
         </svg>
       </div>
       <div class="buy-reason">${b.reason}</div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text3);text-align:right">Tap for details →</div>
     </div>`;
   }).join('');
 }
 
 function renderBuys() { loadBuyIdeas(false); }  // shows cache or prompt, never auto-fetches
+
+// ─── Buy idea detail modal ────────────────────────────────────────────────────
+let currentBuyIdea = null;
+
+function buildPriceChart(candles, months) {
+  if (!candles || candles.length === 0) return '<div style="color:var(--text3);font-size:12px;padding:20px 0;text-align:center">No chart data available</div>';
+
+  // Filter to requested month range
+  const cutoff = Date.now() - months * 30 * 24 * 60 * 60 * 1000;
+  const filtered = candles.filter(d => d.t > cutoff);
+  const data = filtered.length > 10 ? filtered : candles.slice(-30);
+
+  const closes = data.map(d => d.c);
+  const times = data.map(d => d.t);
+  const minP = Math.min(...closes);
+  const maxP = Math.max(...closes);
+  const range = maxP - minP || 1;
+  const W = 340, H = 120, padL = 44, padR = 8, padT = 8, padB = 24;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+
+  const x = i => padL + (i / (closes.length - 1)) * chartW;
+  const y = v => padT + chartH - ((v - minP) / range) * chartH;
+
+  // Build polyline points
+  const pts = closes.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const isUp = closes[closes.length - 1] >= closes[0];
+  const lineColor = isUp ? '#00c97a' : '#ff4d4d';
+
+  // Fill area under line
+  const fillPts = `${x(0).toFixed(1)},${(padT + chartH).toFixed(1)} ${pts} ${x(closes.length-1).toFixed(1)},${(padT + chartH).toFixed(1)}`;
+
+  // Y-axis labels
+  const yLabels = [0, 0.5, 1].map(pct => {
+    const val = minP + pct * range;
+    const yPos = y(val);
+    return `<text x="${padL - 4}" y="${yPos + 4}" text-anchor="end" font-size="9" fill="#666">$${val.toFixed(0)}</text>`;
+  }).join('');
+
+  // X-axis date labels (first and last)
+  const fmtDate = ts => new Date(ts).toLocaleDateString('en-US', {month:'short', day:'numeric'});
+  const xLabels = `
+    <text x="${padL}" y="${H - 6}" font-size="9" fill="#666">${fmtDate(times[0])}</text>
+    <text x="${W - padR}" y="${H - 6}" text-anchor="end" font-size="9" fill="#666">${fmtDate(times[times.length-1])}</text>`;
+
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible">
+    <defs>
+      <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${lineColor}" stop-opacity="0.25"/>
+        <stop offset="100%" stop-color="${lineColor}" stop-opacity="0"/>
+      </linearGradient>
+      <clipPath id="chartClip"><rect x="${padL}" y="${padT}" width="${chartW}" height="${chartH}"/></clipPath>
+    </defs>
+    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+chartH}" stroke="#333" stroke-width="0.5"/>
+    <line x1="${padL}" y1="${padT+chartH}" x2="${W-padR}" y2="${padT+chartH}" stroke="#333" stroke-width="0.5"/>
+    ${yLabels}${xLabels}
+    <g clip-path="url(#chartClip)">
+      <polygon points="${fillPts}" fill="url(#chartFill)"/>
+      <polyline points="${pts}" fill="none" stroke="${lineColor}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </g>
+  </svg>`;
+}
+
+function renderBuyDetailChart(months) {
+  const b = currentBuyIdea;
+  if (!b) return;
+  const ind = b.indicators || indicatorCache[b.ticker?.toUpperCase()]?.indicators;
+  const chartEl = $('buyDetailChart');
+  if (!chartEl || !ind) return;
+
+  // Build candle array from cached indicator data
+  const cached = indicatorCache[b.ticker?.toUpperCase()];
+  if (!cached || !cached.raw) { chartEl.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:20px 0;text-align:center">Chart data loading…</div>'; return; }
+  chartEl.innerHTML = buildPriceChart(cached.raw, months);
+
+  // Update active button
+  ['1','3','6'].forEach(m => {
+    const btn = $(`chartBtn${m}`);
+    if (btn) {
+      const active = parseInt(m) === months;
+      btn.style.background = active ? 'var(--accent)' : 'var(--bg4)';
+      btn.style.color = active ? '#fff' : 'var(--text2)';
+    }
+  });
+}
+
+function openBuyDetail(idx) {
+  const ideas = cachedBuyIdeas;
+  if (!ideas || !ideas[idx]) return;
+  const b = ideas[idx];
+  currentBuyIdea = b;
+
+  const ind = b.indicators || indicatorCache[b.ticker?.toUpperCase()]?.indicators || null;
+  const fund = b.fundamentals || null;
+  const score = Math.round(b.score);
+  const scoreColor = score >= 80 ? '#00c97a' : score >= 65 ? '#f5a623' : '#999';
+  const priceStr = b.price ? '$' + parseFloat(b.price).toFixed(2) : 'N/A';
+  const chgColor = (b.change || '').startsWith('+') ? 'var(--green)' : 'var(--red)';
+
+  // Buy signals from indicators
+  const buySignals = ind?.buySignals || [];
+  const sellSignals = ind?.sellSignals || [];
+
+  // Dividend info
+  let divHTML = '';
+  if (fund) {
+    // dividendYield from Schwab is already a percentage value e.g. 0.3682 = 0.37%
+    const divYield = fund.dividendYield != null ? fund.dividendYield.toFixed(2) + '%' : null;
+    const divAmt = fund.dividendAmount != null ? '$' + parseFloat(fund.dividendAmount).toFixed(2) + '/yr' : null;
+    const divPay = fund.dividendPayAmount != null ? '$' + parseFloat(fund.dividendPayAmount).toFixed(2) + '/payment' : null;
+    const divFreq = fund.dividendFrequency || null;
+    const fmtDate = s => s ? new Date(s).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) : null;
+    const exDiv = fmtDate(fund.dividendDate);
+    const payDate = fmtDate(fund.dividendPayDate);
+    const nextExDiv = fmtDate(fund.nextDividendDate);
+
+    if (divYield || divAmt) {
+      divHTML = `<div class="detail-section">
+        <div class="detail-section-title">Dividend</div>
+        ${divYield ? `<div class="detail-row"><span class="label">Yield</span><span class="val" style="color:var(--green)">${divYield}</span></div>` : ''}
+        ${divAmt ? `<div class="detail-row"><span class="label">Annual amount</span><span class="val">${divAmt}</span></div>` : ''}
+        ${divPay ? `<div class="detail-row"><span class="label">Per payment</span><span class="val">${divPay}</span></div>` : ''}
+        ${divFreq ? `<div class="detail-row"><span class="label">Frequency</span><span class="val">${divFreq}</span></div>` : ''}
+        ${exDiv ? `<div class="detail-row"><span class="label">Last ex-div date</span><span class="val">${exDiv}</span></div>` : ''}
+        ${payDate ? `<div class="detail-row"><span class="label">Next pay date</span><span class="val" style="color:var(--green)">${payDate}</span></div>` : ''}
+        ${nextExDiv ? `<div class="detail-row"><span class="label">Next ex-div date</span><span class="val">${nextExDiv}</span></div>` : ''}
+      </div>`;
+    } else {
+      divHTML = `<div class="detail-section">
+        <div class="detail-section-title">Dividend</div>
+        <div style="font-size:12px;color:var(--text3)">No dividend — growth/non-dividend stock</div>
+      </div>`;
+    }
+  }
+
+  // Fundamentals section
+  let fundHTML = '';
+  if (fund) {
+    const pe   = fund.peRatio != null ? fund.peRatio.toFixed(1) : '—';
+    const peg  = fund.pegRatio != null ? fund.pegRatio.toFixed(2) : '—';
+    const eps  = fund.eps != null ? '$' + parseFloat(fund.eps).toFixed(2) : '—';
+    const beta = fund.beta != null ? fund.beta.toFixed(2) : '—';
+    const mcap = fund.marketCap != null
+      ? (fund.marketCap >= 1e12 ? '$' + (fund.marketCap/1e12).toFixed(2) + 'T'
+       : fund.marketCap >= 1e9  ? '$' + (fund.marketCap/1e9).toFixed(1) + 'B'
+       : '$' + (fund.marketCap/1e6).toFixed(0) + 'M') : '—';
+    const high52 = fund.high52 != null ? '$' + fund.high52.toFixed(2) : (ind?.high52 ? '$' + ind.high52.toFixed(2) : '—');
+    const low52  = fund.low52  != null ? '$' + fund.low52.toFixed(2)  : (ind?.low52  ? '$' + ind.low52.toFixed(2)  : '—');
+    fundHTML = `<div class="detail-section">
+      <div class="detail-section-title">Fundamentals</div>
+      <div class="detail-row"><span class="label">Market cap</span><span class="val">${mcap}</span></div>
+      <div class="detail-row"><span class="label">P/E ratio</span><span class="val">${pe}</span></div>
+      <div class="detail-row"><span class="label">PEG ratio</span><span class="val">${peg}</span></div>
+      <div class="detail-row"><span class="label">EPS (TTM)</span><span class="val">${eps}</span></div>
+      <div class="detail-row"><span class="label">Beta</span><span class="val">${beta}</span></div>
+      <div class="detail-row"><span class="label">52-week range</span><span class="val">${low52} – ${high52}</span></div>
+    </div>`;
+  }
+
+  $('buyDetailContent').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+      <div>
+        <div style="font-size:22px;font-weight:700;color:var(--text)">${b.ticker}</div>
+        <div style="font-size:13px;color:var(--text3);margin-top:2px">${b.name || ''}</div>
+        <div style="font-size:18px;font-weight:600;margin-top:6px">${priceStr} <span style="font-size:13px;color:${chgColor}">${b.change || ''}</span></div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:28px;font-weight:700;color:${scoreColor}">${score}</div>
+        <div style="font-size:10px;color:var(--text3)">score</div>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">AI rationale</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.6">${b.reason}</div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">Technical signals</div>
+      ${buySignals.length ? `<div style="margin-bottom:8px">${buySignals.map(s =>
+        `<span style="display:inline-block;background:var(--green-bg);color:var(--green);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:500;margin:2px">✓ ${s}</span>`
+      ).join('')}</div>` : '<div style="font-size:12px;color:var(--text3);margin-bottom:8px">No buy signals detected</div>'}
+      ${sellSignals.length ? `<div>${sellSignals.map(s =>
+        `<span style="display:inline-block;background:var(--red-bg);color:var(--red);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:500;margin:2px">⚠ ${s}</span>`
+      ).join('')}</div>` : ''}
+      ${ind ? `<div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div style="background:var(--bg3);border-radius:8px;padding:8px 10px">
+          <div style="font-size:10px;color:var(--text3)">RSI (14)</div>
+          <div style="font-size:14px;font-weight:600;color:${rsiColor(ind.rsi)}">${ind.rsi ?? '—'}</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:8px;padding:8px 10px">
+          <div style="font-size:10px;color:var(--text3)">Bollinger %B</div>
+          <div style="font-size:14px;font-weight:600;color:${ind.bb ? (ind.bb.pct > 80 ? 'var(--red)' : ind.bb.pct < 20 ? 'var(--green)' : 'var(--text2)') : 'var(--text3)'}">${ind.bb ? ind.bb.pct + '%' : '—'}</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:8px;padding:8px 10px">
+          <div style="font-size:10px;color:var(--text3)">MACD</div>
+          <div style="font-size:14px;font-weight:600;color:${ind.macd?.histogram != null ? (ind.macd.histogram > 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)'}">${ind.macd?.histogram != null ? (ind.macd.histogram > 0 ? '▲ Bullish' : '▼ Bearish') : '—'}</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:8px;padding:8px 10px">
+          <div style="font-size:10px;color:var(--text3)">MA trend</div>
+          <div style="font-size:14px;font-weight:600;color:${ind.sma50 && ind.sma200 ? (ind.sma50 > ind.sma200 ? 'var(--green)' : 'var(--red)') : 'var(--text3)'}">${ind.sma50 && ind.sma200 ? (ind.sma50 > ind.sma200 ? '✓ Golden' : '✗ Death') : '—'}</div>
+        </div>
+      </div>` : '<div style="font-size:12px;color:var(--text3)">Indicator data unavailable</div>'}
+    </div>
+
+    ${divHTML}
+    ${fundHTML}
+
+    <div class="detail-section">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="detail-section-title" style="margin-bottom:0">Price history</div>
+        <div style="display:flex;gap:4px">
+          ${['1','3','6'].map(m => `<button id="chartBtn${m}" onclick="renderBuyDetailChart(${m})"
+            style="padding:4px 10px;border-radius:8px;border:0.5px solid var(--border2);font-size:11px;cursor:pointer;
+            background:${m==='1'?'var(--accent)':'var(--bg4)'};color:${m==='1'?'#fff':'var(--text2)'}">${m}M</button>`).join('')}
+        </div>
+      </div>
+      <div id="buyDetailChart"></div>
+    </div>
+
+    <button class="btn-secondary" onclick="$('buyDetailModal').classList.remove('open')" style="margin-top:8px">Close</button>
+  `;
+
+  $('buyDetailModal').classList.add('open');
+  $('buyDetailModal').onclick = e => { if (e.target === $('buyDetailModal')) $('buyDetailModal').classList.remove('open'); };
+
+  // Render 1M chart by default
+  renderBuyDetailChart(1);
+}
 
 function renderSettings() {
   $('apiKeyInput').value = settings.apiKey || '';
