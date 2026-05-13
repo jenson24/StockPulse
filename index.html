@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
@@ -37,141 +38,144 @@
     html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif; overscroll-behavior: none; }
     body { display: flex; flex-direction: column; max-width: 430px; margin: 0 auto; position: relative; }
 
-    /* Header */
-    .header { padding: calc(var(--safe-top) + 16px) 20px 12px; background: var(--bg); border-bottom: 0.5px solid var(--border); position: sticky; top: 0; z-index: 10; }
-    .header-row { display: flex; justify-content: space-between; align-items: flex-start; }
-    .app-name { font-size: 12px; font-weight: 600; letter-spacing: 2px; color: var(--text3); text-transform: uppercase; margin-bottom: 4px; }
-    .portfolio-value { font-size: 36px; font-weight: 700; letter-spacing: -1px; color: var(--text); }
-    .portfolio-sub { font-size: 13px; color: var(--text2); margin-top: 3px; display: flex; align-items: center; gap: 8px; }
-    .pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
-    .pill-green { background: var(--green-bg); color: var(--green); }
-    .pill-red { background: var(--red-bg); color: var(--red); }
-    .pill-amber { background: var(--amber-bg); color: var(--amber); }
-    .pill-blue { background: var(--blue-bg); color: var(--blue); }
-    .refresh-btn { background: var(--bg3); border: 0.5px solid var(--border); border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: opacity 0.2s; }
-    .refresh-btn:active { opacity: 0.6; }
-    .refresh-btn svg { width: 16px; height: 16px; }
-    .spinning { animation: spin 1s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+```
+/* Header */
+.header { padding: calc(var(--safe-top) + 16px) 20px 12px; background: var(--bg); border-bottom: 0.5px solid var(--border); position: sticky; top: 0; z-index: 10; }
+.header-row { display: flex; justify-content: space-between; align-items: flex-start; }
+.app-name { font-size: 12px; font-weight: 600; letter-spacing: 2px; color: var(--text3); text-transform: uppercase; margin-bottom: 4px; }
+.portfolio-value { font-size: 36px; font-weight: 700; letter-spacing: -1px; color: var(--text); }
+.portfolio-sub { font-size: 13px; color: var(--text2); margin-top: 3px; display: flex; align-items: center; gap: 8px; }
+.pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+.pill-green { background: var(--green-bg); color: var(--green); }
+.pill-red { background: var(--red-bg); color: var(--red); }
+.pill-amber { background: var(--amber-bg); color: var(--amber); }
+.pill-blue { background: var(--blue-bg); color: var(--blue); }
+.refresh-btn { background: var(--bg3); border: 0.5px solid var(--border); border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: opacity 0.2s; }
+.refresh-btn:active { opacity: 0.6; }
+.refresh-btn svg { width: 16px; height: 16px; }
+.spinning { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 
 
-    /* Content */
-    .content { flex: 1; overflow-y: auto; padding-bottom: calc(var(--safe-bottom) + 80px); }
-    .page { display: none; }
-    .page.active { display: block; }
-    .section { padding: 16px 20px 0; }
-    .section-label { font-size: 11px; font-weight: 600; letter-spacing: 1px; color: var(--text3); text-transform: uppercase; margin-bottom: 12px; }
+/* Content */
+.content { flex: 1; overflow-y: auto; padding-bottom: calc(var(--safe-bottom) + 80px); }
+.page { display: none; }
+.page.active { display: block; }
+.section { padding: 16px 20px 0; }
+.section-label { font-size: 11px; font-weight: 600; letter-spacing: 1px; color: var(--text3); text-transform: uppercase; margin-bottom: 12px; }
 
-    /* Position cards */
-    .pos-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
-    .pos-card:active { background: var(--bg3); }
-    .pos-card.sell-alert { border-color: rgba(255,77,77,0.4); background: rgba(255,77,77,0.04); }
-    .pos-card.sell-warn { border-color: rgba(245,166,35,0.35); background: rgba(245,166,35,0.04); }
-    .pos-row1 { display: flex; justify-content: space-between; align-items: flex-start; }
-    .pos-ticker-wrap { display: flex; align-items: center; gap: 8px; }
-    .pos-ticker { font-size: 17px; font-weight: 700; }
-    .pos-name { font-size: 12px; color: var(--text3); margin-top: 2px; }
-    .pos-right { text-align: right; }
-    .pos-price { font-size: 17px; font-weight: 600; }
-    .pos-val { font-size: 12px; color: var(--text2); margin-top: 2px; }
+/* Position cards */
+.pos-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.pos-card:active { background: var(--bg3); }
+.pos-card.sell-alert { border-color: rgba(255,77,77,0.4); background: rgba(255,77,77,0.04); }
+.pos-card.sell-warn { border-color: rgba(245,166,35,0.35); background: rgba(245,166,35,0.04); }
+.pos-row1 { display: flex; justify-content: space-between; align-items: flex-start; }
+.pos-ticker-wrap { display: flex; align-items: center; gap: 8px; }
+.pos-ticker { font-size: 17px; font-weight: 700; }
+.pos-name { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.pos-right { text-align: right; }
+.pos-price { font-size: 17px; font-weight: 600; }
+.pos-val { font-size: 12px; color: var(--text2); margin-top: 2px; }
 
-    /* Indicators */
-    .indicators { margin-top: 12px; padding-top: 12px; border-top: 0.5px solid var(--border); display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-    .ind { }
-    .ind-label { font-size: 10px; color: var(--text3); margin-bottom: 4px; }
-    .ind-track { height: 3px; background: var(--bg4); border-radius: 99px; overflow: hidden; }
-    .ind-fill { height: 100%; border-radius: 99px; }
-    .ind-val { font-size: 11px; font-weight: 600; margin-top: 4px; }
+/* Indicators */
+.indicators { margin-top: 12px; padding-top: 12px; border-top: 0.5px solid var(--border); display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.ind { }
+.ind-label { font-size: 10px; color: var(--text3); margin-bottom: 4px; }
+.ind-track { height: 3px; background: var(--bg4); border-radius: 99px; overflow: hidden; }
+.ind-fill { height: 100%; border-radius: 99px; }
+.ind-val { font-size: 11px; font-weight: 600; margin-top: 4px; }
 
-    /* Tax row */
-    .tax-row { margin-top: 10px; padding: 8px 10px; background: var(--bg3); border-radius: 10px; display: flex; justify-content: space-between; align-items: center; }
-    .tax-label { font-size: 11px; color: var(--text2); }
-    .tax-val { font-size: 12px; font-weight: 600; }
+/* Tax row */
+.tax-row { margin-top: 10px; padding: 8px 10px; background: var(--bg3); border-radius: 10px; display: flex; justify-content: space-between; align-items: center; }
+.tax-label { font-size: 11px; color: var(--text2); }
+.tax-val { font-size: 12px; font-weight: 600; }
 
-    /* Add button */
-    .add-btn { width: 100%; margin-top: 4px; padding: 14px; border: 0.5px dashed var(--border2); border-radius: 16px; background: transparent; color: var(--text3); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.15s, color 0.15s; }
-    .add-btn:active { background: var(--bg3); color: var(--text2); }
+/* Add button */
+.add-btn { width: 100%; margin-top: 4px; padding: 14px; border: 0.5px dashed var(--border2); border-radius: 16px; background: transparent; color: var(--text3); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.15s, color 0.15s; }
+.add-btn:active { background: var(--bg3); color: var(--text2); }
 
-    /* Alert cards */
-    .alert-card { background: var(--red-bg); border: 0.5px solid rgba(255,77,77,0.25); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; }
-    .alert-card.warn { background: var(--amber-bg); border-color: rgba(245,166,35,0.25); }
-    .alert-ticker { font-size: 15px; font-weight: 700; color: var(--red); display: flex; align-items: center; gap: 6px; }
-    .alert-card.warn .alert-ticker { color: var(--amber); }
-    .alert-desc { font-size: 13px; color: var(--text2); margin-top: 5px; line-height: 1.5; }
-    .alert-tax { margin-top: 10px; padding-top: 10px; border-top: 0.5px solid var(--border); font-size: 12px; color: var(--text2); }
-    .alert-tax strong { color: var(--text); }
+/* Alert cards */
+.alert-card { background: var(--red-bg); border: 0.5px solid rgba(255,77,77,0.25); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; }
+.alert-card.warn { background: var(--amber-bg); border-color: rgba(245,166,35,0.25); }
+.alert-ticker { font-size: 15px; font-weight: 700; color: var(--red); display: flex; align-items: center; gap: 6px; }
+.alert-card.warn .alert-ticker { color: var(--amber); }
+.alert-desc { font-size: 13px; color: var(--text2); margin-top: 5px; line-height: 1.5; }
+.alert-tax { margin-top: 10px; padding-top: 10px; border-top: 0.5px solid var(--border); font-size: 12px; color: var(--text2); }
+.alert-tax strong { color: var(--text); }
 
-    /* Buy cards */
-    .buy-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s; }
-    .buy-card:active { background: var(--bg3); }
-    .buy-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
-    .buy-ticker { font-size: 16px; font-weight: 700; }
-    .buy-name { font-size: 12px; color: var(--text3); margin-top: 2px; }
-    .buy-price { font-size: 15px; font-weight: 600; text-align: right; }
-    .buy-chg { font-size: 12px; text-align: right; margin-top: 2px; }
-    .buy-reason { font-size: 13px; color: var(--text2); line-height: 1.55; }
-    .score-circle { width: 42px; height: 42px; flex-shrink: 0; }
+/* Buy cards */
+.buy-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s; }
+.buy-card:active { background: var(--bg3); }
+.buy-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.buy-ticker { font-size: 16px; font-weight: 700; }
+.buy-name { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.buy-price { font-size: 15px; font-weight: 600; text-align: right; }
+.buy-chg { font-size: 12px; text-align: right; margin-top: 2px; }
+.buy-reason { font-size: 13px; color: var(--text2); line-height: 1.55; }
+.score-circle { width: 42px; height: 42px; flex-shrink: 0; }
 
-    /* Settings */
-    .settings-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 10px; }
-    .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 0.5px solid var(--border); }
-    .settings-row:last-child { border-bottom: none; }
-    .settings-label { font-size: 14px; }
-    .settings-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
-    .settings-input { background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 8px; padding: 6px 10px; color: var(--text); font-size: 13px; width: 180px; text-align: right; }
-    .settings-input:focus { outline: none; border-color: var(--accent); }
-    .save-settings-btn { width: 100%; padding: 14px; background: var(--accent); color: #fff; border: none; border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 4px; transition: opacity 0.15s; }
-    .save-settings-btn:active { opacity: 0.8; }
-    .api-status { font-size: 12px; padding: 8px 12px; border-radius: 8px; margin-bottom: 10px; }
-    .api-ok { background: var(--green-bg); color: var(--green); }
-    .api-err { background: var(--red-bg); color: var(--red); }
-    .api-none { background: var(--bg3); color: var(--text3); }
+/* Settings */
+.settings-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 10px; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 0.5px solid var(--border); }
+.settings-row:last-child { border-bottom: none; }
+.settings-label { font-size: 14px; }
+.settings-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.settings-input { background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 8px; padding: 6px 10px; color: var(--text); font-size: 13px; width: 180px; text-align: right; }
+.settings-input:focus { outline: none; border-color: var(--accent); }
+.save-settings-btn { width: 100%; padding: 14px; background: var(--accent); color: #fff; border: none; border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 4px; transition: opacity 0.15s; }
+.save-settings-btn:active { opacity: 0.8; }
+.api-status { font-size: 12px; padding: 8px 12px; border-radius: 8px; margin-bottom: 10px; }
+.api-ok { background: var(--green-bg); color: var(--green); }
+.api-err { background: var(--red-bg); color: var(--red); }
+.api-none { background: var(--bg3); color: var(--text3); }
 
-    /* Modal */
-    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 50; display: none; align-items: flex-end; }
-    .modal-backdrop.open { display: flex; }
-    .modal { background: var(--bg2); border-radius: 24px 24px 0 0; padding: 20px 20px calc(var(--safe-bottom) + 24px); width: 100%; max-height: 90vh; overflow-y: auto; }
-    .modal-handle { width: 36px; height: 4px; background: var(--bg4); border-radius: 99px; margin: 0 auto 18px; }
-    .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 18px; }
-    .modal-subtitle { font-size: 12px; color: var(--text2); margin-bottom: 18px; line-height: 1.5; }
-    .field { margin-bottom: 14px; }
-    .field label { font-size: 12px; color: var(--text3); display: block; margin-bottom: 6px; font-weight: 500; letter-spacing: 0.3px; }
-    .field input { width: 100%; padding: 12px 14px; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 12px; color: var(--text); font-size: 15px; }
-    .field input:focus { outline: none; border-color: var(--accent); }
-    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .btn-primary { width: 100%; padding: 15px; background: var(--accent); color: #fff; border: none; border-radius: 14px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 6px; }
-    .btn-secondary { width: 100%; padding: 15px; background: var(--bg3); color: var(--text2); border: none; border-radius: 14px; font-size: 15px; cursor: pointer; margin-top: 8px; }
+/* Modal */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 50; display: none; align-items: flex-end; }
+.modal-backdrop.open { display: flex; }
+.modal { background: var(--bg2); border-radius: 24px 24px 0 0; padding: 20px 20px calc(var(--safe-bottom) + 24px); width: 100%; max-height: 90vh; overflow-y: auto; }
+.modal-handle { width: 36px; height: 4px; background: var(--bg4); border-radius: 99px; margin: 0 auto 18px; }
+.modal-title { font-size: 18px; font-weight: 700; margin-bottom: 18px; }
+.modal-subtitle { font-size: 12px; color: var(--text2); margin-bottom: 18px; line-height: 1.5; }
+.field { margin-bottom: 14px; }
+.field label { font-size: 12px; color: var(--text3); display: block; margin-bottom: 6px; font-weight: 500; letter-spacing: 0.3px; }
+.field input { width: 100%; padding: 12px 14px; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 12px; color: var(--text); font-size: 15px; }
+.field input:focus { outline: none; border-color: var(--accent); }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn-primary { width: 100%; padding: 15px; background: var(--accent); color: #fff; border: none; border-radius: 14px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 6px; }
+.btn-secondary { width: 100%; padding: 15px; background: var(--bg3); color: var(--text2); border: none; border-radius: 14px; font-size: 15px; cursor: pointer; margin-top: 8px; }
 
-    /* Detail modal */
-    .detail-section { margin-bottom: 18px; }
-    .detail-section-title { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-    .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 0.5px solid var(--border); font-size: 14px; }
-    .detail-row:last-child { border-bottom: none; }
-    .detail-row .label { color: var(--text2); }
-    .detail-row .val { font-weight: 500; }
-    .tax-scenario { background: var(--bg3); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
-    .tax-scenario-title { font-size: 12px; font-weight: 600; margin-bottom: 8px; color: var(--text2); }
-    .tax-big { font-size: 22px; font-weight: 700; }
-    .delete-btn { width: 100%; padding: 14px; background: var(--red-bg); color: var(--red); border: 0.5px solid rgba(255,77,77,0.25); border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+/* Detail modal */
+.detail-section { margin-bottom: 18px; }
+.detail-section-title { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+.detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 0.5px solid var(--border); font-size: 14px; }
+.detail-row:last-child { border-bottom: none; }
+.detail-row .label { color: var(--text2); }
+.detail-row .val { font-weight: 500; }
+.tax-scenario { background: var(--bg3); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
+.tax-scenario-title { font-size: 12px; font-weight: 600; margin-bottom: 8px; color: var(--text2); }
+.tax-big { font-size: 22px; font-weight: 700; }
+.delete-btn { width: 100%; padding: 14px; background: var(--red-bg); color: var(--red); border: 0.5px solid rgba(255,77,77,0.25); border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; }
 
-    /* Empty state */
-    .empty { text-align: center; padding: 60px 20px; color: var(--text3); }
-    .empty-icon { font-size: 40px; margin-bottom: 12px; }
-    .empty-title { font-size: 16px; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
-    .empty-sub { font-size: 13px; line-height: 1.6; }
+/* Empty state */
+.empty { text-align: center; padding: 60px 20px; color: var(--text3); }
+.empty-icon { font-size: 40px; margin-bottom: 12px; }
+.empty-title { font-size: 16px; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
+.empty-sub { font-size: 13px; line-height: 1.6; }
 
-    /* Toast */
-    .toast { position: fixed; bottom: calc(var(--safe-bottom) + 90px); left: 50%; transform: translateX(-50%) translateY(20px); background: var(--bg4); border: 0.5px solid var(--border2); border-radius: 99px; padding: 10px 18px; font-size: 13px; color: var(--text); opacity: 0; transition: opacity 0.3s, transform 0.3s; pointer-events: none; white-space: nowrap; z-index: 100; }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+/* Toast */
+.toast { position: fixed; bottom: calc(var(--safe-bottom) + 90px); left: 50%; transform: translateX(-50%) translateY(20px); background: var(--bg4); border: 0.5px solid var(--border2); border-radius: 99px; padding: 10px 18px; font-size: 13px; color: var(--text); opacity: 0; transition: opacity 0.3s, transform 0.3s; pointer-events: none; white-space: nowrap; z-index: 100; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    /* Bottom nav */
-    .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: rgba(10,10,10,0.92); backdrop-filter: blur(20px); border-top: 0.5px solid var(--border); padding: 10px 0 calc(var(--safe-bottom) + 6px); display: flex; z-index: 20; }
-    .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 4px 0; }
-    .nav-icon { width: 24px; height: 24px; opacity: 0.4; transition: opacity 0.15s; }
-    .nav-label { font-size: 10px; color: var(--text3); transition: color 0.15s; }
-    .nav-item.active .nav-icon { opacity: 1; }
-    .nav-item.active .nav-label { color: var(--accent); }
+/* Bottom nav */
+.bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: rgba(10,10,10,0.92); backdrop-filter: blur(20px); border-top: 0.5px solid var(--border); padding: 10px 0 calc(var(--safe-bottom) + 6px); display: flex; z-index: 20; }
+.nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 4px 0; }
+.nav-icon { width: 24px; height: 24px; opacity: 0.4; transition: opacity 0.15s; }
+.nav-label { font-size: 10px; color: var(--text3); transition: color 0.15s; }
+.nav-item.active .nav-icon { opacity: 1; }
+.nav-item.active .nav-label { color: var(--accent); }
+```
+
   </style>
 </head>
 <body>
@@ -198,6 +202,7 @@
 <div class="content">
 
   <!-- PORTFOLIO -->
+
   <div class="page active" id="page-portfolio">
     <div class="section">
       <div class="section-label">Positions</div>
@@ -210,6 +215,7 @@
   </div>
 
   <!-- ALERTS -->
+
   <div class="page" id="page-alerts">
     <div class="section">
       <div class="section-label">Sell signals</div>
@@ -218,6 +224,7 @@
   </div>
 
   <!-- BUY IDEAS -->
+
   <div class="page" id="page-buys">
     <div class="section">
       <div class="section-label">Today's picks</div>
@@ -226,6 +233,7 @@
   </div>
 
   <!-- SETTINGS -->
+
   <div class="page" id="page-settings">
     <div class="section">
       <div class="section-label">Schwab Connection</div>
@@ -256,70 +264,74 @@
         <div id="workerStatusMsg" style="padding:0 16px 12px;font-size:12px;color:var(--text3)"></div>
       </div>
 
-      <div class="section-label" style="margin-top:16px">AI Buy Ideas (Anthropic)</div>
-      <div class="settings-card">
-        <div class="settings-row">
-          <div>
-            <div class="settings-label">Anthropic API Key</div>
-            <div class="settings-sub">Powers dynamic daily buy ideas</div>
-          </div>
-        </div>
-        <div class="settings-row">
-          <input class="settings-input" id="anthropicKeyInput" type="password" placeholder="sk-ant-..." style="width:100%"/>
-        </div>
-        <div class="settings-row">
-          <div>
-            <div class="settings-label">Watchlist tickers</div>
-            <div class="settings-sub">Comma-separated tickers to scan daily</div>
-          </div>
-        </div>
-        <div class="settings-row">
-          <input class="settings-input" id="watchlistInput" type="text" placeholder="AAPL,MSFT,NVDA,AMZN,GOOGL" style="width:100%;font-size:12px"/>
-        </div>
-        <div class="settings-row" style="justify-content:center">
-          <button onclick="testAnthropicConnection()" style="background:var(--bg4);border:0.5px solid var(--border2);border-radius:10px;padding:8px 18px;color:var(--text2);font-size:13px;cursor:pointer">Test connection</button>
-        </div>
-        <div id="anthropicStatusMsg" style="padding:0 16px 12px;font-size:12px;color:var(--text3)"></div>
-      </div>
-
-      <div class="section-label" style="margin-top:16px">Tax settings</div>
-      <div class="settings-card">
-        <div class="settings-row">
-          <div>
-            <div class="settings-label">Short-term rate</div>
-            <div class="settings-sub">Ordinary income tax rate</div>
-          </div>
-          <input class="settings-input" id="stRateInput" type="number" placeholder="32" style="width:80px"/> <span style="color:var(--text3);font-size:14px;margin-left:4px">%</span>
-        </div>
-        <div class="settings-row">
-          <div>
-            <div class="settings-label">Long-term rate</div>
-            <div class="settings-sub">Capital gains rate (0%, 15%, or 20%)</div>
-          </div>
-          <input class="settings-input" id="ltRateInput" type="number" placeholder="15" style="width:80px"/> <span style="color:var(--text3);font-size:14px;margin-left:4px">%</span>
-        </div>
-        <div class="settings-row">
-          <div>
-            <div class="settings-label">State tax rate</div>
-            <div class="settings-sub">Added to both ST and LT</div>
-          </div>
-          <input class="settings-input" id="stateRateInput" type="number" placeholder="0" style="width:80px"/> <span style="color:var(--text3);font-size:14px;margin-left:4px">%</span>
-        </div>
-      </div>
-      <button class="save-settings-btn" id="saveSettingsBtn">Save settings</button>
-
-      <div class="section-label" style="margin-top:16px">About</div>
-      <div class="settings-card">
-        <div class="settings-row"><div class="settings-label">Version</div><div style="font-size:13px;color:var(--text3)">1.0.0</div></div>
-        <div class="settings-row"><div class="settings-label">Data source</div><div style="font-size:13px;color:var(--text3)">Charles Schwab API</div></div>
-        <div class="settings-row"><div><div class="settings-label">Disclaimer</div><div class="settings-sub" style="max-width:220px">Not financial advice. For informational use only.</div></div></div>
+```
+  <div class="section-label" style="margin-top:16px">AI Buy Ideas (Anthropic)</div>
+  <div class="settings-card">
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">Anthropic API Key</div>
+        <div class="settings-sub">Powers dynamic daily buy ideas</div>
       </div>
     </div>
+    <div class="settings-row">
+      <input class="settings-input" id="anthropicKeyInput" type="password" placeholder="sk-ant-..." style="width:100%"/>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">Watchlist tickers</div>
+        <div class="settings-sub">Comma-separated tickers to scan daily</div>
+      </div>
+    </div>
+    <div class="settings-row">
+      <input class="settings-input" id="watchlistInput" type="text" placeholder="AAPL,MSFT,NVDA,AMZN,GOOGL" style="width:100%;font-size:12px"/>
+    </div>
+    <div class="settings-row" style="justify-content:center">
+      <button onclick="testAnthropicConnection()" style="background:var(--bg4);border:0.5px solid var(--border2);border-radius:10px;padding:8px 18px;color:var(--text2);font-size:13px;cursor:pointer">Test connection</button>
+    </div>
+    <div id="anthropicStatusMsg" style="padding:0 16px 12px;font-size:12px;color:var(--text3)"></div>
+  </div>
+
+  <div class="section-label" style="margin-top:16px">Tax settings</div>
+  <div class="settings-card">
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">Short-term rate</div>
+        <div class="settings-sub">Ordinary income tax rate</div>
+      </div>
+      <input class="settings-input" id="stRateInput" type="number" placeholder="32" style="width:80px"/> <span style="color:var(--text3);font-size:14px;margin-left:4px">%</span>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">Long-term rate</div>
+        <div class="settings-sub">Capital gains rate (0%, 15%, or 20%)</div>
+      </div>
+      <input class="settings-input" id="ltRateInput" type="number" placeholder="15" style="width:80px"/> <span style="color:var(--text3);font-size:14px;margin-left:4px">%</span>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">State tax rate</div>
+        <div class="settings-sub">Added to both ST and LT</div>
+      </div>
+      <input class="settings-input" id="stateRateInput" type="number" placeholder="0" style="width:80px"/> <span style="color:var(--text3);font-size:14px;margin-left:4px">%</span>
+    </div>
+  </div>
+  <button class="save-settings-btn" id="saveSettingsBtn">Save settings</button>
+
+  <div class="section-label" style="margin-top:16px">About</div>
+  <div class="settings-card">
+    <div class="settings-row"><div class="settings-label">Version</div><div style="font-size:13px;color:var(--text3)">1.0.0</div></div>
+    <div class="settings-row"><div class="settings-label">Data source</div><div style="font-size:13px;color:var(--text3)">Charles Schwab API</div></div>
+    <div class="settings-row"><div><div class="settings-label">Disclaimer</div><div class="settings-sub" style="max-width:220px">Not financial advice. For informational use only.</div></div></div>
+  </div>
+</div>
+```
+
   </div>
 
 </div>
 
 <!-- BOTTOM NAV -->
+
 <nav class="bottom-nav">
   <div class="nav-item active" data-nav="portfolio">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>
@@ -341,6 +353,7 @@
 </nav>
 
 <!-- ADD POSITION MODAL -->
+
 <div class="modal-backdrop" id="addModal">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -362,6 +375,7 @@
 </div>
 
 <!-- DETAIL MODAL -->
+
 <div class="modal-backdrop" id="detailModal">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -372,6 +386,7 @@
 <div class="toast" id="toast"></div>
 
 <!-- BUY DETAIL MODAL -->
+
 <div class="modal-backdrop" id="buyDetailModal">
   <div class="modal" style="max-height:88vh">
     <div class="modal-handle"></div>
@@ -1131,75 +1146,75 @@ async function loadBuyIdeas(forceRefresh = false) {
   </div>
   <style>@keyframes pulse{0%,100%{opacity:0.2}50%{opacity:1}}</style>`;
 
-  const setStatus = (step, msg) => {
-    const el2 = $('buyLoadStatus');
-    if (el2) { el2.previousElementSibling.textContent = `Step ${step}/3 — ${msg}`; }
-  };
+const setStatus = (step, msg) => {
+const el2 = $(‘buyLoadStatus’);
+if (el2) { el2.previousElementSibling.textContent = `Step ${step}/3 — ${msg}`; }
+};
 
-  const portfolioTickers = positions.map(p => p.ticker.toUpperCase());
+const portfolioTickers = positions.map(p => p.ticker.toUpperCase());
 
-  // Step 1: Ask AI to pick scanning universe
-  let universe = await askAIForUniverse(portfolioTickers, currentIndicators);
-  if (!universe || universe.length === 0) {
-    // Fallback to default watchlist
-    universe = (settings.watchlist || DEFAULT_WATCHLIST).split(',').map(t => t.trim().toUpperCase()).filter(Boolean);
-  }
-  // Limit to 20 to stay within rate limits
-  universe = universe.slice(0, 20);
-  setStatus(2, `Fetching live data for ${universe.length} stocks…`);
+// Step 1: Ask AI to pick scanning universe
+let universe = await askAIForUniverse(portfolioTickers, currentIndicators);
+if (!universe || universe.length === 0) {
+// Fallback to default watchlist
+universe = (settings.watchlist || DEFAULT_WATCHLIST).split(’,’).map(t => t.trim().toUpperCase()).filter(Boolean);
+}
+// Limit to 20 to stay within rate limits
+universe = universe.slice(0, 20);
+setStatus(2, `Fetching live data for ${universe.length} stocks…`);
 
-  // Step 2: Fetch live market data + indicators for universe
-  let marketData = [];
-  let universeIndicators = {};
-  if (settings.apiKey) {
-    marketData = await fetchMarketDataForWatchlist(universe);
-    const indResults = await fetchAllIndicators(universe);
-    universeIndicators = indResults;
-  }
+// Step 2: Fetch live market data + indicators for universe
+let marketData = [];
+let universeIndicators = {};
+if (settings.apiKey) {
+marketData = await fetchMarketDataForWatchlist(universe);
+const indResults = await fetchAllIndicators(universe);
+universeIndicators = indResults;
+}
 
-  setStatus(3, 'Scoring picks with AI…');
+setStatus(3, ‘Scoring picks with AI…’);
 
-  // Step 3: Generate scored picks
-  let ideas = null;
-  if (settings.anthropicKey) {
-    ideas = await generateBuyIdeasWithAI(marketData, portfolioTickers, universeIndicators);
-  }
+// Step 3: Generate scored picks
+let ideas = null;
+if (settings.anthropicKey) {
+ideas = await generateBuyIdeasWithAI(marketData, portfolioTickers, universeIndicators);
+}
 
-  if (ideas && ideas.length > 0) {
-    // Pre-fetch fundamentals for the 5 picked tickers so detail cards are instant
-    setStatus(3, 'Fetching fundamentals…');
-    const pickedTickers = ideas.map(i => i.ticker);
-    const fundamentals = settings.apiKey ? await fetchFundamentals(pickedTickers) : {};
+if (ideas && ideas.length > 0) {
+// Pre-fetch fundamentals for the 5 picked tickers so detail cards are instant
+setStatus(3, ‘Fetching fundamentals…’);
+const pickedTickers = ideas.map(i => i.ticker);
+const fundamentals = settings.apiKey ? await fetchFundamentals(pickedTickers) : {};
 
-    // Attach indicator data and fundamentals to each idea for the detail view
-    ideas = ideas.map(idea => ({
-      ...idea,
-      indicators: universeIndicators[idea.ticker] || null,
-      fundamentals: fundamentals[idea.ticker] || null,
-    }));
+```
+// Attach indicator data and fundamentals to each idea for the detail view
+ideas = ideas.map(idea => ({
+  ...idea,
+  indicators: universeIndicators[idea.ticker] || null,
+  fundamentals: fundamentals[idea.ticker] || null,
+}));
 
-    saveBuyCache(ideas);
-    cachedBuyIdeas = ideas;
-    renderBuyCards(ideas);
-    showToast('Buy ideas ready ✓');
-  } else {
-    el.innerHTML = `<div class="empty">
-      <div class="empty-icon">🤖</div>
-      <div class="empty-title">Add API keys to enable AI picks</div>
-      <div class="empty-sub">Go to Settings and add your Anthropic API key (for AI analysis) and configure your Schwab Worker URL to enable live market data.</div>
-    </div>`;
-  }
+saveBuyCache(ideas);
+cachedBuyIdeas = ideas;
+renderBuyCards(ideas);
+showToast('Buy ideas ready ✓');
+```
+
+} else {
+el.innerHTML = `<div class="empty"> <div class="empty-icon">🤖</div> <div class="empty-title">Add API keys to enable AI picks</div> <div class="empty-sub">Go to Settings and add your Anthropic API key (for AI analysis) and configure your Schwab Worker URL to enable live market data.</div> </div>`;
+}
 }
 
 function renderBuyCards(ideas) {
-  const el = $('buysList');
-  const cached = loadCachedBuys();
-  const isToday = !!cached;
-  const lastUpdated = isToday ? `Today · ${new Date().toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'})}` : 'Cached';
+const el = $(‘buysList’);
+const cached = loadCachedBuys();
+const isToday = !!cached;
+const lastUpdated = isToday ? `Today · ${new Date().toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'})}` : ‘Cached’;
 
-  el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-    <span style="font-size:11px;color:var(--text3)">Generated ${lastUpdated}</span>
-    <button onclick="loadBuyIdeas(true)" style="background:var(--bg3);border:0.5px solid var(--border2);border-radius:99px;padding:4px 12px;color:var(--text2);font-size:11px;cursor:pointer">↻ Refresh</button>
+el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<span style="font-size:11px;color:var(--text3)">Generated ${lastUpdated}</span>
+<button onclick="loadBuyIdeas(true)" style="background:var(--bg3);border:0.5px solid var(--border2);border-radius:99px;padding:4px 12px;color:var(--text2);font-size:11px;cursor:pointer">↻ Refresh</button>
+
   </div>` + ideas.map((b, idx) => {
     const score = Math.round(b.score);
     const c = score >= 80 ? '#00c97a' : score >= 65 ? '#f5a623' : '#999';
@@ -1235,407 +1250,434 @@ function renderBuyCards(ideas) {
 function renderBuys() { loadBuyIdeas(false); }  // shows cache or prompt, never auto-fetches
 
 // ─── Buy idea detail modal ────────────────────────────────────────────────────
-let currentBuyIdea = null;
 
-function buildPriceChart(candles, months) {
-  if (!candles || candles.length === 0) return '<div style="color:var(--text3);font-size:12px;padding:20px 0;text-align:center">No chart data available</div>';
-
-  // Filter to requested month range
-  const cutoff = Date.now() - months * 30 * 24 * 60 * 60 * 1000;
-  const filtered = candles.filter(d => d.t > cutoff);
-  const data = filtered.length > 10 ? filtered : candles.slice(-30);
-
-  const closes = data.map(d => d.c);
-  const times = data.map(d => d.t);
-  const minP = Math.min(...closes);
-  const maxP = Math.max(...closes);
-  const range = maxP - minP || 1;
-  const W = 340, H = 120, padL = 44, padR = 8, padT = 8, padB = 24;
-  const chartW = W - padL - padR;
-  const chartH = H - padT - padB;
-
-  const x = i => padL + (i / (closes.length - 1)) * chartW;
-  const y = v => padT + chartH - ((v - minP) / range) * chartH;
-
-  // Build polyline points
-  const pts = closes.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
-  const isUp = closes[closes.length - 1] >= closes[0];
-  const lineColor = isUp ? '#00c97a' : '#ff4d4d';
-
-  // Fill area under line
-  const fillPts = `${x(0).toFixed(1)},${(padT + chartH).toFixed(1)} ${pts} ${x(closes.length-1).toFixed(1)},${(padT + chartH).toFixed(1)}`;
-
-  // Y-axis labels
-  const yLabels = [0, 0.5, 1].map(pct => {
-    const val = minP + pct * range;
-    const yPos = y(val);
-    return `<text x="${padL - 4}" y="${yPos + 4}" text-anchor="end" font-size="9" fill="#666">$${val.toFixed(0)}</text>`;
-  }).join('');
-
-  // X-axis date labels (first and last)
-  const fmtDate = ts => new Date(ts).toLocaleDateString('en-US', {month:'short', day:'numeric'});
-  const xLabels = `
-    <text x="${padL}" y="${H - 6}" font-size="9" fill="#666">${fmtDate(times[0])}</text>
-    <text x="${W - padR}" y="${H - 6}" text-anchor="end" font-size="9" fill="#666">${fmtDate(times[times.length-1])}</text>`;
-
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible">
-    <defs>
-      <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="${lineColor}" stop-opacity="0.25"/>
-        <stop offset="100%" stop-color="${lineColor}" stop-opacity="0"/>
-      </linearGradient>
-      <clipPath id="chartClip"><rect x="${padL}" y="${padT}" width="${chartW}" height="${chartH}"/></clipPath>
-    </defs>
-    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+chartH}" stroke="#333" stroke-width="0.5"/>
-    <line x1="${padL}" y1="${padT+chartH}" x2="${W-padR}" y2="${padT+chartH}" stroke="#333" stroke-width="0.5"/>
-    ${yLabels}${xLabels}
-    <g clip-path="url(#chartClip)">
-      <polygon points="${fillPts}" fill="url(#chartFill)"/>
-      <polyline points="${pts}" fill="none" stroke="${lineColor}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
-    </g>
-  </svg>`;
+// ─── Two-panel chart engine ───────────────────────────────────────────────────
+function chartSMA(closes, period) {
+return closes.map((_, i) => {
+if (i < period - 1) return null;
+const s = closes.slice(i - period + 1, i + 1);
+return s.reduce((a, b) => a + b, 0) / period;
+});
 }
 
+function chartBollinger(closes, period=20, mult=2) {
+return closes.map((_, i) => {
+if (i < period - 1) return null;
+const s = closes.slice(i - period + 1, i + 1);
+const sma = s.reduce((a, b) => a + b, 0) / period;
+const std = Math.sqrt(s.reduce((a, b) => a + (b-sma)**2, 0) / period);
+return { mid: sma, upper: sma + mult*std, lower: sma - mult*std };
+});
+}
+
+function chartRSI(closes, period=14) {
+const out = new Array(closes.length).fill(null);
+if (closes.length < period+1) return out;
+let ag=0, al=0;
+for (let i=1; i<=period; i++) { const d=closes[i]-closes[i-1]; if(d>=0) ag+=d; else al-=d; }
+ag/=period; al/=period;
+out[period] = al===0 ? 100 : 100 - 100/(1+ag/al);
+for (let i=period+1; i<closes.length; i++) {
+const d=closes[i]-closes[i-1];
+ag=(ag*(period-1)+Math.max(d,0))/period;
+al=(al*(period-1)+Math.max(-d,0))/period;
+out[i] = al===0 ? 100 : 100 - 100/(1+ag/al);
+}
+return out;
+}
+
+function chartMACD(closes) {
+const k12=2/13, k26=2/27, k9=2/10;
+let e12=closes[0], e26=closes[0], eSig=null;
+const macdLine=[], signalLine=[], histogram=[];
+closes.forEach((c,i) => {
+e12 = i===0 ? c : c*k12 + e12*(1-k12);
+e26 = i===0 ? c : c*k26 + e26*(1-k26);
+const m = e12-e26; macdLine.push(m);
+if (i<25) { signalLine.push(null); histogram.push(null); return; }
+eSig = eSig===null ? m : m*k9 + eSig*(1-k9);
+signalLine.push(eSig); histogram.push(m-eSig);
+});
+return { macdLine, signalLine, histogram };
+}
+
+function toSvgY(v, minV, maxV, top, bottom) {
+if (maxV===minV) return (top+bottom)/2;
+return bottom - ((v-minV)/(maxV-minV))*(bottom-top);
+}
+
+function svgPolyline(pairs, xFn, yFn) {
+return pairs.filter(([,v])=>v!==null&&!isNaN(v))
+.map(([i,v])=>`${xFn(i).toFixed(2)},${yFn(v).toFixed(2)}`).join(’ ’);
+}
+
+function buildPricePanel(raw, sma50All, sma200All, bollingerAll, sliceStart, W, H, PAD, id) {
+const cW=W-PAD.l-PAD.r, cH=H-PAD.t-PAD.b;
+const data=raw.slice(sliceStart), sma50=sma50All.slice(sliceStart);
+const sma200=sma200All.slice(sliceStart), bollinger=bollingerAll.slice(sliceStart);
+const closes=data.map(d=>d.c), n=closes.length;
+if (n<2) return ‘<div style="color:var(--text3);font-size:12px;padding:20px;text-align:center">Not enough data</div>’;
+const allVals=[…closes,…bollinger.filter(Boolean).flatMap(b=>[b.upper,b.lower]),…sma50.filter(Boolean),…sma200.filter(Boolean)];
+const minY=Math.min(…allVals)*0.998, maxY=Math.max(…allVals)*1.002;
+const xFn=i=>PAD.l+(i/(n-1))*cW, yFn=v=>toSvgY(v,minY,maxY,PAD.t,PAD.t+cH);
+const isUp=closes[n-1]>=closes[0], priceC=isUp?’#00c97a’:’#ff4d4d’;
+const pricePts=closes.map((c,i)=>`${xFn(i).toFixed(2)},${yFn(c).toFixed(2)}`).join(’ ‘);
+const fillPts=`${xFn(0).toFixed(2)},${(PAD.t+cH).toFixed(2)} ${pricePts} ${xFn(n-1).toFixed(2)},${(PAD.t+cH).toFixed(2)}`;
+const bbUpPts=svgPolyline(bollinger.map((b,i)=>[i,b?.upper]),xFn,yFn);
+const bbLoPts=svgPolyline(bollinger.map((b,i)=>[i,b?.lower]),xFn,yFn);
+const bbMidPts=svgPolyline(bollinger.map((b,i)=>[i,b?.mid]),xFn,yFn);
+const bbFillPts=[…bollinger.map((b,i)=>b?`${xFn(i).toFixed(2)},${yFn(b.upper).toFixed(2)}`:null).filter(Boolean),…bollinger.map((b,i)=>b?`${xFn(i).toFixed(2)},${yFn(b.lower).toFixed(2)}`:null).filter(Boolean).reverse()].join(’ ’);
+const yTicks=[0,0.25,0.5,0.75,1].map(p=>minY+p*(maxY-minY));
+const xLabels=data.reduce((acc,d,i)=>{const dt=new Date(d.t);if(i===0||dt.getDate()===1)acc.push({i,label:dt.toLocaleDateString(‘en-US’,{month:‘short’})});return acc;},[]).slice(0,5);
+const legend=[{c:priceC,l:‘Price’,dash:false},{c:’#4a9eff’,l:‘SMA 50’,dash:false},{c:’#f5a623’,l:‘SMA 200’,dash:false},{c:’#7c6fcd’,l:‘BB’,dash:true}];
+return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible"> <defs> <linearGradient id="pGrad${id}" x1="0" y1="0" x2="0" y2="1"> <stop offset="0%" stop-color="${priceC}" stop-opacity="0.2"/><stop offset="100%" stop-color="${priceC}" stop-opacity="0"/> </linearGradient> <clipPath id="pClip${id}"><rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${cH}"/></clipPath> </defs> ${yTicks.map(v=>`<line x1="${PAD.l}" y1="${yFn(v).toFixed(2)}" x2="${PAD.l+cW}" y2="${yFn(v).toFixed(2)}" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>`).join('')} ${yTicks.map(v=>`<text x="${PAD.l-4}" y="${(yFn(v)+3.5).toFixed(2)}" text-anchor="end" font-size="9" fill="rgba(255,255,255,0.35)">$${v.toFixed(0)}</text>`).join('')} ${xLabels.map(({i,label})=>`<text x="${xFn(i).toFixed(2)}" y="${H-5}" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">${label}</text>`).join('')} <line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <line x1="${PAD.l}" y1="${PAD.t+cH}" x2="${PAD.l+cW}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <g clip-path="url(#pClip${id})"> ${bbFillPts?`<polygon points="${bbFillPts}" fill="rgba(124,111,205,0.07)"/>`:''} <polyline points="${bbUpPts}"  fill="none" stroke="#7c6fcd" stroke-width="0.75" stroke-dasharray="3,2"/> <polyline points="${bbLoPts}"  fill="none" stroke="#7c6fcd" stroke-width="0.75" stroke-dasharray="3,2"/> <polyline points="${bbMidPts}" fill="none" stroke="#7c6fcd" stroke-width="0.5" stroke-opacity="0.5"/> <polyline points="${svgPolyline(sma200.map((v,i)=>[i,v]),xFn,yFn)}" fill="none" stroke="#f5a623" stroke-width="1.2" stroke-opacity="0.85"/> <polyline points="${svgPolyline(sma50.map((v,i)=>[i,v]),xFn,yFn)}"  fill="none" stroke="#4a9eff" stroke-width="1.2"/> <polygon points="${fillPts}" fill="url(#pGrad${id})"/> <polyline points="${pricePts}" fill="none" stroke="${priceC}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/> </g> ${legend.map(({c,l,dash},i)=>`<g transform="translate(${PAD.l+i*76},${PAD.t-3})"><line x1="0" y1="0" x2="13" y2="0" stroke="${c}" stroke-width="${dash?1:1.5}" stroke-dasharray="${dash?'3,2':'none'}"/><text x="17" y="3.5" font-size="8.5" fill="rgba(255,255,255,0.4)">${l}</text></g>`).join('')} </svg>`;
+}
+
+function buildMomentumPanel(raw, rsiAll, macdAll, sliceStart, mode, W, H, PAD, id) {
+const cW=W-PAD.l-PAD.r, cH=H-PAD.t-PAD.b;
+const n=raw.length-sliceStart;
+if (n<2) return ‘’;
+const xFn=i=>PAD.l+(i/(n-1))*cW;
+if (mode===‘rsi’) {
+const rsi=rsiAll.slice(sliceStart);
+const yFn=v=>toSvgY(v,0,100,PAD.t,PAD.t+cH);
+return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"> <clipPath id="rClip${id}"><rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${cH}"/></clipPath> <rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${(yFn(70)-PAD.t).toFixed(2)}" fill="rgba(255,77,77,0.07)" clip-path="url(#rClip${id})"/> <rect x="${PAD.l}" y="${yFn(30).toFixed(2)}" width="${cW}" height="${(PAD.t+cH-yFn(30)).toFixed(2)}" fill="rgba(0,201,122,0.07)" clip-path="url(#rClip${id})"/> ${[{v:70,c:'rgba(255,77,77,0.4)'},{v:50,c:'rgba(255,255,255,0.06)'},{v:30,c:'rgba(0,201,122,0.4)'}].map(({v,c})=>`<line x1="${PAD.l}" y1="${yFn(v).toFixed(2)}" x2="${PAD.l+cW}" y2="${yFn(v).toFixed(2)}" stroke="${c}" stroke-width="0.5" stroke-dasharray="${v===50?'none':'3,2'}"/><text x="${PAD.l-4}" y="${(yFn(v)+3.5).toFixed(2)}" text-anchor="end" font-size="9" fill="rgba(255,255,255,0.35)">${v}</text>`).join('')} <line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <line x1="${PAD.l}" y1="${PAD.t+cH}" x2="${PAD.l+cW}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <g clip-path="url(#rClip${id})"> <polyline points="${svgPolyline(rsi.map((v,i)=>[i,v]),xFn,yFn)}" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/> </g> <text x="${PAD.l+4}" y="${PAD.t+10}" font-size="9" fill="#a78bfa" font-weight="600">RSI (14)</text> </svg>`;
+}
+const ml=macdAll.macdLine.slice(sliceStart), sl=macdAll.signalLine.slice(sliceStart), hl=macdAll.histogram.slice(sliceStart);
+const allM=[…ml,…sl.filter(Boolean),…hl.filter(Boolean)];
+const minM=Math.min(…allM)*1.15, maxM=Math.max(…allM)*1.15;
+const yFn=v=>toSvgY(v,minM,maxM,PAD.t,PAD.t+cH), zeroY=yFn(0);
+const barW=Math.max(1,cW/n-0.5);
+return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"> <clipPath id="mClip${id}"><rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${cH}"/></clipPath> <line x1="${PAD.l}" y1="${zeroY.toFixed(2)}" x2="${PAD.l+cW}" y2="${zeroY.toFixed(2)}" stroke="rgba(255,255,255,0.25)" stroke-width="0.5"/> <line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <line x1="${PAD.l}" y1="${PAD.t+cH}" x2="${PAD.l+cW}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <g clip-path="url(#mClip${id})"> ${hl.map((h,i)=>{if(h===null)return '';const bx=(xFn(i)-barW/2).toFixed(2),bh=Math.abs(yFn(h)-zeroY).toFixed(2),by=(h>=0?zeroY-parseFloat(bh):zeroY).toFixed(2);return `<rect x="${bx}" y="${by}" width="${barW.toFixed(2)}" height="${bh}" fill="${h>=0?'#00c97a':'#ff4d4d'}" opacity="0.7"/>`;}).join('')} <polyline points="${svgPolyline(ml.map((v,i)=>[i,v]),xFn,yFn)}" fill="none" stroke="#4a9eff" stroke-width="1.2"/> <polyline points="${svgPolyline(sl.map((v,i)=>[i,v]),xFn,yFn)}" fill="none" stroke="#f5a623" stroke-width="1.2"/> </g> ${[{c:'#4a9eff',l:'MACD'},{c:'#f5a623',l:'Signal'},{c:'#00c97a',l:'Histogram'}].map(({c,l},i)=>`<g transform="translate(${PAD.l+i*76},${PAD.t-3})"><line x1="0" y1="0" x2="13" y2="0" stroke="${c}" stroke-width="1.5"/><text x="17" y="3.5" font-size="8.5" fill="rgba(255,255,255,0.4)">${l}</text></g>`).join('')} </svg>`;
+}
+
+function getSliceStart(raw, months) {
+const cutoff=Date.now()-months*30*24*60*60*1000;
+const idx=raw.findIndex(d=>d.t>=cutoff);
+return idx>=0 ? idx : Math.max(0,raw.length-months*22);
+}
+
+function renderTwoPanel(ticker, months, momentumMode, prefix) {
+const cached=indicatorCache[ticker?.toUpperCase()];
+const priceEl=$(`${prefix}PriceChart`), momEl=$(`${prefix}MomChart`);
+if (!priceEl||!momEl) return;
+if (!cached||!cached.raw||cached.raw.length<20) {
+const msg=’<div style="color:var(--text3);font-size:12px;padding:20px;text-align:center">Chart data loading…</div>’;
+priceEl.innerHTML=msg; momEl.innerHTML=’’; return;
+}
+const raw=cached.raw, closes=raw.map(d=>d.c);
+const sma50All=chartSMA(closes,50), sma200All=chartSMA(closes,200);
+const bollingerAll=chartBollinger(closes), rsiAll=chartRSI(closes), macdAll=chartMACD(closes);
+const sliceStart=getSliceStart(raw,months);
+const W=340, PAD={t:20,r:8,b:24,l:44}, id=prefix+months;
+priceEl.innerHTML=buildPricePanel(raw,sma50All,sma200All,bollingerAll,sliceStart,W,185,PAD,id);
+momEl.innerHTML=buildMomentumPanel(raw,rsiAll,macdAll,sliceStart,momentumMode,W,100,PAD,id+momentumMode);
+[‘1’,‘3’,‘6’].forEach(m=>{
+const btn=$(`${prefix}RangeBtn${m}`); if(!btn) return;
+const active=parseInt(m)===months;
+btn.style.background=active?‘rgba(74,158,255,0.2)’:‘transparent’;
+btn.style.color=active?’#4a9eff’:’#555’;
+btn.style.borderColor=active?’#4a9eff’:‘rgba(255,255,255,0.12)’;
+});
+[‘rsi’,‘macd’].forEach(m=>{
+const btn=$(`${prefix}MomBtn${m}`); if(!btn) return;
+const active=m===momentumMode;
+btn.style.background=active?‘rgba(167,139,250,0.15)’:‘transparent’;
+btn.style.color=active?’#a78bfa’:’#555’;
+btn.style.borderColor=active?’#a78bfa’:‘rgba(255,255,255,0.1)’;
+});
+}
+
+function chartControlsHTML(prefix) {
+return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"> <div style="display:flex;gap:5px"> ${['1','3','6'].map(m=>`<button id="${prefix}RangeBtn${m}" onclick="on${prefix}Range(${m})"
+style="padding:4px 12px;border-radius:8px;border:0.5px solid;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s">${m}M</button>`).join('')} </div> <div style="display:flex;gap:5px"> ${['rsi','macd'].map(m=>`<button id="${prefix}MomBtn${m}" onclick="on${prefix}Mom('${m}')"
+style="padding:4px 11px;border-radius:8px;border:0.5px solid;font-size:11px;font-weight:600;cursor:pointer;text-transform:uppercase;transition:all 0.15s">${m}</button>`).join(’’)}
+</div>
+
+  </div>
+  <div id="${prefix}PriceChart"></div>
+  <div id="${prefix}MomChart" style="margin-top:6px"></div>`;
+}
+
+let currentBuyIdea = null;
+
+// Per-modal chart state
+let posChartRange = 1, posChartMom = ‘rsi’, posChartTicker = null;
+let buyChartRange = 1, buyChartMom = ‘rsi’, buyChartTicker = null;
+
+function onposRange(m) { posChartRange = m; renderTwoPanel(posChartTicker, posChartRange, posChartMom, ‘pos’); }
+function onposMom(m)   { posChartMom   = m; renderTwoPanel(posChartTicker, posChartRange, posChartMom, ‘pos’); }
+function onbuyRange(m) { buyChartRange = m; renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, ‘buy’); }
+function onbuyMom(m)   { buyChartMom   = m; renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, ‘buy’); }
+
 function renderBuyDetailChart(months) {
-  const b = currentBuyIdea;
-  if (!b) return;
-  const ind = b.indicators || indicatorCache[b.ticker?.toUpperCase()]?.indicators;
-  const chartEl = $('buyDetailChart');
-  if (!chartEl || !ind) return;
-
-  // Build candle array from cached indicator data
-  const cached = indicatorCache[b.ticker?.toUpperCase()];
-  if (!cached || !cached.raw) { chartEl.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:20px 0;text-align:center">Chart data loading…</div>'; return; }
-  chartEl.innerHTML = buildPriceChart(cached.raw, months);
-
-  // Update active button
-  ['1','3','6'].forEach(m => {
-    const btn = $(`chartBtn${m}`);
-    if (btn) {
-      const active = parseInt(m) === months;
-      btn.style.background = active ? 'var(--accent)' : 'var(--bg4)';
-      btn.style.color = active ? '#fff' : 'var(--text2)';
-    }
-  });
+if (currentBuyIdea) {
+buyChartRange = months || 1;
+renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, ‘buy’);
+}
 }
 
 function openBuyDetail(idx) {
-  const ideas = cachedBuyIdeas;
-  if (!ideas || !ideas[idx]) return;
-  const b = ideas[idx];
-  currentBuyIdea = b;
+const ideas = cachedBuyIdeas;
+if (!ideas || !ideas[idx]) return;
+const b = ideas[idx];
+currentBuyIdea = b;
+buyChartTicker = b.ticker?.toUpperCase();
+buyChartRange = 1; buyChartMom = ‘rsi’;
 
-  const ind = b.indicators || indicatorCache[b.ticker?.toUpperCase()]?.indicators || null;
-  const fund = b.fundamentals || null;
-  const score = Math.round(b.score);
-  const scoreColor = score >= 80 ? '#00c97a' : score >= 65 ? '#f5a623' : '#999';
-  const priceStr = b.price ? '$' + parseFloat(b.price).toFixed(2) : 'N/A';
-  const chgColor = (b.change || '').startsWith('+') ? 'var(--green)' : 'var(--red)';
+const ind = b.indicators || indicatorCache[b.ticker?.toUpperCase()]?.indicators || null;
+const fund = b.fundamentals || null;
+const score = Math.round(b.score);
+const scoreColor = score >= 80 ? ‘#00c97a’ : score >= 65 ? ‘#f5a623’ : ‘#999’;
+const priceStr = b.price ? ‘$’ + parseFloat(b.price).toFixed(2) : ‘N/A’;
+const chgColor = (b.change || ‘’).startsWith(’+’) ? ‘var(–green)’ : ‘var(–red)’;
 
-  // Buy signals from indicators
-  const buySignals = ind?.buySignals || [];
-  const sellSignals = ind?.sellSignals || [];
+// Buy signals from indicators
+const buySignals = ind?.buySignals || [];
+const sellSignals = ind?.sellSignals || [];
 
-  // Dividend info
-  let divHTML = '';
-  if (fund) {
-    // dividendYield from Schwab is already a percentage value e.g. 0.3682 = 0.37%
-    const divYield = fund.dividendYield != null ? fund.dividendYield.toFixed(2) + '%' : null;
-    const divAmt = fund.dividendAmount != null ? '$' + parseFloat(fund.dividendAmount).toFixed(2) + '/yr' : null;
-    const divPay = fund.dividendPayAmount != null ? '$' + parseFloat(fund.dividendPayAmount).toFixed(2) + '/payment' : null;
-    const divFreq = fund.dividendFrequency || null;
-    const fmtDate = s => s ? new Date(s).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) : null;
-    const exDiv = fmtDate(fund.dividendDate);
-    const payDate = fmtDate(fund.dividendPayDate);
-    const nextExDiv = fmtDate(fund.nextDividendDate);
+// Dividend info
+let divHTML = ‘’;
+if (fund) {
+// dividendYield from Schwab is already a percentage value e.g. 0.3682 = 0.37%
+const divYield = fund.dividendYield != null ? fund.dividendYield.toFixed(2) + ‘%’ : null;
+const divAmt = fund.dividendAmount != null ? ‘$’ + parseFloat(fund.dividendAmount).toFixed(2) + ‘/yr’ : null;
+const divPay = fund.dividendPayAmount != null ? ‘$’ + parseFloat(fund.dividendPayAmount).toFixed(2) + ‘/payment’ : null;
+const divFreq = fund.dividendFrequency || null;
+const fmtDate = s => s ? new Date(s).toLocaleDateString(‘en-US’, {month:‘short’,day:‘numeric’,year:‘numeric’}) : null;
+const exDiv = fmtDate(fund.dividendDate);
+const payDate = fmtDate(fund.dividendPayDate);
+const nextExDiv = fmtDate(fund.nextDividendDate);
 
-    if (divYield || divAmt) {
-      divHTML = `<div class="detail-section">
-        <div class="detail-section-title">Dividend</div>
-        ${divYield ? `<div class="detail-row"><span class="label">Yield</span><span class="val" style="color:var(--green)">${divYield}</span></div>` : ''}
-        ${divAmt ? `<div class="detail-row"><span class="label">Annual amount</span><span class="val">${divAmt}</span></div>` : ''}
-        ${divPay ? `<div class="detail-row"><span class="label">Per payment</span><span class="val">${divPay}</span></div>` : ''}
-        ${divFreq ? `<div class="detail-row"><span class="label">Frequency</span><span class="val">${divFreq}</span></div>` : ''}
-        ${exDiv ? `<div class="detail-row"><span class="label">Last ex-div date</span><span class="val">${exDiv}</span></div>` : ''}
-        ${payDate ? `<div class="detail-row"><span class="label">Next pay date</span><span class="val" style="color:var(--green)">${payDate}</span></div>` : ''}
-        ${nextExDiv ? `<div class="detail-row"><span class="label">Next ex-div date</span><span class="val">${nextExDiv}</span></div>` : ''}
-      </div>`;
-    } else {
-      divHTML = `<div class="detail-section">
-        <div class="detail-section-title">Dividend</div>
-        <div style="font-size:12px;color:var(--text3)">No dividend — growth/non-dividend stock</div>
-      </div>`;
-    }
-  }
+```
+if (divYield || divAmt) {
+  divHTML = `<div class="detail-section">
+    <div class="detail-section-title">Dividend</div>
+    ${divYield ? `<div class="detail-row"><span class="label">Yield</span><span class="val" style="color:var(--green)">${divYield}</span></div>` : ''}
+    ${divAmt ? `<div class="detail-row"><span class="label">Annual amount</span><span class="val">${divAmt}</span></div>` : ''}
+    ${divPay ? `<div class="detail-row"><span class="label">Per payment</span><span class="val">${divPay}</span></div>` : ''}
+    ${divFreq ? `<div class="detail-row"><span class="label">Frequency</span><span class="val">${divFreq}</span></div>` : ''}
+    ${exDiv ? `<div class="detail-row"><span class="label">Last ex-div date</span><span class="val">${exDiv}</span></div>` : ''}
+    ${payDate ? `<div class="detail-row"><span class="label">Next pay date</span><span class="val" style="color:var(--green)">${payDate}</span></div>` : ''}
+    ${nextExDiv ? `<div class="detail-row"><span class="label">Next ex-div date</span><span class="val">${nextExDiv}</span></div>` : ''}
+  </div>`;
+} else {
+  divHTML = `<div class="detail-section">
+    <div class="detail-section-title">Dividend</div>
+    <div style="font-size:12px;color:var(--text3)">No dividend — growth/non-dividend stock</div>
+  </div>`;
+}
+```
 
-  // Fundamentals section
-  let fundHTML = '';
-  if (fund) {
-    const pe   = fund.peRatio != null ? fund.peRatio.toFixed(1) : '—';
-    const peg  = fund.pegRatio != null ? fund.pegRatio.toFixed(2) : '—';
-    const eps  = fund.eps != null ? '$' + parseFloat(fund.eps).toFixed(2) : '—';
-    const beta = fund.beta != null ? fund.beta.toFixed(2) : '—';
-    const mcap = fund.marketCap != null
-      ? (fund.marketCap >= 1e12 ? '$' + (fund.marketCap/1e12).toFixed(2) + 'T'
-       : fund.marketCap >= 1e9  ? '$' + (fund.marketCap/1e9).toFixed(1) + 'B'
-       : '$' + (fund.marketCap/1e6).toFixed(0) + 'M') : '—';
-    const high52 = fund.high52 != null ? '$' + fund.high52.toFixed(2) : (ind?.high52 ? '$' + ind.high52.toFixed(2) : '—');
-    const low52  = fund.low52  != null ? '$' + fund.low52.toFixed(2)  : (ind?.low52  ? '$' + ind.low52.toFixed(2)  : '—');
-    fundHTML = `<div class="detail-section">
-      <div class="detail-section-title">Fundamentals</div>
-      <div class="detail-row"><span class="label">Market cap</span><span class="val">${mcap}</span></div>
-      <div class="detail-row"><span class="label">P/E ratio</span><span class="val">${pe}</span></div>
-      <div class="detail-row"><span class="label">PEG ratio</span><span class="val">${peg}</span></div>
-      <div class="detail-row"><span class="label">EPS (TTM)</span><span class="val">${eps}</span></div>
-      <div class="detail-row"><span class="label">Beta</span><span class="val">${beta}</span></div>
-      <div class="detail-row"><span class="label">52-week range</span><span class="val">${low52} – ${high52}</span></div>
-    </div>`;
-  }
+}
 
-  $('buyDetailContent').innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
-      <div>
-        <div style="font-size:22px;font-weight:700;color:var(--text)">${b.ticker}</div>
-        <div style="font-size:13px;color:var(--text3);margin-top:2px">${b.name || ''}</div>
-        <div style="font-size:18px;font-weight:600;margin-top:6px">${priceStr} <span style="font-size:13px;color:${chgColor}">${b.change || ''}</span></div>
-      </div>
-      <div style="text-align:center">
-        <div style="font-size:28px;font-weight:700;color:${scoreColor}">${score}</div>
-        <div style="font-size:10px;color:var(--text3)">score</div>
-      </div>
+// Fundamentals section
+let fundHTML = ‘’;
+if (fund) {
+const pe   = fund.peRatio != null ? fund.peRatio.toFixed(1) : ‘—’;
+const peg  = fund.pegRatio != null ? fund.pegRatio.toFixed(2) : ‘—’;
+const eps  = fund.eps != null ? ‘$’ + parseFloat(fund.eps).toFixed(2) : ‘—’;
+const beta = fund.beta != null ? fund.beta.toFixed(2) : ‘—’;
+const mcap = fund.marketCap != null
+? (fund.marketCap >= 1e12 ? ‘$’ + (fund.marketCap/1e12).toFixed(2) + ‘T’
+: fund.marketCap >= 1e9  ? ‘$’ + (fund.marketCap/1e9).toFixed(1) + ‘B’
+: ‘$’ + (fund.marketCap/1e6).toFixed(0) + ‘M’) : ‘—’;
+const high52 = fund.high52 != null ? ‘$’ + fund.high52.toFixed(2) : (ind?.high52 ? ‘$’ + ind.high52.toFixed(2) : ‘—’);
+const low52  = fund.low52  != null ? ‘$’ + fund.low52.toFixed(2)  : (ind?.low52  ? ‘$’ + ind.low52.toFixed(2)  : ‘—’);
+fundHTML = `<div class="detail-section"> <div class="detail-section-title">Fundamentals</div> <div class="detail-row"><span class="label">Market cap</span><span class="val">${mcap}</span></div> <div class="detail-row"><span class="label">P/E ratio</span><span class="val">${pe}</span></div> <div class="detail-row"><span class="label">PEG ratio</span><span class="val">${peg}</span></div> <div class="detail-row"><span class="label">EPS (TTM)</span><span class="val">${eps}</span></div> <div class="detail-row"><span class="label">Beta</span><span class="val">${beta}</span></div> <div class="detail-row"><span class="label">52-week range</span><span class="val">${low52} – ${high52}</span></div> </div>`;
+}
+
+$(‘buyDetailContent’).innerHTML = `
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+<div>
+<div style="font-size:22px;font-weight:700;color:var(--text)">${b.ticker}</div>
+<div style="font-size:13px;color:var(--text3);margin-top:2px">${b.name || ‘’}</div>
+<div style="font-size:18px;font-weight:600;margin-top:6px">${priceStr} <span style="font-size:13px;color:${chgColor}">${b.change || ‘’}</span></div>
+</div>
+<div style="text-align:center">
+<div style="font-size:28px;font-weight:700;color:${scoreColor}">${score}</div>
+<div style="font-size:10px;color:var(--text3)">score</div>
+</div>
+</div>
+
+```
+<div class="detail-section">
+  <div class="detail-section-title">AI rationale</div>
+  <div style="font-size:13px;color:var(--text2);line-height:1.6">${b.reason}</div>
+</div>
+
+<div class="detail-section">
+  <div class="detail-section-title">Technical signals</div>
+  ${buySignals.length ? `<div style="margin-bottom:8px">${buySignals.map(s =>
+    `<span style="display:inline-block;background:var(--green-bg);color:var(--green);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:500;margin:2px">✓ ${s}</span>`
+  ).join('')}</div>` : '<div style="font-size:12px;color:var(--text3);margin-bottom:8px">No buy signals detected</div>'}
+  ${sellSignals.length ? `<div>${sellSignals.map(s =>
+    `<span style="display:inline-block;background:var(--red-bg);color:var(--red);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:500;margin:2px">⚠ ${s}</span>`
+  ).join('')}</div>` : ''}
+  ${ind ? `<div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px">
+    <div style="background:var(--bg3);border-radius:8px;padding:8px 10px">
+      <div style="font-size:10px;color:var(--text3)">RSI (14)</div>
+      <div style="font-size:14px;font-weight:600;color:${rsiColor(ind.rsi)}">${ind.rsi ?? '—'}</div>
     </div>
-
-    <div class="detail-section">
-      <div class="detail-section-title">AI rationale</div>
-      <div style="font-size:13px;color:var(--text2);line-height:1.6">${b.reason}</div>
+    <div style="background:var(--bg3);border-radius:8px;padding:8px 10px">
+      <div style="font-size:10px;color:var(--text3)">Bollinger %B</div>
+      <div style="font-size:14px;font-weight:600;color:${ind.bb ? (ind.bb.pct > 80 ? 'var(--red)' : ind.bb.pct < 20 ? 'var(--green)' : 'var(--text2)') : 'var(--text3)'}">${ind.bb ? ind.bb.pct + '%' : '—'}</div>
     </div>
-
-    <div class="detail-section">
-      <div class="detail-section-title">Technical signals</div>
-      ${buySignals.length ? `<div style="margin-bottom:8px">${buySignals.map(s =>
-        `<span style="display:inline-block;background:var(--green-bg);color:var(--green);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:500;margin:2px">✓ ${s}</span>`
-      ).join('')}</div>` : '<div style="font-size:12px;color:var(--text3);margin-bottom:8px">No buy signals detected</div>'}
-      ${sellSignals.length ? `<div>${sellSignals.map(s =>
-        `<span style="display:inline-block;background:var(--red-bg);color:var(--red);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:500;margin:2px">⚠ ${s}</span>`
-      ).join('')}</div>` : ''}
-      ${ind ? `<div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px">
-        <div style="background:var(--bg3);border-radius:8px;padding:8px 10px">
-          <div style="font-size:10px;color:var(--text3)">RSI (14)</div>
-          <div style="font-size:14px;font-weight:600;color:${rsiColor(ind.rsi)}">${ind.rsi ?? '—'}</div>
-        </div>
-        <div style="background:var(--bg3);border-radius:8px;padding:8px 10px">
-          <div style="font-size:10px;color:var(--text3)">Bollinger %B</div>
-          <div style="font-size:14px;font-weight:600;color:${ind.bb ? (ind.bb.pct > 80 ? 'var(--red)' : ind.bb.pct < 20 ? 'var(--green)' : 'var(--text2)') : 'var(--text3)'}">${ind.bb ? ind.bb.pct + '%' : '—'}</div>
-        </div>
-        <div style="background:var(--bg3);border-radius:8px;padding:8px 10px">
-          <div style="font-size:10px;color:var(--text3)">MACD</div>
-          <div style="font-size:14px;font-weight:600;color:${ind.macd?.histogram != null ? (ind.macd.histogram > 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)'}">${ind.macd?.histogram != null ? (ind.macd.histogram > 0 ? '▲ Bullish' : '▼ Bearish') : '—'}</div>
-        </div>
-        <div style="background:var(--bg3);border-radius:8px;padding:8px 10px">
-          <div style="font-size:10px;color:var(--text3)">MA trend</div>
-          <div style="font-size:14px;font-weight:600;color:${ind.sma50 && ind.sma200 ? (ind.sma50 > ind.sma200 ? 'var(--green)' : 'var(--red)') : 'var(--text3)'}">${ind.sma50 && ind.sma200 ? (ind.sma50 > ind.sma200 ? '✓ Golden' : '✗ Death') : '—'}</div>
-        </div>
-      </div>` : '<div style="font-size:12px;color:var(--text3)">Indicator data unavailable</div>'}
+    <div style="background:var(--bg3);border-radius:8px;padding:8px 10px">
+      <div style="font-size:10px;color:var(--text3)">MACD</div>
+      <div style="font-size:14px;font-weight:600;color:${ind.macd?.histogram != null ? (ind.macd.histogram > 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)'}">${ind.macd?.histogram != null ? (ind.macd.histogram > 0 ? '▲ Bullish' : '▼ Bearish') : '—'}</div>
     </div>
-
-    ${divHTML}
-    ${fundHTML}
-
-    <div class="detail-section">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div class="detail-section-title" style="margin-bottom:0">Price history</div>
-        <div style="display:flex;gap:4px">
-          ${['1','3','6'].map(m => `<button id="chartBtn${m}" onclick="renderBuyDetailChart(${m})"
-            style="padding:4px 10px;border-radius:8px;border:0.5px solid var(--border2);font-size:11px;cursor:pointer;
-            background:${m==='1'?'var(--accent)':'var(--bg4)'};color:${m==='1'?'#fff':'var(--text2)'}">${m}M</button>`).join('')}
-        </div>
-      </div>
-      <div id="buyDetailChart"></div>
+    <div style="background:var(--bg3);border-radius:8px;padding:8px 10px">
+      <div style="font-size:10px;color:var(--text3)">MA trend</div>
+      <div style="font-size:14px;font-weight:600;color:${ind.sma50 && ind.sma200 ? (ind.sma50 > ind.sma200 ? 'var(--green)' : 'var(--red)') : 'var(--text3)'}">${ind.sma50 && ind.sma200 ? (ind.sma50 > ind.sma200 ? '✓ Golden' : '✗ Death') : '—'}</div>
     </div>
+  </div>` : '<div style="font-size:12px;color:var(--text3)">Indicator data unavailable</div>'}
+</div>
 
-    <button class="btn-secondary" onclick="$('buyDetailModal').classList.remove('open')" style="margin-top:8px">Close</button>
-  `;
+${divHTML}
+${fundHTML}
 
-  $('buyDetailModal').classList.add('open');
-  $('buyDetailModal').onclick = e => { if (e.target === $('buyDetailModal')) $('buyDetailModal').classList.remove('open'); };
+<div class="detail-section">
+  <div class="detail-section-title">Charts</div>
+  ${chartControlsHTML('buy')}
+</div>
 
-  // Render 1M chart by default
-  renderBuyDetailChart(1);
+<button class="btn-secondary" onclick="$('buyDetailModal').classList.remove('open')" style="margin-top:8px">Close</button>
+```
+
+`;
+
+$(‘buyDetailModal’).classList.add(‘open’);
+$(‘buyDetailModal’).onclick = e => { if (e.target === $(‘buyDetailModal’)) $(‘buyDetailModal’).classList.remove(‘open’); };
+
+renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, ‘buy’);
 }
 
 function renderSettings() {
-  $('apiKeyInput').value = settings.apiKey || '';
-  $('pwaSecretInput').value = settings.pwaSecret || '';
-  $('anthropicKeyInput').value = settings.anthropicKey || '';
-  $('watchlistInput').value = settings.watchlist || DEFAULT_WATCHLIST;
-  $('stRateInput').value = settings.stRate || 32;
-  $('ltRateInput').value = settings.ltRate || 15;
-  $('stateRateInput').value = settings.stateRate || 0;
-  updateApiStatus(settings.apiKey && settings.pwaSecret ? null : false);
-  if (settings.apiKey) checkWorkerStatus();
+$(‘apiKeyInput’).value = settings.apiKey || ‘’;
+$(‘pwaSecretInput’).value = settings.pwaSecret || ‘’;
+$(‘anthropicKeyInput’).value = settings.anthropicKey || ‘’;
+$(‘watchlistInput’).value = settings.watchlist || DEFAULT_WATCHLIST;
+$(‘stRateInput’).value = settings.stRate || 32;
+$(‘ltRateInput’).value = settings.ltRate || 15;
+$(‘stateRateInput’).value = settings.stateRate || 0;
+updateApiStatus(settings.apiKey && settings.pwaSecret ? null : false);
+if (settings.apiKey) checkWorkerStatus();
 }
 
 function renderAll() { renderPortfolio(); }
 
 // ─── Detail modal ─────────────────────────────────────────────────────────────
 function openDetail(idx) {
-  const p = positions[idx];
-  if (!p) return;
-  const ind = currentIndicators[p.ticker.toUpperCase()] ?? null;
-  const rsi = ind?.rsi ?? null;
-  const val = p.shares * p.price;
-  const costBasis = p.shares * p.cost;
-  const gain = val - costBasis;
-  const pnlPct = (p.price - p.cost) / p.cost * 100;
-  const lt = isLongTerm(p.purchaseDate);
-  const taxInfo = calcTax(gain, p.purchaseDate);
+const p = positions[idx];
+if (!p) return;
+posChartTicker = p.ticker.toUpperCase();
+posChartRange = 1; posChartMom = ‘rsi’;
+const ind = currentIndicators[p.ticker.toUpperCase()] ?? null;
+const rsi = ind?.rsi ?? null;
+const val = p.shares * p.price;
+const costBasis = p.shares * p.cost;
+const gain = val - costBasis;
+const pnlPct = (p.price - p.cost) / p.cost * 100;
+const lt = isLongTerm(p.purchaseDate);
+const taxInfo = calcTax(gain, p.purchaseDate);
 
-  const stTax = gain > 0 ? gain * ((settings.stRate + settings.stateRate) / 100) : 0;
-  const ltTax = gain > 0 ? gain * ((settings.ltRate + settings.stateRate) / 100) : 0;
+const stTax = gain > 0 ? gain * ((settings.stRate + settings.stateRate) / 100) : 0;
+const ltTax = gain > 0 ? gain * ((settings.ltRate + settings.stateRate) / 100) : 0;
 
-  let taxHTML = '';
-  if (gain > 0) {
-    taxHTML = `
-    <div class="detail-section">
-      <div class="detail-section-title">Tax implications — if sold today</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-        <div class="tax-scenario" style="${lt ? 'border:1px solid rgba(0,201,122,0.3)' : ''}">
-          <div class="tax-scenario-title" style="color:${lt ? 'var(--green)' : 'var(--text3)'}">Long-term ${lt ? '✓ Applies' : '(not yet)'}</div>
-          <div class="tax-big" style="color:var(--red)">${fmtUSD(ltTax)}</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:4px">${settings.ltRate}% fed + ${settings.stateRate}% state = ${settings.ltRate + settings.stateRate}%</div>
-          <div style="font-size:12px;color:var(--green);margin-top:6px">Net: ${fmtUSD(gain - ltTax)}</div>
-        </div>
-        <div class="tax-scenario" style="${!lt ? 'border:1px solid rgba(245,166,35,0.3)' : ''}">
-          <div class="tax-scenario-title" style="color:${!lt ? 'var(--amber)' : 'var(--text3)'}">Short-term ${!lt ? '✓ Applies' : '(was applicable)'}</div>
-          <div class="tax-big" style="color:var(--red)">${fmtUSD(stTax)}</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:4px">${settings.stRate}% fed + ${settings.stateRate}% state = ${settings.stRate + settings.stateRate}%</div>
-          <div style="font-size:12px;color:var(--green);margin-top:6px">Net: ${fmtUSD(gain - stTax)}</div>
-        </div>
-      </div>
-      ${p.purchaseDate && !lt ? `<div style="background:var(--amber-bg);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--amber)">
-        ⚠️ Holding ${holdingLabel(p.purchaseDate)} — wait until ${new Date(new Date(p.purchaseDate+'T00:00:00').getTime() + 366*86400000).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} for long-term rate. Tax savings: ${fmtUSD(stTax - ltTax)}.
-      </div>` : ''}
-      ${lt ? `<div style="background:var(--green-bg);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--green)">
-        ✓ Held over 1 year — long-term capital gains rate applies. Savings vs. short-term: ${fmtUSD(stTax - ltTax)}.
-      </div>` : ''}
-    </div>`;
-  } else if (gain < 0) {
-    taxHTML = `<div class="detail-section">
-      <div class="detail-section-title">Tax implications</div>
-      <div style="background:var(--green-bg);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--green)">
-        This position has an unrealized loss of ${fmtUSD(Math.abs(gain))}. Selling would harvest a tax loss you can use to offset other gains (tax-loss harvesting).
-      </div>
-    </div>`;
-  }
-
-  $('detailContent').innerHTML = `
-    <div class="modal-title">${p.ticker} <span style="font-size:14px;color:var(--text3);font-weight:400">${p.name || ''}</span></div>
-    <div class="detail-section">
-      <div class="detail-section-title">Position summary</div>
-      <div class="detail-row"><span class="label">Shares</span><span class="val">${fmt(p.shares, 4)}</span></div>
-      <div class="detail-row"><span class="label">Avg cost</span><span class="val">${fmtUSD(p.cost)}</span></div>
-      <div class="detail-row"><span class="label">Current price</span><span class="val">${fmtUSD(p.price)}</span></div>
-      <div class="detail-row"><span class="label">Market value</span><span class="val">${fmtUSD(val)}</span></div>
-      <div class="detail-row"><span class="label">Cost basis</span><span class="val">${fmtUSD(costBasis)}</span></div>
-      <div class="detail-row"><span class="label">Unrealized gain/loss</span><span class="val" style="color:${gain >= 0 ? 'var(--green)' : 'var(--red)'}">${gain >= 0 ? '+' : ''}${fmtUSD(gain)} (${fmt(pnlPct)}%)</span></div>
-      <div class="detail-row"><span class="label">Purchase date</span><span class="val">${p.purchaseDate ? new Date(p.purchaseDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'}</span></div>
-      <div class="detail-row"><span class="label">Holding period</span><span class="val">${holdingLabel(p.purchaseDate)} <span class="pill ${lt ? 'pill-green' : 'pill-amber'}" style="font-size:10px">${lt ? 'Long-term' : 'Short-term'}</span></span></div>
-    </div>
-    <div class="detail-section">
-      <div class="detail-section-title">Technical signals</div>
-      <div class="detail-row"><span class="label">RSI (14)</span><span class="val" style="color:${rsi !== null ? rsiColor(rsi) : 'var(--text3)'}">${rsi !== null ? rsi + ' · ' + rsiLabel(rsi) : 'Unavailable'}</span></div>
-      <div class="detail-row"><span class="label">SMA 50 / 200</span><span class="val" style="color:var(--text2)">${ind?.sma50 ? '$'+ind.sma50.toFixed(2) : '—'} / ${ind?.sma200 ? '$'+ind.sma200.toFixed(2) : '—'}</span></div>
-      <div class="detail-row"><span class="label">MA trend</span><span class="val">${ind?.sma50 && ind?.sma200 ? (ind.sma50 > ind.sma200 ? '🟢 Golden cross' : '🔴 Death cross') : '—'}</span></div>
-      <div class="detail-row"><span class="label">Bollinger %B</span><span class="val" style="color:${ind?.bb ? (ind.bb.pct > 80 ? 'var(--red)' : ind.bb.pct < 20 ? 'var(--green)' : 'var(--text2)') : 'var(--text3)'}">${ind?.bb ? ind.bb.pct + '% (' + (ind.bb.pct > 80 ? 'near upper band' : ind.bb.pct < 20 ? 'near lower band' : 'mid-band') + ')' : 'Unavailable'}</span></div>
-      <div class="detail-row"><span class="label">MACD</span><span class="val" style="color:${ind?.macd?.histogram != null ? (ind.macd.histogram > 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)'}">${ind?.macd?.histogram != null ? (ind.macd.histogram > 0 ? '▲ Bullish histogram' : '▼ Bearish histogram') : 'Unavailable'}</span></div>
-      <div class="detail-row"><span class="label">Volume vs avg</span><span class="val" style="color:${ind?.volRatio != null ? (ind.volRatio > 1.5 ? 'var(--amber)' : 'var(--text2)') : 'var(--text3)'}">${ind?.volRatio != null ? (ind.volRatio * 100).toFixed(0) + '% of 20-day avg' : 'Unavailable'}</span></div>
-      <div class="detail-row"><span class="label">Sell signals</span><span class="val" style="color:${ind?.sellSignals?.length ? 'var(--red)' : 'var(--green)'}">${ind?.sellSignals?.length ? ind.sellSignals.join(', ') : '✓ None'}</span></div>
-      <div class="detail-row"><span class="label">Buy signals</span><span class="val" style="color:${ind?.buySignals?.length ? 'var(--green)' : 'var(--text3)'}">${ind?.buySignals?.length ? ind.buySignals.join(', ') : 'None'}</span></div>
-    </div>
-    ${taxHTML}
-    <button class="delete-btn" onclick="deletePosition(${idx})">Remove position</button>
-    <button class="btn-secondary" onclick="closeDetail()">Close</button>
-  `;
-  $('detailModal').classList.add('open');
+let taxHTML = ‘’;
+if (gain > 0) {
+taxHTML = `<div class="detail-section"> <div class="detail-section-title">Tax implications — if sold today</div> <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"> <div class="tax-scenario" style="${lt ? 'border:1px solid rgba(0,201,122,0.3)' : ''}"> <div class="tax-scenario-title" style="color:${lt ? 'var(--green)' : 'var(--text3)'}">Long-term ${lt ? '✓ Applies' : '(not yet)'}</div> <div class="tax-big" style="color:var(--red)">${fmtUSD(ltTax)}</div> <div style="font-size:11px;color:var(--text3);margin-top:4px">${settings.ltRate}% fed + ${settings.stateRate}% state = ${settings.ltRate + settings.stateRate}%</div> <div style="font-size:12px;color:var(--green);margin-top:6px">Net: ${fmtUSD(gain - ltTax)}</div> </div> <div class="tax-scenario" style="${!lt ? 'border:1px solid rgba(245,166,35,0.3)' : ''}"> <div class="tax-scenario-title" style="color:${!lt ? 'var(--amber)' : 'var(--text3)'}">Short-term ${!lt ? '✓ Applies' : '(was applicable)'}</div> <div class="tax-big" style="color:var(--red)">${fmtUSD(stTax)}</div> <div style="font-size:11px;color:var(--text3);margin-top:4px">${settings.stRate}% fed + ${settings.stateRate}% state = ${settings.stRate + settings.stateRate}%</div> <div style="font-size:12px;color:var(--green);margin-top:6px">Net: ${fmtUSD(gain - stTax)}</div> </div> </div> ${p.purchaseDate && !lt ?`<div style="background:var(--amber-bg);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--amber)">
+⚠️ Holding ${holdingLabel(p.purchaseDate)} — wait until ${new Date(new Date(p.purchaseDate+‘T00:00:00’).getTime() + 366*86400000).toLocaleDateString(‘en-US’,{month:‘short’,day:‘numeric’,year:‘numeric’})} for long-term rate. Tax savings: ${fmtUSD(stTax - ltTax)}.
+</div>`: ''} ${lt ?`<div style="background:var(--green-bg);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--green)">
+✓ Held over 1 year — long-term capital gains rate applies. Savings vs. short-term: ${fmtUSD(stTax - ltTax)}.
+</div>` : ''} </div>`;
+} else if (gain < 0) {
+taxHTML = `<div class="detail-section"> <div class="detail-section-title">Tax implications</div> <div style="background:var(--green-bg);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--green)"> This position has an unrealized loss of ${fmtUSD(Math.abs(gain))}. Selling would harvest a tax loss you can use to offset other gains (tax-loss harvesting). </div> </div>`;
 }
 
-function closeDetail() { $('detailModal').classList.remove('open'); }
+$(‘detailContent’).innerHTML = `<div class="modal-title">${p.ticker} <span style="font-size:14px;color:var(--text3);font-weight:400">${p.name || ''}</span></div> <div class="detail-section"> <div class="detail-section-title">Position summary</div> <div class="detail-row"><span class="label">Shares</span><span class="val">${fmt(p.shares, 4)}</span></div> <div class="detail-row"><span class="label">Avg cost</span><span class="val">${fmtUSD(p.cost)}</span></div> <div class="detail-row"><span class="label">Current price</span><span class="val">${fmtUSD(p.price)}</span></div> <div class="detail-row"><span class="label">Market value</span><span class="val">${fmtUSD(val)}</span></div> <div class="detail-row"><span class="label">Cost basis</span><span class="val">${fmtUSD(costBasis)}</span></div> <div class="detail-row"><span class="label">Unrealized gain/loss</span><span class="val" style="color:${gain >= 0 ? 'var(--green)' : 'var(--red)'}">${gain >= 0 ? '+' : ''}${fmtUSD(gain)} (${fmt(pnlPct)}%)</span></div> <div class="detail-row"><span class="label">Purchase date</span><span class="val">${p.purchaseDate ? new Date(p.purchaseDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'}</span></div> <div class="detail-row"><span class="label">Holding period</span><span class="val">${holdingLabel(p.purchaseDate)} <span class="pill ${lt ? 'pill-green' : 'pill-amber'}" style="font-size:10px">${lt ? 'Long-term' : 'Short-term'}</span></span></div> </div> <div class="detail-section"> <div class="detail-section-title">Technical signals</div> <div class="detail-row"><span class="label">RSI (14)</span><span class="val" style="color:${rsi !== null ? rsiColor(rsi) : 'var(--text3)'}">${rsi !== null ? rsi + ' · ' + rsiLabel(rsi) : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">SMA 50 / 200</span><span class="val" style="color:var(--text2)">${ind?.sma50 ? '$'+ind.sma50.toFixed(2) : '—'} / ${ind?.sma200 ? '$'+ind.sma200.toFixed(2) : '—'}</span></div> <div class="detail-row"><span class="label">MA trend</span><span class="val">${ind?.sma50 && ind?.sma200 ? (ind.sma50 > ind.sma200 ? '🟢 Golden cross' : '🔴 Death cross') : '—'}</span></div> <div class="detail-row"><span class="label">Bollinger %B</span><span class="val" style="color:${ind?.bb ? (ind.bb.pct > 80 ? 'var(--red)' : ind.bb.pct < 20 ? 'var(--green)' : 'var(--text2)') : 'var(--text3)'}">${ind?.bb ? ind.bb.pct + '% (' + (ind.bb.pct > 80 ? 'near upper band' : ind.bb.pct < 20 ? 'near lower band' : 'mid-band') + ')' : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">MACD</span><span class="val" style="color:${ind?.macd?.histogram != null ? (ind.macd.histogram > 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)'}">${ind?.macd?.histogram != null ? (ind.macd.histogram > 0 ? '▲ Bullish histogram' : '▼ Bearish histogram') : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">Volume vs avg</span><span class="val" style="color:${ind?.volRatio != null ? (ind.volRatio > 1.5 ? 'var(--amber)' : 'var(--text2)') : 'var(--text3)'}">${ind?.volRatio != null ? (ind.volRatio * 100).toFixed(0) + '% of 20-day avg' : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">Sell signals</span><span class="val" style="color:${ind?.sellSignals?.length ? 'var(--red)' : 'var(--green)'}">${ind?.sellSignals?.length ? ind.sellSignals.join(', ') : '✓ None'}</span></div> <div class="detail-row"><span class="label">Buy signals</span><span class="val" style="color:${ind?.buySignals?.length ? 'var(--green)' : 'var(--text3)'}">${ind?.buySignals?.length ? ind.buySignals.join(', ') : 'None'}</span></div> </div> ${taxHTML} <div class="detail-section"> <div class="detail-section-title">Charts</div> ${chartControlsHTML('pos')} </div> <button class="delete-btn" onclick="deletePosition(${idx})">Remove position</button> <button class="btn-secondary" onclick="closeDetail()">Close</button>`;
+$(‘detailModal’).classList.add(‘open’);
+renderTwoPanel(posChartTicker, posChartRange, posChartMom, ‘pos’);
+}
+
+function closeDetail() { $(‘detailModal’).classList.remove(‘open’); }
 
 function deletePosition(idx) {
-  const t = positions[idx].ticker;
-  positions.splice(idx, 1);
-  save();
-  closeDetail();
-  renderAll();
-  showToast(`${t} removed`);
+const t = positions[idx].ticker;
+positions.splice(idx, 1);
+save();
+closeDetail();
+renderAll();
+showToast(`${t} removed`);
 }
 
 // ─── Event listeners ──────────────────────────────────────────────────────────
 function navigateTo(tab) {
-  document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  const navItem = document.querySelector(`.nav-item[data-nav="${tab}"]`);
-  if (navItem) navItem.classList.add('active');
-  $('page-' + tab).classList.add('active');
-  activeTab = tab;
-  if (tab === 'alerts') renderAlerts();
-  if (tab === 'buys') renderBuys();
-  if (tab === 'settings') renderSettings();
+document.querySelectorAll(’.nav-item’).forEach(x => x.classList.remove(‘active’));
+document.querySelectorAll(’.page’).forEach(p => p.classList.remove(‘active’));
+const navItem = document.querySelector(`.nav-item[data-nav="${tab}"]`);
+if (navItem) navItem.classList.add(‘active’);
+$(‘page-’ + tab).classList.add(‘active’);
+activeTab = tab;
+if (tab === ‘alerts’) renderAlerts();
+if (tab === ‘buys’) renderBuys();
+if (tab === ‘settings’) renderSettings();
 }
 
-document.querySelectorAll('.nav-item').forEach(n => {
-  n.addEventListener('click', () => navigateTo(n.dataset.nav));
+document.querySelectorAll(’.nav-item’).forEach(n => {
+n.addEventListener(‘click’, () => navigateTo(n.dataset.nav));
 });
 
-$('addBtn').addEventListener('click', () => {
-  $('f-date').valueAsDate = new Date();
-  $('addModal').classList.add('open');
+$(‘addBtn’).addEventListener(‘click’, () => {
+$(‘f-date’).valueAsDate = new Date();
+$(‘addModal’).classList.add(‘open’);
 });
-$('cancelAddBtn').addEventListener('click', () => $('addModal').classList.remove('open'));
-$('detailModal').addEventListener('click', e => { if (e.target === $('detailModal')) closeDetail(); });
-$('addModal').addEventListener('click', e => { if (e.target === $('addModal')) $('addModal').classList.remove('open'); });
+$(‘cancelAddBtn’).addEventListener(‘click’, () => $(‘addModal’).classList.remove(‘open’));
+$(‘detailModal’).addEventListener(‘click’, e => { if (e.target === $(‘detailModal’)) closeDetail(); });
+$(‘addModal’).addEventListener(‘click’, e => { if (e.target === $(‘addModal’)) $(‘addModal’).classList.remove(‘open’); });
 
-$('savePositionBtn').addEventListener('click', () => {
-  const ticker = $('f-ticker').value.trim().toUpperCase();
-  const shares = parseFloat($('f-shares').value);
-  const cost = parseFloat($('f-cost').value);
-  const price = parseFloat($('f-price').value);
-  const purchaseDate = $('f-date').value;
-  if (!ticker || isNaN(shares) || isNaN(cost)) { showToast('Fill in required fields'); return; }
-  positions.push({ ticker, name: $('f-name').value.trim(), shares, cost, price: isNaN(price) ? cost : price, purchaseDate });
-  save();
-  $('addModal').classList.remove('open');
-  ['f-ticker','f-name','f-shares','f-cost','f-price'].forEach(id => $(id).value = '');
-  renderAll();
-  showToast(`${ticker} added`);
-  if (settings.apiKey) refreshPrices();
-});
-
-$('saveSettingsBtn').addEventListener('click', () => {
-  const oldWatchlist = settings.watchlist;
-  settings.apiKey = $('apiKeyInput').value.trim().replace(/\/+$/, '');  // strip trailing slash
-  settings.pwaSecret = $('pwaSecretInput').value.trim();
-  settings.anthropicKey = $('anthropicKeyInput').value.trim();
-  settings.watchlist = $('watchlistInput').value.trim();
-  settings.stRate = parseFloat($('stRateInput').value) || 32;
-  settings.ltRate = parseFloat($('ltRateInput').value) || 15;
-  settings.stateRate = parseFloat($('stateRateInput').value) || 0;
-  localStorage.setItem('sp-settings', JSON.stringify(settings));
-  // Bust buy cache if watchlist changed
-  if (oldWatchlist !== settings.watchlist) localStorage.removeItem('sp-buy-cache');
-  showToast('Settings saved');
-  updateApiStatus(settings.apiKey ? null : false);
-  renderAll();
+$(‘savePositionBtn’).addEventListener(‘click’, () => {
+const ticker = $(‘f-ticker’).value.trim().toUpperCase();
+const shares = parseFloat($(‘f-shares’).value);
+const cost = parseFloat($(‘f-cost’).value);
+const price = parseFloat($(‘f-price’).value);
+const purchaseDate = $(‘f-date’).value;
+if (!ticker || isNaN(shares) || isNaN(cost)) { showToast(‘Fill in required fields’); return; }
+positions.push({ ticker, name: $(‘f-name’).value.trim(), shares, cost, price: isNaN(price) ? cost : price, purchaseDate });
+save();
+$(‘addModal’).classList.remove(‘open’);
+[‘f-ticker’,‘f-name’,‘f-shares’,‘f-cost’,‘f-price’].forEach(id => $(id).value = ‘’);
+renderAll();
+showToast(`${ticker} added`);
+if (settings.apiKey) refreshPrices();
 });
 
-let activeTab = 'portfolio';  // updated by navigateTo()
+$(‘saveSettingsBtn’).addEventListener(‘click’, () => {
+const oldWatchlist = settings.watchlist;
+settings.apiKey = $(‘apiKeyInput’).value.trim().replace(//+$/, ‘’);  // strip trailing slash
+settings.pwaSecret = $(‘pwaSecretInput’).value.trim();
+settings.anthropicKey = $(‘anthropicKeyInput’).value.trim();
+settings.watchlist = $(‘watchlistInput’).value.trim();
+settings.stRate = parseFloat($(‘stRateInput’).value) || 32;
+settings.ltRate = parseFloat($(‘ltRateInput’).value) || 15;
+settings.stateRate = parseFloat($(‘stateRateInput’).value) || 0;
+localStorage.setItem(‘sp-settings’, JSON.stringify(settings));
+// Bust buy cache if watchlist changed
+if (oldWatchlist !== settings.watchlist) localStorage.removeItem(‘sp-buy-cache’);
+showToast(‘Settings saved’);
+updateApiStatus(settings.apiKey ? null : false);
+renderAll();
+});
 
-$('refreshBtn').addEventListener('click', () => {
-  if (activeTab === 'buys') {
-    loadBuyIdeas(true);
-  } else {
-    refreshPrices();
-  }
+let activeTab = ‘portfolio’;  // updated by navigateTo()
+
+$(‘refreshBtn’).addEventListener(‘click’, () => {
+if (activeTab === ‘buys’) {
+loadBuyIdeas(true);
+} else {
+refreshPrices();
+}
 });
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
@@ -1644,5 +1686,6 @@ renderAll();
 updateApiStatus(settings.apiKey && settings.pwaSecret ? null : false);
 if (settings.apiKey && settings.pwaSecret && positions.length > 0) refreshPrices();
 </script>
+
 </body>
 </html>
