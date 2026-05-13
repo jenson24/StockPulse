@@ -38,7 +38,7 @@
     html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif; overscroll-behavior: none; }
     body { display: flex; flex-direction: column; max-width: 430px; margin: 0 auto; position: relative; }
 
-'''
+```
 /* Header */
 .header { padding: calc(var(--safe-top) + 16px) 20px 12px; background: var(--bg); border-bottom: 0.5px solid var(--border); position: sticky; top: 0; z-index: 10; }
 .header-row { display: flex; justify-content: space-between; align-items: flex-start; }
@@ -174,7 +174,7 @@
 .nav-label { font-size: 10px; color: var(--text3); transition: color 0.15s; }
 .nav-item.active .nav-icon { opacity: 1; }
 .nav-item.active .nav-label { color: var(--accent); }
-'''
+```
 
   </style>
 </head>
@@ -264,7 +264,7 @@
         <div id="workerStatusMsg" style="padding:0 16px 12px;font-size:12px;color:var(--text3)"></div>
       </div>
 
-'''
+```
   <div class="section-label" style="margin-top:16px">AI Buy Ideas (Anthropic)</div>
   <div class="settings-card">
     <div class="settings-row">
@@ -274,7 +274,7 @@
       </div>
     </div>
     <div class="settings-row">
-      <input class="settings-input" id="anthropicKeyInput" type="password" placeholder="sk-ant-" style="width:100%"/>
+      <input class="settings-input" id="anthropicKeyInput" type="password" placeholder="sk-ant-..." style="width:100%"/>
     </div>
     <div class="settings-row">
       <div>
@@ -319,12 +319,12 @@
 
   <div class="section-label" style="margin-top:16px">About</div>
   <div class="settings-card">
-    <div class="settings-row"><div class="settings-label">Version</div><div style="font-size:13px;color:var(--text3)">1.0.2</div></div>
+    <div class="settings-row"><div class="settings-label">Version</div><div style="font-size:13px;color:var(--text3)">1.0.0</div></div>
     <div class="settings-row"><div class="settings-label">Data source</div><div style="font-size:13px;color:var(--text3)">Charles Schwab API</div></div>
     <div class="settings-row"><div><div class="settings-label">Disclaimer</div><div class="settings-sub" style="max-width:220px">Not financial advice. For informational use only.</div></div></div>
   </div>
 </div>
-'''
+```
 
   </div>
 
@@ -437,7 +437,7 @@ function calcTax(gain, dateStr) {
 }
 
 // ─── Technical Indicator Engine ──────────────────────────────────────────────
-const indicatorCache = {};  // { AAPL: { indicators: {}, ts: Date.now() } }
+const indicatorCache = {};  // { AAPL: { indicators: {...}, ts: Date.now() } }
 
 function calcRSI(closes, period = 14) {
   if (closes.length < period + 1) return null;
@@ -523,8 +523,8 @@ function computeAllIndicators(candles) {
   const volRatio = (avgVol20 && lastVol) ? lastVol / avgVol20 : null;
 
   // 52-week high/low from all available data
-  const high52 = Math.max(c);
-  const low52 = Math.min(c);
+  const high52 = Math.max(...c);
+  const low52 = Math.min(...c);
   const rangePos = high52 > low52
     ? Math.round(((price - low52) / (high52 - low52)) * 100) : null;
 
@@ -533,10 +533,10 @@ function computeAllIndicators(candles) {
   const buySignals = [];
 
   if (rsi !== null) {
-    if (rsi > 70) sellSignals.push('RSI ${rsi} overbought');
-    else if (rsi > 62) sellSignals.push('RSI ${rsi} elevated');
-    if (rsi < 30) buySignals.push('RSI ${rsi} oversold');
-    else if (rsi < 40) buySignals.push('RSI ${rsi} low');
+    if (rsi > 70) sellSignals.push(`RSI ${rsi} overbought`);
+    else if (rsi > 62) sellSignals.push(`RSI ${rsi} elevated`);
+    if (rsi < 30) buySignals.push(`RSI ${rsi} oversold`);
+    else if (rsi < 40) buySignals.push(`RSI ${rsi} low`);
   }
   if (bb !== null) {
     if (bb.pct >= 90) sellSignals.push('Near upper Bollinger Band');
@@ -567,7 +567,7 @@ async function fetchIndicators(ticker) {
   if (cached && Date.now() - cached.ts < 3600000) return cached.indicators;
   if (!settings.apiKey || !settings.pwaSecret) return null;
   try {
-    const data = await workerGet('/history?symbol=${encodeURIComponent(upper)}&days=210').catch(() => null);
+    const data = await workerGet(`/history?symbol=${encodeURIComponent(upper)}&days=210`).catch(() => null);
     if (!data || !data.ok || !data.c || data.c.length < 20) return null;
     const indicators = computeAllIndicators(data);
     if (indicators) {
@@ -615,7 +615,7 @@ async function workerGet(path) {
   if (!settings.apiKey || !settings.pwaSecret) throw new Error('Worker not configured');
   const res = await fetch(workerUrl(path), { headers: workerHeaders() });
   if (res.status === 401) throw new Error('NOT_AUTHENTICATED');
-  if (!res.ok) throw new Error('Worker error ${res.status}');
+  if (!res.ok) throw new Error(`Worker error ${res.status}`);
   return res.json();
 }
 
@@ -635,16 +635,16 @@ async function checkWorkerStatus() {
     const status = await statusRes.json();
     if (status.connected) {
       const warn = status.daysRemaining <= 1;
-      if (msgEl) msgEl.innerHTML = '<span style="color:${warn ? 'var(--amber)' : 'var(--green)'}">✓ Connected · Re-auth in ${status.daysRemaining} day${status.daysRemaining !== 1 ? 's' : ''}</span>';
+      if (msgEl) msgEl.innerHTML = `<span style="color:${warn ? 'var(--amber)' : 'var(--green)'}">✓ Connected · Re-auth in ${status.daysRemaining} day${status.daysRemaining !== 1 ? 's' : ''}</span>`;
       updateApiStatus(true);
       if (authLink) authLink.style.display = 'none';
     } else {
-      if (msgEl) msgEl.innerHTML = '<span style="color:var(--amber)">⚠ ${status.reason === 'REFRESH_TOKEN_EXPIRED' ? 'Token expired — re-authenticate' : 'Not connected — click Connect Schwab'}</span>';
+      if (msgEl) msgEl.innerHTML = `<span style="color:var(--amber)">⚠ ${status.reason === 'REFRESH_TOKEN_EXPIRED' ? 'Token expired — re-authenticate' : 'Not connected — click Connect Schwab'}</span>`;
       if (authLink) { authLink.href = workerUrl('/auth/login'); authLink.style.display = 'inline-block'; }
       updateApiStatus(false);
     }
   } catch(e) {
-    if (msgEl) msgEl.innerHTML = '<span style="color:var(--red)">✗ ${e.message}</span>';
+    if (msgEl) msgEl.innerHTML = `<span style="color:var(--red)">✗ ${e.message}</span>`;
     updateApiStatus(false);
   }
 }
@@ -659,7 +659,7 @@ async function testAnthropicConnection() {
     return;
   }
 
-  msgEl.innerHTML = '<span style="color:var(--text3)">Testing...</span>';
+  msgEl.innerHTML = '<span style="color:var(--text3)">Testing…</span>';
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -689,30 +689,30 @@ async function testAnthropicConnection() {
       return;
     }
     if (!res.ok) {
-      msgEl.innerHTML = '<span style="color:var(--red)">✗ API error ${res.status}: ${raw.slice(0, 120)}</span>';
+      msgEl.innerHTML = `<span style="color:var(--red)">✗ API error ${res.status}: ${raw.slice(0, 120)}</span>`;
       return;
     }
 
     let data;
     try { data = JSON.parse(raw); } catch(e) {
-      msgEl.innerHTML = '<span style="color:var(--red)">✗ Could not parse response: ${raw.slice(0, 120)}</span>';
+      msgEl.innerHTML = `<span style="color:var(--red)">✗ Could not parse response: ${raw.slice(0, 120)}</span>`;
       return;
     }
 
     if (data.error) {
-      msgEl.innerHTML = '<span style="color:var(--red)">✗ ${data.error.type}: ${data.error.message}</span>';
+      msgEl.innerHTML = `<span style="color:var(--red)">✗ ${data.error.type}: ${data.error.message}</span>`;
       return;
     }
 
     const reply = data.content?.[0]?.text || '';
-    msgEl.innerHTML = '<span style="color:var(--green)">✓ Connected — model replied: "${reply}"</span>';
+    msgEl.innerHTML = `<span style="color:var(--green)">✓ Connected — model replied: "${reply}"</span>`;
 
   } catch(e) {
     // A CORS error here means the browser blocked the request — likely missing the dangerous-direct-browser-calls header
     if (e.message.includes('fetch') || e.name === 'TypeError') {
       msgEl.innerHTML = '<span style="color:var(--red)">✗ Network/CORS error — the request was blocked before reaching Anthropic. Make sure you\'re on HTTPS.</span>';
     } else {
-      msgEl.innerHTML = '<span style="color:var(--red)">✗ ${e.message}</span>';
+      msgEl.innerHTML = `<span style="color:var(--red)">✗ ${e.message}</span>`;
     }
     console.error('Anthropic test error:', e);
   }
@@ -722,7 +722,7 @@ async function fetchPrices(tickers) {
   if (!settings.apiKey || !settings.pwaSecret || tickers.length === 0) return {};
   try {
     // Worker /quotes accepts all tickers in one call — very efficient
-    const data = await workerGet('/quotes?symbols=${tickers.join(',')}');
+    const data = await workerGet(`/quotes?symbols=${tickers.join(',')}`);
     if (!data.ok || !data.quotes) return {};
     const out = {};
     Object.entries(data.quotes).forEach(([sym, q]) => {
@@ -775,7 +775,7 @@ function renderPortfolioWithRSIs(rsiMap) {
   currentIndicators = rsiMap;
   const el = $('positionsList');
   if (positions.length === 0) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">📈</div><div class="empty-title">No positions yet</div><div class="empty-sub">Tap "Add position" to start tracking your portfolio.</div></div>';
+    el.innerHTML = `<div class="empty"><div class="empty-icon">📈</div><div class="empty-title">No positions yet</div><div class="empty-sub">Tap "Add position" to start tracking your portfolio.</div></div>`;
     $('totalValue').textContent = '$0.00';
     $('totalReturn').textContent = '—';
     $('alertPill').style.display = 'none';
@@ -803,25 +803,25 @@ function renderPortfolioWithRSIs(rsiMap) {
 
     const pnlColor = pnlPct >= 0 ? 'var(--green)' : 'var(--red)';
     const rsiC = rsi !== null ? rsiColor(rsi) : 'var(--text3)';
-    const rsiText = rsi !== null ? '${rsi} · ${rsiLabel(rsi)}' : 'Loading...';
+    const rsiText = rsi !== null ? `${rsi} · ${rsiLabel(rsi)}` : 'Loading…';
     const rsiW = rsi !== null ? rsi + '%' : '50%';
 
     // Bollinger band position bar (0–100%)
     const bbPct = ind?.bb?.pct ?? null;
     const bbC = bbPct !== null ? (bbPct > 80 ? 'var(--red)' : bbPct < 20 ? 'var(--green)' : 'var(--text2)') : 'var(--text3)';
-    const bbText = bbPct !== null ? '${bbPct}% · ${bbPct > 80 ? 'Near upper' : bbPct < 20 ? 'Near lower' : 'Mid-band'}' : 'Loading...';
+    const bbText = bbPct !== null ? `${bbPct}% · ${bbPct > 80 ? 'Near upper' : bbPct < 20 ? 'Near lower' : 'Mid-band'}` : 'Loading…';
 
     // MACD signal
     const macdH = ind?.macd?.histogram ?? null;
     const macdC = macdH !== null ? (macdH > 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)';
-    const macdText = macdH !== null ? (macdH > 0 ? '▲ Bullish' : '▼ Bearish') : 'Loading...';
+    const macdText = macdH !== null ? (macdH > 0 ? '▲ Bullish' : '▼ Bearish') : 'Loading…';
     const macdBarW = macdH !== null ? Math.min(Math.abs(macdH) * 200, 100) + '%' : '50%';
 
-    const alertPill = isAlert ? '<span class="pill pill-red">Sell signal</span>' : isWarn ? '<span class="pill pill-amber">Watch</span>' : '';
-    const termPill = p.purchaseDate ? '<span class="pill ${lt ? 'pill-green' : 'pill-amber'}" style="font-size:10px">${lt ? 'Long-term' : 'Short-term'}</span>' : '';
-    const taxLine = taxInfo ? '<div class="tax-row"><span class="tax-label">Est. tax if sold today</span><span class="tax-val" style="color:var(--red)">${fmtUSD(taxInfo.taxDue)} <span style="color:var(--text3);font-weight:400;font-size:10px">(${taxInfo.totalRate}%)</span></span></div>' : '';
+    const alertPill = isAlert ? `<span class="pill pill-red">Sell signal</span>` : isWarn ? `<span class="pill pill-amber">Watch</span>` : '';
+    const termPill = p.purchaseDate ? `<span class="pill ${lt ? 'pill-green' : 'pill-amber'}" style="font-size:10px">${lt ? 'Long-term' : 'Short-term'}</span>` : '';
+    const taxLine = taxInfo ? `<div class="tax-row"><span class="tax-label">Est. tax if sold today</span><span class="tax-val" style="color:var(--red)">${fmtUSD(taxInfo.taxDue)} <span style="color:var(--text3);font-weight:400;font-size:10px">(${taxInfo.totalRate}%)</span></span></div>` : '';
 
-    return '<div class="${cardClass}" onclick="openDetail(${i})">
+    return `<div class="${cardClass}" onclick="openDetail(${i})">
       <div class="pos-row1">
         <div>
           <div class="pos-ticker-wrap">
@@ -853,13 +853,13 @@ function renderPortfolioWithRSIs(rsiMap) {
         </div>
       </div>
       ${taxLine}
-    </div>';
+    </div>`;
   }).join('');
 
   const totalPnl = totalCost > 0 ? (totalVal - totalCost) / totalCost * 100 : 0;
   const totalGain = totalVal - totalCost;
   $('totalValue').textContent = fmtUSD(totalVal);
-  $('totalReturn').innerHTML = '<span style="color:${totalGain >= 0 ? 'var(--green)' : 'var(--red)'}">${totalGain >= 0 ? '+' : ''}${fmtUSD(totalGain)} (${fmt(totalPnl)}%)</span>';
+  $('totalReturn').innerHTML = `<span style="color:${totalGain >= 0 ? 'var(--green)' : 'var(--red)'}">${totalGain >= 0 ? '+' : ''}${fmtUSD(totalGain)} (${fmt(totalPnl)}%)</span>`;
 
   const pill = $('alertPill');
   if (alertCount > 0) { pill.style.display = 'inline-flex'; pill.textContent = alertCount + ' sell signal' + (alertCount > 1 ? 's' : ''); }
@@ -895,23 +895,23 @@ function renderAlerts() {
   }).filter(p => p.isAlert || p.isWarn);
 
   if (alerts.length === 0) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">No signals right now</div><div class="empty-sub">All positions are within healthy indicator ranges. Check back daily.</div></div>';
+    el.innerHTML = `<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">No signals right now</div><div class="empty-sub">All positions are within healthy indicator ranges. Check back daily.</div></div>`;
     return;
   }
 
   el.innerHTML = alerts.map(p => {
     const reasons = [...(p.ind?.sellSignals || [])];
-    if (p.pnl > 25) reasons.push('Up ${fmt(p.pnl)}% — consider taking profits');
-    else if (p.pnl > 15) reasons.push('Up ${fmt(p.pnl)}% — watch for exit opportunity');
+    if (p.pnl > 25) reasons.push(`Up ${fmt(p.pnl)}% — consider taking profits`);
+    else if (p.pnl > 15) reasons.push(`Up ${fmt(p.pnl)}% — watch for exit opportunity`);
 
     const lt = isLongTerm(p.purchaseDate);
-    const taxLine = p.taxInfo ? '<div class="alert-tax">
+    const taxLine = p.taxInfo ? `<div class="alert-tax">
       If sold today: <strong style="color:var(--red)">${fmtUSD(p.taxInfo.taxDue)}</strong> in estimated ${lt ? 'long-term' : 'short-term'} cap gains tax
       (${p.taxInfo.fedRate}% fed${p.taxInfo.stateRate > 0 ? ' + ' + p.taxInfo.stateRate + '% state' : ''}) ·
       Net proceeds: <strong>${fmtUSD(p.gain - p.taxInfo.taxDue)}</strong>
-    </div>' : '';
+    </div>` : '';
 
-    return '<div class="${p.isAlert ? 'alert-card' : 'alert-card warn'}" onclick="openDetail(${p.i})">
+    return `<div class="${p.isAlert ? 'alert-card' : 'alert-card warn'}" onclick="openDetail(${p.i})">
       <div class="alert-ticker">
         ${p.ticker}
         <span class="pill ${p.isAlert ? 'pill-red' : 'pill-amber'}" style="font-size:10px">${p.isAlert ? 'Sell signal' : 'Watch'}</span>
@@ -919,7 +919,7 @@ function renderAlerts() {
       </div>
       <div class="alert-desc">${reasons.join(' · ')}</div>
       ${taxLine}
-    </div>';
+    </div>`;
   }).join('');
 }
 
@@ -948,7 +948,7 @@ async function fetchFundamentals(tickers) {
   // One call returns all tickers at once via comma-separated symbols param
   if (!settings.apiKey || !settings.pwaSecret || tickers.length === 0) return {};
   try {
-    const data = await workerGet('/fundamentals?symbols=${tickers.join(',')}');
+    const data = await workerGet(`/fundamentals?symbols=${tickers.join(',')}`);
     if (!data.ok || !data.fundamentals) return {};
     return data.fundamentals; // { AAPL: { dividendYield, dividendAmount, peRatio, ... } }
   } catch(e) {
@@ -961,7 +961,7 @@ async function fetchMarketDataForWatchlist(tickers) {
   if (!settings.apiKey || !settings.pwaSecret || tickers.length === 0) return [];
   try {
     // Worker /quotes handles all tickers in one Schwab API call
-    const data = await workerGet('/quotes?symbols=${tickers.join(',')}');
+    const data = await workerGet(`/quotes?symbols=${tickers.join(',')}`);
     if (!data.ok || !data.quotes) return [];
     return Object.entries(data.quotes).flatMap(([sym, q]) => {
       if (q.price == null || q.price <= 0) return [];
@@ -988,24 +988,24 @@ async function generateBuyIdeasWithAI(marketData, portfolioTickers, universeIndi
   if (!settings.anthropicKey) return null;
 
   const portfolioContext = portfolioTickers.length > 0
-    ? 'The user currently holds: ${portfolioTickers.join(', ')}. Do NOT recommend any of these.'
+    ? `The user currently holds: ${portfolioTickers.join(', ')}. Do NOT recommend any of these.`
     : 'The user has no current positions.';
 
   const marketSummary = marketData.map(s => {
     const ind = universeIndicators[s.ticker] || {};
     const price = s.price?.toFixed(2) ?? 'N/A';
-    const rsi = ind.rsi != null ? 'RSI ${ind.rsi}' : '';
-    const bb = ind.bb != null ? 'BB%B ${ind.bb.pct}%' : '';
-    const macd = ind.macd?.histogram != null ? 'MACD ${ind.macd.histogram > 0 ? '▲' : '▼'}' : '';
+    const rsi = ind.rsi != null ? `RSI ${ind.rsi}` : '';
+    const bb = ind.bb != null ? `BB%B ${ind.bb.pct}%` : '';
+    const macd = ind.macd?.histogram != null ? `MACD ${ind.macd.histogram > 0 ? '▲' : '▼'}` : '';
     const ma = (ind.sma50 && ind.sma200) ? (ind.sma50 > ind.sma200 ? 'golden cross' : 'death cross') : '';
-    const vol = ind.volRatio != null ? 'vol ${(ind.volRatio * 100).toFixed(0)}% of avg' : '';
-    const buys = ind.buySignals?.length ? 'buy signals: ${ind.buySignals.join(', ')}' : '';
-    const sells = ind.sellSignals?.length ? 'sell signals: ${ind.sellSignals.join(', ')}' : '';
+    const vol = ind.volRatio != null ? `vol ${(ind.volRatio * 100).toFixed(0)}% of avg` : '';
+    const buys = ind.buySignals?.length ? `buy signals: ${ind.buySignals.join(', ')}` : '';
+    const sells = ind.sellSignals?.length ? `sell signals: ${ind.sellSignals.join(', ')}` : '';
     const indicators = [rsi, bb, macd, ma, vol, buys, sells].filter(Boolean).join(' | ');
-    return '${s.ticker}: $${price} (${s.change})${indicators ? ' — ' + indicators : ''}';
+    return `${s.ticker}: $${price} (${s.change})${indicators ? ' — ' + indicators : ''}`;
   }).join('\n');
 
-  const prompt = 'You are a technical stock analyst. Select the 5 best buy opportunities from the list below based on the computed technical indicators.
+  const prompt = `You are a technical stock analyst. Select the 5 best buy opportunities from the list below based on the computed technical indicators.
 
 ${portfolioContext}
 
@@ -1032,7 +1032,7 @@ Respond with ONLY a valid JSON array, no markdown, no preamble:
   }
 ]
 
-Tag must be one of: Momentum, Value, Sector, Dividend, Growth';
+Tag must be one of: Momentum, Value, Sector, Dividend, Growth`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1056,7 +1056,7 @@ Tag must be one of: Momentum, Value, Sector, Dividend, Growth';
     }
     const data = await res.json();
     const text = data.content?.map(c => c.text || '').join('');
-    const clean = text.replace(/'''json|'''/g, '').trim();
+    const clean = text.replace(/```json|```/g, '').trim();
     return JSON.parse(clean);
   } catch(e) {
     console.error('AI generation failed:', e);
@@ -1070,10 +1070,10 @@ async function askAIForUniverse(portfolioTickers, portfolioIndicators) {
   const portSummary = portfolioTickers.map(t => {
     const ind = portfolioIndicators[t] || {};
     const sectors = ''; // could be enriched later
-    return '${t} (RSI ${ind.rsi ?? 'N/A'}, ${ind.sma50 && ind.sma200 ? (ind.sma50 > ind.sma200 ? 'golden cross' : 'death cross') : 'MA N/A'})';
+    return `${t} (RSI ${ind.rsi ?? 'N/A'}, ${ind.sma50 && ind.sma200 ? (ind.sma50 > ind.sma200 ? 'golden cross' : 'death cross') : 'MA N/A'})`;
   }).join(', ');
 
-  const prompt = 'You are a portfolio analyst. A user holds: ${portSummary || 'no positions yet'}.
+  const prompt = `You are a portfolio analyst. A user holds: ${portSummary || 'no positions yet'}.
 
 Pick exactly 20 US stock tickers that would be worth scanning for buy opportunities today. Consider:
 - Sectors not already represented in the portfolio (diversification)
@@ -1081,7 +1081,7 @@ Pick exactly 20 US stock tickers that would be worth scanning for buy opportunit
 - Mix of large-cap, mid-cap, and sector ETFs
 - Avoid any tickers already held: ${portfolioTickers.join(', ') || 'none'}
 
-Respond with ONLY a JSON array of ticker strings, e.g. ["AAPL","MSFT",...]. No markdown, no explanation.';
+Respond with ONLY a JSON array of ticker strings, e.g. ["AAPL","MSFT",...]. No markdown, no explanation.`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1104,7 +1104,7 @@ Respond with ONLY a JSON array of ticker strings, e.g. ["AAPL","MSFT",...]. No m
       return null;
     }
     const data = await res.json();
-    const text = data.content?.map(c => c.text || '').join('').replace(/'''json|'''/g, '').trim();
+    const text = data.content?.map(c => c.text || '').join('').replace(/```json|```/g, '').trim();
     return JSON.parse(text);
   } catch(e) {
     console.warn('Universe generation failed:', e);
@@ -1125,18 +1125,18 @@ async function loadBuyIdeas(forceRefresh = false) {
 
   // On-demand generation: show prompt if no cache and not forcing
   if (!forceRefresh && !cached) {
-    el.innerHTML = '<div style="text-align:center;padding:50px 20px">
+    el.innerHTML = `<div style="text-align:center;padding:50px 20px">
       <div style="font-size:32px;margin-bottom:12px">🤖</div>
       <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">Ready to generate today's picks</div>
       <div style="font-size:13px;color:var(--text3);margin-bottom:24px;line-height:1.6">Claude will select a universe of stocks to scan based on your portfolio, fetch live data, and score each one using RSI, Bollinger Bands, MACD, and momentum.</div>
       <button onclick="loadBuyIdeas(true)" style="background:var(--accent);color:#fff;border:none;border-radius:14px;padding:14px 28px;font-size:15px;font-weight:600;cursor:pointer">Generate today's picks</button>
-    </div>';
+    </div>`;
     return;
   }
 
   // Show loading state
-  el.innerHTML = '<div style="text-align:center;padding:40px 20px">
-    <div style="font-size:13px;color:var(--text3);margin-bottom:6px">Step 1/3 — AI selecting universe...</div>
+  el.innerHTML = `<div style="text-align:center;padding:40px 20px">
+    <div style="font-size:13px;color:var(--text3);margin-bottom:6px">Step 1/3 — AI selecting universe…</div>
     <div id="buyLoadStatus" style="font-size:11px;color:var(--text3);margin-bottom:16px">Asking Claude which stocks to scan</div>
     <div style="display:flex;justify-content:center;gap:6px">
       <div style="width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.2s ease-in-out infinite"></div>
@@ -1144,11 +1144,11 @@ async function loadBuyIdeas(forceRefresh = false) {
       <div style="width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.2s ease-in-out 0.8s infinite"></div>
     </div>
   </div>
-  <style>@keyframes pulse{0%,100%{opacity:0.2}50%{opacity:1}}</style>';
+  <style>@keyframes pulse{0%,100%{opacity:0.2}50%{opacity:1}}</style>`;
 
 const setStatus = (step, msg) => {
-const el2 = $('buyLoadStatus');
-if (el2) { el2.previousElementSibling.textContent = 'Step ${step}/3 — ${msg}'; }
+const el2 = $(‘buyLoadStatus’);
+if (el2) { el2.previousElementSibling.textContent = `Step ${step}/3 — ${msg}`; }
 };
 
 const portfolioTickers = positions.map(p => p.ticker.toUpperCase());
@@ -1157,11 +1157,11 @@ const portfolioTickers = positions.map(p => p.ticker.toUpperCase());
 let universe = await askAIForUniverse(portfolioTickers, currentIndicators);
 if (!universe || universe.length === 0) {
 // Fallback to default watchlist
-universe = (settings.watchlist || DEFAULT_WATCHLIST).split(',').map(t => t.trim().toUpperCase()).filter(Boolean);
+universe = (settings.watchlist || DEFAULT_WATCHLIST).split(’,’).map(t => t.trim().toUpperCase()).filter(Boolean);
 }
 // Limit to 20 to stay within rate limits
 universe = universe.slice(0, 20);
-setStatus(2, 'Fetching live data for ${universe.length} stocks...');
+setStatus(2, `Fetching live data for ${universe.length} stocks…`);
 
 // Step 2: Fetch live market data + indicators for universe
 let marketData = [];
@@ -1172,7 +1172,7 @@ const indResults = await fetchAllIndicators(universe);
 universeIndicators = indResults;
 }
 
-setStatus(3, 'Scoring picks with AI...');
+setStatus(3, ‘Scoring picks with AI…’);
 
 // Step 3: Generate scored picks
 let ideas = null;
@@ -1182,11 +1182,11 @@ ideas = await generateBuyIdeasWithAI(marketData, portfolioTickers, universeIndic
 
 if (ideas && ideas.length > 0) {
 // Pre-fetch fundamentals for the 5 picked tickers so detail cards are instant
-setStatus(3, 'Fetching fundamentals...');
+setStatus(3, ‘Fetching fundamentals…’);
 const pickedTickers = ideas.map(i => i.ticker);
 const fundamentals = settings.apiKey ? await fetchFundamentals(pickedTickers) : {};
 
-'''
+```
 // Attach indicator data and fundamentals to each idea for the detail view
 ideas = ideas.map(idea => ({
   ...idea,
@@ -1198,24 +1198,24 @@ saveBuyCache(ideas);
 cachedBuyIdeas = ideas;
 renderBuyCards(ideas);
 showToast('Buy ideas ready ✓');
-'''
+```
 
 } else {
-el.innerHTML = '<div class="empty"> <div class="empty-icon">🤖</div> <div class="empty-title">Add API keys to enable AI picks</div> <div class="empty-sub">Go to Settings and add your Anthropic API key (for AI analysis) and configure your Schwab Worker URL to enable live market data.</div> </div>';
+el.innerHTML = `<div class="empty"> <div class="empty-icon">🤖</div> <div class="empty-title">Add API keys to enable AI picks</div> <div class="empty-sub">Go to Settings and add your Anthropic API key (for AI analysis) and configure your Schwab Worker URL to enable live market data.</div> </div>`;
 }
 }
 
 function renderBuyCards(ideas) {
-const el = $('buysList');
+const el = $(‘buysList’);
 const cached = loadCachedBuys();
 const isToday = !!cached;
-const lastUpdated = isToday ? 'Today · ${new Date().toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'})}' : 'Cached';
+const lastUpdated = isToday ? `Today · ${new Date().toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'})}` : ‘Cached’;
 
-el.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
 <span style="font-size:11px;color:var(--text3)">Generated ${lastUpdated}</span>
 <button onclick="loadBuyIdeas(true)" style="background:var(--bg3);border:0.5px solid var(--border2);border-radius:99px;padding:4px 12px;color:var(--text2);font-size:11px;cursor:pointer">↻ Refresh</button>
 
-  </div>' + ideas.map((b, idx) => {
+  </div>` + ideas.map((b, idx) => {
     const score = Math.round(b.score);
     const c = score >= 80 ? '#00c97a' : score >= 65 ? '#f5a623' : '#999';
     const arc = 2 * Math.PI * 16;
@@ -1223,7 +1223,7 @@ el.innerHTML = '<div style="display:flex;justify-content:space-between;align-ite
     const chgColor = (b.change || '').startsWith('+') ? 'var(--green)' : 'var(--red)';
     const tagClass = b.tag === 'Momentum' || b.tag === 'Growth' ? 'pill-green' : b.tag === 'Value' || b.tag === 'Dividend' ? 'pill-amber' : 'pill-blue';
     const priceStr = b.price ? '$' + parseFloat(b.price).toFixed(2) : 'N/A';
-    return '<div class="buy-card" onclick="openBuyDetail(${idx})" style="cursor:pointer">
+    return `<div class="buy-card" onclick="openBuyDetail(${idx})" style="cursor:pointer">
       <div class="buy-top">
         <div>
           <div style="display:flex;align-items:center;gap:8px">
@@ -1232,7 +1232,7 @@ el.innerHTML = '<div style="display:flex;justify-content:space-between;align-ite
           </div>
           <div class="buy-name">${b.name}</div>
           <div class="buy-price">${priceStr}</div>
-          ${b.change ? '<div class="buy-chg" style="color:${chgColor}">${b.change} today</div>' : ''}
+          ${b.change ? `<div class="buy-chg" style="color:${chgColor}">${b.change} today</div>` : ''}
         </div>
         <svg class="score-circle" viewBox="0 0 42 42" role="img" aria-label="Score ${score} out of 100">
           <circle cx="21" cy="21" r="16" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="3.5"/>
@@ -1243,7 +1243,7 @@ el.innerHTML = '<div style="display:flex;justify-content:space-between;align-ite
       </div>
       <div class="buy-reason">${b.reason}</div>
       <div style="margin-top:10px;font-size:11px;color:var(--text3);text-align:right">Tap for details →</div>
-    </div>';
+    </div>`;
   }).join('');
 }
 
@@ -1308,7 +1308,7 @@ return bottom - ((v-minV)/(maxV-minV))*(bottom-top);
 
 function svgPolyline(pairs, xFn, yFn) {
 return pairs.filter(([,v])=>v!==null&&!isNaN(v))
-.map(([i,v])=>'${xFn(i).toFixed(2)},${yFn(v).toFixed(2)}').join(' ');
+.map(([i,v])=>`${xFn(i).toFixed(2)},${yFn(v).toFixed(2)}`).join(’ ’);
 }
 
 function buildPricePanel(raw, sma50All, sma200All, bollingerAll, sliceStart, W, H, PAD, id) {
@@ -1316,39 +1316,39 @@ const cW=W-PAD.l-PAD.r, cH=H-PAD.t-PAD.b;
 const data=raw.slice(sliceStart), sma50=sma50All.slice(sliceStart);
 const sma200=sma200All.slice(sliceStart), bollinger=bollingerAll.slice(sliceStart);
 const closes=data.map(d=>d.c), n=closes.length;
-if (n<2) return '<div style="color:var(--text3);font-size:12px;padding:20px;text-align:center">Not enough data</div>';
-const allVals=[...closes,...bollinger.filter(Boolean).flatMap(b=>[b.upper,b.lower]),...sma50.filter(Boolean),...sma200.filter(Boolean)];
-const minY=Math.min(...allVals)*0.998, maxY=Math.max(...allVals)*1.002;
+if (n<2) return ‘<div style="color:var(--text3);font-size:12px;padding:20px;text-align:center">Not enough data</div>’;
+const allVals=[…closes,…bollinger.filter(Boolean).flatMap(b=>[b.upper,b.lower]),…sma50.filter(Boolean),…sma200.filter(Boolean)];
+const minY=Math.min(…allVals)*0.998, maxY=Math.max(…allVals)*1.002;
 const xFn=i=>PAD.l+(i/(n-1))*cW, yFn=v=>toSvgY(v,minY,maxY,PAD.t,PAD.t+cH);
-const isUp=closes[n-1]>=closes[0], priceC=isUp?'#00c97a':'#ff4d4d';
-const pricePts=closes.map((c,i)=>'${xFn(i).toFixed(2)},${yFn(c).toFixed(2)}').join(' ');
-const fillPts='${xFn(0).toFixed(2)},${(PAD.t+cH).toFixed(2)} ${pricePts} ${xFn(n-1).toFixed(2)},${(PAD.t+cH).toFixed(2)}';
+const isUp=closes[n-1]>=closes[0], priceC=isUp?’#00c97a’:’#ff4d4d’;
+const pricePts=closes.map((c,i)=>`${xFn(i).toFixed(2)},${yFn(c).toFixed(2)}`).join(’ ‘);
+const fillPts=`${xFn(0).toFixed(2)},${(PAD.t+cH).toFixed(2)} ${pricePts} ${xFn(n-1).toFixed(2)},${(PAD.t+cH).toFixed(2)}`;
 const bbUpPts=svgPolyline(bollinger.map((b,i)=>[i,b?.upper]),xFn,yFn);
 const bbLoPts=svgPolyline(bollinger.map((b,i)=>[i,b?.lower]),xFn,yFn);
 const bbMidPts=svgPolyline(bollinger.map((b,i)=>[i,b?.mid]),xFn,yFn);
-const bbFillPts=[...bollinger.map((b,i)=>b?'${xFn(i).toFixed(2)},${yFn(b.upper).toFixed(2)}':null).filter(Boolean),...bollinger.map((b,i)=>b?'${xFn(i).toFixed(2)},${yFn(b.lower).toFixed(2)}':null).filter(Boolean).reverse()].join(' ');
+const bbFillPts=[…bollinger.map((b,i)=>b?`${xFn(i).toFixed(2)},${yFn(b.upper).toFixed(2)}`:null).filter(Boolean),…bollinger.map((b,i)=>b?`${xFn(i).toFixed(2)},${yFn(b.lower).toFixed(2)}`:null).filter(Boolean).reverse()].join(’ ’);
 const yTicks=[0,0.25,0.5,0.75,1].map(p=>minY+p*(maxY-minY));
-const xLabels=data.reduce((acc,d,i)=>{const dt=new Date(d.t);if(i===0||dt.getDate()===1)acc.push({i,label:dt.toLocaleDateString('en-US',{month:'short'})});return acc;},[]).slice(0,5);
-const legend=[{c:priceC,l:'Price',dash:false},{c:'#4a9eff',l:'SMA 50',dash:false},{c:'#f5a623',l:'SMA 200',dash:false},{c:'#7c6fcd',l:'BB',dash:true}];
-return '<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible"> <defs> <linearGradient id="pGrad${id}" x1="0" y1="0" x2="0" y2="1"> <stop offset="0%" stop-color="${priceC}" stop-opacity="0.2"/><stop offset="100%" stop-color="${priceC}" stop-opacity="0"/> </linearGradient> <clipPath id="pClip${id}"><rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${cH}"/></clipPath> </defs> ${yTicks.map(v=>'<line x1="${PAD.l}" y1="${yFn(v).toFixed(2)}" x2="${PAD.l+cW}" y2="${yFn(v).toFixed(2)}" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>').join('')} ${yTicks.map(v=>'<text x="${PAD.l-4}" y="${(yFn(v)+3.5).toFixed(2)}" text-anchor="end" font-size="9" fill="rgba(255,255,255,0.35)">$${v.toFixed(0)}</text>').join('')} ${xLabels.map(({i,label})=>'<text x="${xFn(i).toFixed(2)}" y="${H-5}" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">${label}</text>').join('')} <line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <line x1="${PAD.l}" y1="${PAD.t+cH}" x2="${PAD.l+cW}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <g clip-path="url(#pClip${id})"> ${bbFillPts?'<polygon points="${bbFillPts}" fill="rgba(124,111,205,0.07)"/>':''} <polyline points="${bbUpPts}"  fill="none" stroke="#7c6fcd" stroke-width="0.75" stroke-dasharray="3,2"/> <polyline points="${bbLoPts}"  fill="none" stroke="#7c6fcd" stroke-width="0.75" stroke-dasharray="3,2"/> <polyline points="${bbMidPts}" fill="none" stroke="#7c6fcd" stroke-width="0.5" stroke-opacity="0.5"/> <polyline points="${svgPolyline(sma200.map((v,i)=>[i,v]),xFn,yFn)}" fill="none" stroke="#f5a623" stroke-width="1.2" stroke-opacity="0.85"/> <polyline points="${svgPolyline(sma50.map((v,i)=>[i,v]),xFn,yFn)}"  fill="none" stroke="#4a9eff" stroke-width="1.2"/> <polygon points="${fillPts}" fill="url(#pGrad${id})"/> <polyline points="${pricePts}" fill="none" stroke="${priceC}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/> </g> ${legend.map(({c,l,dash},i)=>'<g transform="translate(${PAD.l+i*76},${PAD.t-3})"><line x1="0" y1="0" x2="13" y2="0" stroke="${c}" stroke-width="${dash?1:1.5}" stroke-dasharray="${dash?'3,2':'none'}"/><text x="17" y="3.5" font-size="8.5" fill="rgba(255,255,255,0.4)">${l}</text></g>').join('')} </svg>';
+const xLabels=data.reduce((acc,d,i)=>{const dt=new Date(d.t);if(i===0||dt.getDate()===1)acc.push({i,label:dt.toLocaleDateString(‘en-US’,{month:‘short’})});return acc;},[]).slice(0,5);
+const legend=[{c:priceC,l:‘Price’,dash:false},{c:’#4a9eff’,l:‘SMA 50’,dash:false},{c:’#f5a623’,l:‘SMA 200’,dash:false},{c:’#7c6fcd’,l:‘BB’,dash:true}];
+return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible"> <defs> <linearGradient id="pGrad${id}" x1="0" y1="0" x2="0" y2="1"> <stop offset="0%" stop-color="${priceC}" stop-opacity="0.2"/><stop offset="100%" stop-color="${priceC}" stop-opacity="0"/> </linearGradient> <clipPath id="pClip${id}"><rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${cH}"/></clipPath> </defs> ${yTicks.map(v=>`<line x1="${PAD.l}" y1="${yFn(v).toFixed(2)}" x2="${PAD.l+cW}" y2="${yFn(v).toFixed(2)}" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>`).join('')} ${yTicks.map(v=>`<text x="${PAD.l-4}" y="${(yFn(v)+3.5).toFixed(2)}" text-anchor="end" font-size="9" fill="rgba(255,255,255,0.35)">$${v.toFixed(0)}</text>`).join('')} ${xLabels.map(({i,label})=>`<text x="${xFn(i).toFixed(2)}" y="${H-5}" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">${label}</text>`).join('')} <line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <line x1="${PAD.l}" y1="${PAD.t+cH}" x2="${PAD.l+cW}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <g clip-path="url(#pClip${id})"> ${bbFillPts?`<polygon points="${bbFillPts}" fill="rgba(124,111,205,0.07)"/>`:''} <polyline points="${bbUpPts}"  fill="none" stroke="#7c6fcd" stroke-width="0.75" stroke-dasharray="3,2"/> <polyline points="${bbLoPts}"  fill="none" stroke="#7c6fcd" stroke-width="0.75" stroke-dasharray="3,2"/> <polyline points="${bbMidPts}" fill="none" stroke="#7c6fcd" stroke-width="0.5" stroke-opacity="0.5"/> <polyline points="${svgPolyline(sma200.map((v,i)=>[i,v]),xFn,yFn)}" fill="none" stroke="#f5a623" stroke-width="1.2" stroke-opacity="0.85"/> <polyline points="${svgPolyline(sma50.map((v,i)=>[i,v]),xFn,yFn)}"  fill="none" stroke="#4a9eff" stroke-width="1.2"/> <polygon points="${fillPts}" fill="url(#pGrad${id})"/> <polyline points="${pricePts}" fill="none" stroke="${priceC}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/> </g> ${legend.map(({c,l,dash},i)=>`<g transform="translate(${PAD.l+i*76},${PAD.t-3})"><line x1="0" y1="0" x2="13" y2="0" stroke="${c}" stroke-width="${dash?1:1.5}" stroke-dasharray="${dash?'3,2':'none'}"/><text x="17" y="3.5" font-size="8.5" fill="rgba(255,255,255,0.4)">${l}</text></g>`).join('')} </svg>`;
 }
 
 function buildMomentumPanel(raw, rsiAll, macdAll, sliceStart, mode, W, H, PAD, id) {
 const cW=W-PAD.l-PAD.r, cH=H-PAD.t-PAD.b;
 const n=raw.length-sliceStart;
-if (n<2) return '';
+if (n<2) return ‘’;
 const xFn=i=>PAD.l+(i/(n-1))*cW;
-if (mode==='rsi') {
+if (mode===‘rsi’) {
 const rsi=rsiAll.slice(sliceStart);
 const yFn=v=>toSvgY(v,0,100,PAD.t,PAD.t+cH);
-return '<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"> <clipPath id="rClip${id}"><rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${cH}"/></clipPath> <rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${(yFn(70)-PAD.t).toFixed(2)}" fill="rgba(255,77,77,0.07)" clip-path="url(#rClip${id})"/> <rect x="${PAD.l}" y="${yFn(30).toFixed(2)}" width="${cW}" height="${(PAD.t+cH-yFn(30)).toFixed(2)}" fill="rgba(0,201,122,0.07)" clip-path="url(#rClip${id})"/> ${[{v:70,c:'rgba(255,77,77,0.4)'},{v:50,c:'rgba(255,255,255,0.06)'},{v:30,c:'rgba(0,201,122,0.4)'}].map(({v,c})=>'<line x1="${PAD.l}" y1="${yFn(v).toFixed(2)}" x2="${PAD.l+cW}" y2="${yFn(v).toFixed(2)}" stroke="${c}" stroke-width="0.5" stroke-dasharray="${v===50?'none':'3,2'}"/><text x="${PAD.l-4}" y="${(yFn(v)+3.5).toFixed(2)}" text-anchor="end" font-size="9" fill="rgba(255,255,255,0.35)">${v}</text>').join('')} <line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <line x1="${PAD.l}" y1="${PAD.t+cH}" x2="${PAD.l+cW}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <g clip-path="url(#rClip${id})"> <polyline points="${svgPolyline(rsi.map((v,i)=>[i,v]),xFn,yFn)}" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/> </g> <text x="${PAD.l+4}" y="${PAD.t+10}" font-size="9" fill="#a78bfa" font-weight="600">RSI (14)</text> </svg>';
+return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"> <clipPath id="rClip${id}"><rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${cH}"/></clipPath> <rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${(yFn(70)-PAD.t).toFixed(2)}" fill="rgba(255,77,77,0.07)" clip-path="url(#rClip${id})"/> <rect x="${PAD.l}" y="${yFn(30).toFixed(2)}" width="${cW}" height="${(PAD.t+cH-yFn(30)).toFixed(2)}" fill="rgba(0,201,122,0.07)" clip-path="url(#rClip${id})"/> ${[{v:70,c:'rgba(255,77,77,0.4)'},{v:50,c:'rgba(255,255,255,0.06)'},{v:30,c:'rgba(0,201,122,0.4)'}].map(({v,c})=>`<line x1="${PAD.l}" y1="${yFn(v).toFixed(2)}" x2="${PAD.l+cW}" y2="${yFn(v).toFixed(2)}" stroke="${c}" stroke-width="0.5" stroke-dasharray="${v===50?'none':'3,2'}"/><text x="${PAD.l-4}" y="${(yFn(v)+3.5).toFixed(2)}" text-anchor="end" font-size="9" fill="rgba(255,255,255,0.35)">${v}</text>`).join('')} <line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <line x1="${PAD.l}" y1="${PAD.t+cH}" x2="${PAD.l+cW}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <g clip-path="url(#rClip${id})"> <polyline points="${svgPolyline(rsi.map((v,i)=>[i,v]),xFn,yFn)}" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/> </g> <text x="${PAD.l+4}" y="${PAD.t+10}" font-size="9" fill="#a78bfa" font-weight="600">RSI (14)</text> </svg>`;
 }
 const ml=macdAll.macdLine.slice(sliceStart), sl=macdAll.signalLine.slice(sliceStart), hl=macdAll.histogram.slice(sliceStart);
-const allM=[...ml,...sl.filter(Boolean),...hl.filter(Boolean)];
-const minM=Math.min(...allM)*1.15, maxM=Math.max(...allM)*1.15;
+const allM=[…ml,…sl.filter(Boolean),…hl.filter(Boolean)];
+const minM=Math.min(…allM)*1.15, maxM=Math.max(…allM)*1.15;
 const yFn=v=>toSvgY(v,minM,maxM,PAD.t,PAD.t+cH), zeroY=yFn(0);
 const barW=Math.max(1,cW/n-0.5);
-return '<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"> <clipPath id="mClip${id}"><rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${cH}"/></clipPath> <line x1="${PAD.l}" y1="${zeroY.toFixed(2)}" x2="${PAD.l+cW}" y2="${zeroY.toFixed(2)}" stroke="rgba(255,255,255,0.25)" stroke-width="0.5"/> <line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <line x1="${PAD.l}" y1="${PAD.t+cH}" x2="${PAD.l+cW}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <g clip-path="url(#mClip${id})"> ${hl.map((h,i)=>{if(h===null)return '';const bx=(xFn(i)-barW/2).toFixed(2),bh=Math.abs(yFn(h)-zeroY).toFixed(2),by=(h>=0?zeroY-parseFloat(bh):zeroY).toFixed(2);return '<rect x="${bx}" y="${by}" width="${barW.toFixed(2)}" height="${bh}" fill="${h>=0?'#00c97a':'#ff4d4d'}" opacity="0.7"/>';}).join('')} <polyline points="${svgPolyline(ml.map((v,i)=>[i,v]),xFn,yFn)}" fill="none" stroke="#4a9eff" stroke-width="1.2"/> <polyline points="${svgPolyline(sl.map((v,i)=>[i,v]),xFn,yFn)}" fill="none" stroke="#f5a623" stroke-width="1.2"/> </g> ${[{c:'#4a9eff',l:'MACD'},{c:'#f5a623',l:'Signal'},{c:'#00c97a',l:'Histogram'}].map(({c,l},i)=>'<g transform="translate(${PAD.l+i*76},${PAD.t-3})"><line x1="0" y1="0" x2="13" y2="0" stroke="${c}" stroke-width="1.5"/><text x="17" y="3.5" font-size="8.5" fill="rgba(255,255,255,0.4)">${l}</text></g>').join('')} </svg>';
+return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"> <clipPath id="mClip${id}"><rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${cH}"/></clipPath> <line x1="${PAD.l}" y1="${zeroY.toFixed(2)}" x2="${PAD.l+cW}" y2="${zeroY.toFixed(2)}" stroke="rgba(255,255,255,0.25)" stroke-width="0.5"/> <line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <line x1="${PAD.l}" y1="${PAD.t+cH}" x2="${PAD.l+cW}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <g clip-path="url(#mClip${id})"> ${hl.map((h,i)=>{if(h===null)return '';const bx=(xFn(i)-barW/2).toFixed(2),bh=Math.abs(yFn(h)-zeroY).toFixed(2),by=(h>=0?zeroY-parseFloat(bh):zeroY).toFixed(2);return `<rect x="${bx}" y="${by}" width="${barW.toFixed(2)}" height="${bh}" fill="${h>=0?'#00c97a':'#ff4d4d'}" opacity="0.7"/>`;}).join('')} <polyline points="${svgPolyline(ml.map((v,i)=>[i,v]),xFn,yFn)}" fill="none" stroke="#4a9eff" stroke-width="1.2"/> <polyline points="${svgPolyline(sl.map((v,i)=>[i,v]),xFn,yFn)}" fill="none" stroke="#f5a623" stroke-width="1.2"/> </g> ${[{c:'#4a9eff',l:'MACD'},{c:'#f5a623',l:'Signal'},{c:'#00c97a',l:'Histogram'}].map(({c,l},i)=>`<g transform="translate(${PAD.l+i*76},${PAD.t-3})"><line x1="0" y1="0" x2="13" y2="0" stroke="${c}" stroke-width="1.5"/><text x="17" y="3.5" font-size="8.5" fill="rgba(255,255,255,0.4)">${l}</text></g>`).join('')} </svg>`;
 }
 
 function getSliceStart(raw, months) {
@@ -1359,11 +1359,11 @@ return idx>=0 ? idx : Math.max(0,raw.length-months*22);
 
 function renderTwoPanel(ticker, months, momentumMode, prefix) {
 const cached=indicatorCache[ticker?.toUpperCase()];
-const priceEl=$('${prefix}PriceChart'), momEl=$('${prefix}MomChart');
+const priceEl=$(`${prefix}PriceChart`), momEl=$(`${prefix}MomChart`);
 if (!priceEl||!momEl) return;
 if (!cached||!cached.raw||cached.raw.length<20) {
-const msg='<div style="color:var(--text3);font-size:12px;padding:20px;text-align:center">Chart data loading...</div>';
-priceEl.innerHTML=msg; momEl.innerHTML=''; return;
+const msg=’<div style="color:var(--text3);font-size:12px;padding:20px;text-align:center">Chart data loading…</div>’;
+priceEl.innerHTML=msg; momEl.innerHTML=’’; return;
 }
 const raw=cached.raw, closes=raw.map(d=>d.c);
 const sma50All=chartSMA(closes,50), sma200All=chartSMA(closes,200);
@@ -1372,48 +1372,48 @@ const sliceStart=getSliceStart(raw,months);
 const W=340, PAD={t:20,r:8,b:24,l:44}, id=prefix+months;
 priceEl.innerHTML=buildPricePanel(raw,sma50All,sma200All,bollingerAll,sliceStart,W,185,PAD,id);
 momEl.innerHTML=buildMomentumPanel(raw,rsiAll,macdAll,sliceStart,momentumMode,W,100,PAD,id+momentumMode);
-['1','3','6'].forEach(m=>{
-const btn=$('${prefix}RangeBtn${m}'); if(!btn) return;
+[‘1’,‘3’,‘6’].forEach(m=>{
+const btn=$(`${prefix}RangeBtn${m}`); if(!btn) return;
 const active=parseInt(m)===months;
-btn.style.background=active?'rgba(74,158,255,0.2)':'transparent';
-btn.style.color=active?'#4a9eff':'#555';
-btn.style.borderColor=active?'#4a9eff':'rgba(255,255,255,0.12)';
+btn.style.background=active?‘rgba(74,158,255,0.2)’:‘transparent’;
+btn.style.color=active?’#4a9eff’:’#555’;
+btn.style.borderColor=active?’#4a9eff’:‘rgba(255,255,255,0.12)’;
 });
-['rsi','macd'].forEach(m=>{
-const btn=$('${prefix}MomBtn${m}'); if(!btn) return;
+[‘rsi’,‘macd’].forEach(m=>{
+const btn=$(`${prefix}MomBtn${m}`); if(!btn) return;
 const active=m===momentumMode;
-btn.style.background=active?'rgba(167,139,250,0.15)':'transparent';
-btn.style.color=active?'#a78bfa':'#555';
-btn.style.borderColor=active?'#a78bfa':'rgba(255,255,255,0.1)';
+btn.style.background=active?‘rgba(167,139,250,0.15)’:‘transparent’;
+btn.style.color=active?’#a78bfa’:’#555’;
+btn.style.borderColor=active?’#a78bfa’:‘rgba(255,255,255,0.1)’;
 });
 }
 
 function chartControlsHTML(prefix) {
-return '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"> <div style="display:flex;gap:5px"> ${['1','3','6'].map(m=>'<button id="${prefix}RangeBtn${m}" onclick="on${prefix}Range(${m})"
-style="padding:4px 12px;border-radius:8px;border:0.5px solid;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s">${m}M</button>').join('')} </div> <div style="display:flex;gap:5px"> ${['rsi','macd'].map(m=>'<button id="${prefix}MomBtn${m}" onclick="on${prefix}Mom('${m}')"
-style="padding:4px 11px;border-radius:8px;border:0.5px solid;font-size:11px;font-weight:600;cursor:pointer;text-transform:uppercase;transition:all 0.15s">${m}</button>').join('')}
+return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"> <div style="display:flex;gap:5px"> ${['1','3','6'].map(m=>`<button id="${prefix}RangeBtn${m}" onclick="on${prefix}Range(${m})"
+style="padding:4px 12px;border-radius:8px;border:0.5px solid;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s">${m}M</button>`).join('')} </div> <div style="display:flex;gap:5px"> ${['rsi','macd'].map(m=>`<button id="${prefix}MomBtn${m}" onclick="on${prefix}Mom('${m}')"
+style="padding:4px 11px;border-radius:8px;border:0.5px solid;font-size:11px;font-weight:600;cursor:pointer;text-transform:uppercase;transition:all 0.15s">${m}</button>`).join(’’)}
 </div>
 
   </div>
   <div id="${prefix}PriceChart"></div>
-  <div id="${prefix}MomChart" style="margin-top:6px"></div>';
+  <div id="${prefix}MomChart" style="margin-top:6px"></div>`;
 }
 
 let currentBuyIdea = null;
 
 // Per-modal chart state
-let posChartRange = 1, posChartMom = 'rsi', posChartTicker = null;
-let buyChartRange = 1, buyChartMom = 'rsi', buyChartTicker = null;
+let posChartRange = 1, posChartMom = ‘rsi’, posChartTicker = null;
+let buyChartRange = 1, buyChartMom = ‘rsi’, buyChartTicker = null;
 
-function onposRange(m) { posChartRange = m; renderTwoPanel(posChartTicker, posChartRange, posChartMom, 'pos'); }
-function onposMom(m)   { posChartMom   = m; renderTwoPanel(posChartTicker, posChartRange, posChartMom, 'pos'); }
-function onbuyRange(m) { buyChartRange = m; renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, 'buy'); }
-function onbuyMom(m)   { buyChartMom   = m; renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, 'buy'); }
+function onposRange(m) { posChartRange = m; renderTwoPanel(posChartTicker, posChartRange, posChartMom, ‘pos’); }
+function onposMom(m)   { posChartMom   = m; renderTwoPanel(posChartTicker, posChartRange, posChartMom, ‘pos’); }
+function onbuyRange(m) { buyChartRange = m; renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, ‘buy’); }
+function onbuyMom(m)   { buyChartMom   = m; renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, ‘buy’); }
 
 function renderBuyDetailChart(months) {
 if (currentBuyIdea) {
 buyChartRange = months || 1;
-renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, 'buy');
+renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, ‘buy’);
 }
 }
 
@@ -1423,76 +1423,76 @@ if (!ideas || !ideas[idx]) return;
 const b = ideas[idx];
 currentBuyIdea = b;
 buyChartTicker = b.ticker?.toUpperCase();
-buyChartRange = 1; buyChartMom = 'rsi';
+buyChartRange = 1; buyChartMom = ‘rsi’;
 
 const ind = b.indicators || indicatorCache[b.ticker?.toUpperCase()]?.indicators || null;
 const fund = b.fundamentals || null;
 const score = Math.round(b.score);
-const scoreColor = score >= 80 ? '#00c97a' : score >= 65 ? '#f5a623' : '#999';
-const priceStr = b.price ? '$' + parseFloat(b.price).toFixed(2) : 'N/A';
-const chgColor = (b.change || '').startsWith('+') ? 'var(–green)' : 'var(–red)';
+const scoreColor = score >= 80 ? ‘#00c97a’ : score >= 65 ? ‘#f5a623’ : ‘#999’;
+const priceStr = b.price ? ‘$’ + parseFloat(b.price).toFixed(2) : ‘N/A’;
+const chgColor = (b.change || ‘’).startsWith(’+’) ? ‘var(–green)’ : ‘var(–red)’;
 
 // Buy signals from indicators
 const buySignals = ind?.buySignals || [];
 const sellSignals = ind?.sellSignals || [];
 
 // Dividend info
-let divHTML = '';
+let divHTML = ‘’;
 if (fund) {
 // dividendYield from Schwab is already a percentage value e.g. 0.3682 = 0.37%
-const divYield = fund.dividendYield != null ? fund.dividendYield.toFixed(2) + '%' : null;
-const divAmt = fund.dividendAmount != null ? '$' + parseFloat(fund.dividendAmount).toFixed(2) + '/yr' : null;
-const divPay = fund.dividendPayAmount != null ? '$' + parseFloat(fund.dividendPayAmount).toFixed(2) + '/payment' : null;
+const divYield = fund.dividendYield != null ? fund.dividendYield.toFixed(2) + ‘%’ : null;
+const divAmt = fund.dividendAmount != null ? ‘$’ + parseFloat(fund.dividendAmount).toFixed(2) + ‘/yr’ : null;
+const divPay = fund.dividendPayAmount != null ? ‘$’ + parseFloat(fund.dividendPayAmount).toFixed(2) + ‘/payment’ : null;
 const divFreq = fund.dividendFrequency || null;
-const fmtDate = s => s ? new Date(s).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) : null;
+const fmtDate = s => s ? new Date(s).toLocaleDateString(‘en-US’, {month:‘short’,day:‘numeric’,year:‘numeric’}) : null;
 const exDiv = fmtDate(fund.dividendDate);
 const payDate = fmtDate(fund.dividendPayDate);
 const nextExDiv = fmtDate(fund.nextDividendDate);
 
-'''
+```
 if (divYield || divAmt) {
-  divHTML = '<div class="detail-section">
+  divHTML = `<div class="detail-section">
     <div class="detail-section-title">Dividend</div>
-    ${divYield ? '<div class="detail-row"><span class="label">Yield</span><span class="val" style="color:var(--green)">${divYield}</span></div>' : ''}
-    ${divAmt ? '<div class="detail-row"><span class="label">Annual amount</span><span class="val">${divAmt}</span></div>' : ''}
-    ${divPay ? '<div class="detail-row"><span class="label">Per payment</span><span class="val">${divPay}</span></div>' : ''}
-    ${divFreq ? '<div class="detail-row"><span class="label">Frequency</span><span class="val">${divFreq}</span></div>' : ''}
-    ${exDiv ? '<div class="detail-row"><span class="label">Last ex-div date</span><span class="val">${exDiv}</span></div>' : ''}
-    ${payDate ? '<div class="detail-row"><span class="label">Next pay date</span><span class="val" style="color:var(--green)">${payDate}</span></div>' : ''}
-    ${nextExDiv ? '<div class="detail-row"><span class="label">Next ex-div date</span><span class="val">${nextExDiv}</span></div>' : ''}
-  </div>';
+    ${divYield ? `<div class="detail-row"><span class="label">Yield</span><span class="val" style="color:var(--green)">${divYield}</span></div>` : ''}
+    ${divAmt ? `<div class="detail-row"><span class="label">Annual amount</span><span class="val">${divAmt}</span></div>` : ''}
+    ${divPay ? `<div class="detail-row"><span class="label">Per payment</span><span class="val">${divPay}</span></div>` : ''}
+    ${divFreq ? `<div class="detail-row"><span class="label">Frequency</span><span class="val">${divFreq}</span></div>` : ''}
+    ${exDiv ? `<div class="detail-row"><span class="label">Last ex-div date</span><span class="val">${exDiv}</span></div>` : ''}
+    ${payDate ? `<div class="detail-row"><span class="label">Next pay date</span><span class="val" style="color:var(--green)">${payDate}</span></div>` : ''}
+    ${nextExDiv ? `<div class="detail-row"><span class="label">Next ex-div date</span><span class="val">${nextExDiv}</span></div>` : ''}
+  </div>`;
 } else {
-  divHTML = '<div class="detail-section">
+  divHTML = `<div class="detail-section">
     <div class="detail-section-title">Dividend</div>
     <div style="font-size:12px;color:var(--text3)">No dividend — growth/non-dividend stock</div>
-  </div>';
+  </div>`;
 }
-'''
+```
 
 }
 
 // Fundamentals section
-let fundHTML = '';
+let fundHTML = ‘’;
 if (fund) {
-const pe   = fund.peRatio != null ? fund.peRatio.toFixed(1) : '—';
-const peg  = fund.pegRatio != null ? fund.pegRatio.toFixed(2) : '—';
-const eps  = fund.eps != null ? '$' + parseFloat(fund.eps).toFixed(2) : '—';
-const beta = fund.beta != null ? fund.beta.toFixed(2) : '—';
+const pe   = fund.peRatio != null ? fund.peRatio.toFixed(1) : ‘—’;
+const peg  = fund.pegRatio != null ? fund.pegRatio.toFixed(2) : ‘—’;
+const eps  = fund.eps != null ? ‘$’ + parseFloat(fund.eps).toFixed(2) : ‘—’;
+const beta = fund.beta != null ? fund.beta.toFixed(2) : ‘—’;
 const mcap = fund.marketCap != null
-? (fund.marketCap >= 1e12 ? '$' + (fund.marketCap/1e12).toFixed(2) + 'T'
-: fund.marketCap >= 1e9  ? '$' + (fund.marketCap/1e9).toFixed(1) + 'B'
-: '$' + (fund.marketCap/1e6).toFixed(0) + 'M') : '—';
-const high52 = fund.high52 != null ? '$' + fund.high52.toFixed(2) : (ind?.high52 ? '$' + ind.high52.toFixed(2) : '—');
-const low52  = fund.low52  != null ? '$' + fund.low52.toFixed(2)  : (ind?.low52  ? '$' + ind.low52.toFixed(2)  : '—');
-fundHTML = '<div class="detail-section"> <div class="detail-section-title">Fundamentals</div> <div class="detail-row"><span class="label">Market cap</span><span class="val">${mcap}</span></div> <div class="detail-row"><span class="label">P/E ratio</span><span class="val">${pe}</span></div> <div class="detail-row"><span class="label">PEG ratio</span><span class="val">${peg}</span></div> <div class="detail-row"><span class="label">EPS (TTM)</span><span class="val">${eps}</span></div> <div class="detail-row"><span class="label">Beta</span><span class="val">${beta}</span></div> <div class="detail-row"><span class="label">52-week range</span><span class="val">${low52} – ${high52}</span></div> </div>';
+? (fund.marketCap >= 1e12 ? ‘$’ + (fund.marketCap/1e12).toFixed(2) + ‘T’
+: fund.marketCap >= 1e9  ? ‘$’ + (fund.marketCap/1e9).toFixed(1) + ‘B’
+: ‘$’ + (fund.marketCap/1e6).toFixed(0) + ‘M’) : ‘—’;
+const high52 = fund.high52 != null ? ‘$’ + fund.high52.toFixed(2) : (ind?.high52 ? ‘$’ + ind.high52.toFixed(2) : ‘—’);
+const low52  = fund.low52  != null ? ‘$’ + fund.low52.toFixed(2)  : (ind?.low52  ? ‘$’ + ind.low52.toFixed(2)  : ‘—’);
+fundHTML = `<div class="detail-section"> <div class="detail-section-title">Fundamentals</div> <div class="detail-row"><span class="label">Market cap</span><span class="val">${mcap}</span></div> <div class="detail-row"><span class="label">P/E ratio</span><span class="val">${pe}</span></div> <div class="detail-row"><span class="label">PEG ratio</span><span class="val">${peg}</span></div> <div class="detail-row"><span class="label">EPS (TTM)</span><span class="val">${eps}</span></div> <div class="detail-row"><span class="label">Beta</span><span class="val">${beta}</span></div> <div class="detail-row"><span class="label">52-week range</span><span class="val">${low52} – ${high52}</span></div> </div>`;
 }
 
-$('buyDetailContent').innerHTML = '
+$(‘buyDetailContent’).innerHTML = `
 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
 <div>
 <div style="font-size:22px;font-weight:700;color:var(--text)">${b.ticker}</div>
-<div style="font-size:13px;color:var(--text3);margin-top:2px">${b.name || ''}</div>
-<div style="font-size:18px;font-weight:600;margin-top:6px">${priceStr} <span style="font-size:13px;color:${chgColor}">${b.change || ''}</span></div>
+<div style="font-size:13px;color:var(--text3);margin-top:2px">${b.name || ‘’}</div>
+<div style="font-size:18px;font-weight:600;margin-top:6px">${priceStr} <span style="font-size:13px;color:${chgColor}">${b.change || ‘’}</span></div>
 </div>
 <div style="text-align:center">
 <div style="font-size:28px;font-weight:700;color:${scoreColor}">${score}</div>
@@ -1500,7 +1500,7 @@ $('buyDetailContent').innerHTML = '
 </div>
 </div>
 
-'''
+```
 <div class="detail-section">
   <div class="detail-section-title">AI rationale</div>
   <div style="font-size:13px;color:var(--text2);line-height:1.6">${b.reason}</div>
@@ -1508,13 +1508,13 @@ $('buyDetailContent').innerHTML = '
 
 <div class="detail-section">
   <div class="detail-section-title">Technical signals</div>
-  ${buySignals.length ? '<div style="margin-bottom:8px">${buySignals.map(s =>
-    '<span style="display:inline-block;background:var(--green-bg);color:var(--green);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:500;margin:2px">✓ ${s}</span>'
-  ).join('')}</div>' : '<div style="font-size:12px;color:var(--text3);margin-bottom:8px">No buy signals detected</div>'}
-  ${sellSignals.length ? '<div>${sellSignals.map(s =>
-    '<span style="display:inline-block;background:var(--red-bg);color:var(--red);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:500;margin:2px">⚠ ${s}</span>'
-  ).join('')}</div>' : ''}
-  ${ind ? '<div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px">
+  ${buySignals.length ? `<div style="margin-bottom:8px">${buySignals.map(s =>
+    `<span style="display:inline-block;background:var(--green-bg);color:var(--green);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:500;margin:2px">✓ ${s}</span>`
+  ).join('')}</div>` : '<div style="font-size:12px;color:var(--text3);margin-bottom:8px">No buy signals detected</div>'}
+  ${sellSignals.length ? `<div>${sellSignals.map(s =>
+    `<span style="display:inline-block;background:var(--red-bg);color:var(--red);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:500;margin:2px">⚠ ${s}</span>`
+  ).join('')}</div>` : ''}
+  ${ind ? `<div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px">
     <div style="background:var(--bg3);border-radius:8px;padding:8px 10px">
       <div style="font-size:10px;color:var(--text3)">RSI (14)</div>
       <div style="font-size:14px;font-weight:600;color:${rsiColor(ind.rsi)}">${ind.rsi ?? '—'}</div>
@@ -1531,7 +1531,7 @@ $('buyDetailContent').innerHTML = '
       <div style="font-size:10px;color:var(--text3)">MA trend</div>
       <div style="font-size:14px;font-weight:600;color:${ind.sma50 && ind.sma200 ? (ind.sma50 > ind.sma200 ? 'var(--green)' : 'var(--red)') : 'var(--text3)'}">${ind.sma50 && ind.sma200 ? (ind.sma50 > ind.sma200 ? '✓ Golden' : '✗ Death') : '—'}</div>
     </div>
-  </div>' : '<div style="font-size:12px;color:var(--text3)">Indicator data unavailable</div>'}
+  </div>` : '<div style="font-size:12px;color:var(--text3)">Indicator data unavailable</div>'}
 </div>
 
 ${divHTML}
@@ -1543,24 +1543,24 @@ ${fundHTML}
 </div>
 
 <button class="btn-secondary" onclick="$('buyDetailModal').classList.remove('open')" style="margin-top:8px">Close</button>
-'''
+```
 
-';
+`;
 
-$('buyDetailModal').classList.add('open');
-$('buyDetailModal').onclick = e => { if (e.target === $('buyDetailModal')) $('buyDetailModal').classList.remove('open'); };
+$(‘buyDetailModal’).classList.add(‘open’);
+$(‘buyDetailModal’).onclick = e => { if (e.target === $(‘buyDetailModal’)) $(‘buyDetailModal’).classList.remove(‘open’); };
 
-renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, 'buy');
+renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, ‘buy’);
 }
 
 function renderSettings() {
-$('apiKeyInput').value = settings.apiKey || '';
-$('pwaSecretInput').value = settings.pwaSecret || '';
-$('anthropicKeyInput').value = settings.anthropicKey || '';
-$('watchlistInput').value = settings.watchlist || DEFAULT_WATCHLIST;
-$('stRateInput').value = settings.stRate || 32;
-$('ltRateInput').value = settings.ltRate || 15;
-$('stateRateInput').value = settings.stateRate || 0;
+$(‘apiKeyInput’).value = settings.apiKey || ‘’;
+$(‘pwaSecretInput’).value = settings.pwaSecret || ‘’;
+$(‘anthropicKeyInput’).value = settings.anthropicKey || ‘’;
+$(‘watchlistInput’).value = settings.watchlist || DEFAULT_WATCHLIST;
+$(‘stRateInput’).value = settings.stRate || 32;
+$(‘ltRateInput’).value = settings.ltRate || 15;
+$(‘stateRateInput’).value = settings.stateRate || 0;
 updateApiStatus(settings.apiKey && settings.pwaSecret ? null : false);
 if (settings.apiKey) checkWorkerStatus();
 }
@@ -1572,7 +1572,7 @@ function openDetail(idx) {
 const p = positions[idx];
 if (!p) return;
 posChartTicker = p.ticker.toUpperCase();
-posChartRange = 1; posChartMom = 'rsi';
+posChartRange = 1; posChartMom = ‘rsi’;
 const ind = currentIndicators[p.ticker.toUpperCase()] ?? null;
 const rsi = ind?.rsi ?? null;
 const val = p.shares * p.price;
@@ -1585,23 +1585,23 @@ const taxInfo = calcTax(gain, p.purchaseDate);
 const stTax = gain > 0 ? gain * ((settings.stRate + settings.stateRate) / 100) : 0;
 const ltTax = gain > 0 ? gain * ((settings.ltRate + settings.stateRate) / 100) : 0;
 
-let taxHTML = '';
+let taxHTML = ‘’;
 if (gain > 0) {
-taxHTML = '<div class="detail-section"> <div class="detail-section-title">Tax implications — if sold today</div> <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"> <div class="tax-scenario" style="${lt ? 'border:1px solid rgba(0,201,122,0.3)' : ''}"> <div class="tax-scenario-title" style="color:${lt ? 'var(--green)' : 'var(--text3)'}">Long-term ${lt ? '✓ Applies' : '(not yet)'}</div> <div class="tax-big" style="color:var(--red)">${fmtUSD(ltTax)}</div> <div style="font-size:11px;color:var(--text3);margin-top:4px">${settings.ltRate}% fed + ${settings.stateRate}% state = ${settings.ltRate + settings.stateRate}%</div> <div style="font-size:12px;color:var(--green);margin-top:6px">Net: ${fmtUSD(gain - ltTax)}</div> </div> <div class="tax-scenario" style="${!lt ? 'border:1px solid rgba(245,166,35,0.3)' : ''}"> <div class="tax-scenario-title" style="color:${!lt ? 'var(--amber)' : 'var(--text3)'}">Short-term ${!lt ? '✓ Applies' : '(was applicable)'}</div> <div class="tax-big" style="color:var(--red)">${fmtUSD(stTax)}</div> <div style="font-size:11px;color:var(--text3);margin-top:4px">${settings.stRate}% fed + ${settings.stateRate}% state = ${settings.stRate + settings.stateRate}%</div> <div style="font-size:12px;color:var(--green);margin-top:6px">Net: ${fmtUSD(gain - stTax)}</div> </div> </div> ${p.purchaseDate && !lt ?'<div style="background:var(--amber-bg);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--amber)">
-⚠️ Holding ${holdingLabel(p.purchaseDate)} — wait until ${new Date(new Date(p.purchaseDate+'T00:00:00').getTime() + 366*86400000).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} for long-term rate. Tax savings: ${fmtUSD(stTax - ltTax)}.
-</div>': ''} ${lt ?'<div style="background:var(--green-bg);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--green)">
+taxHTML = `<div class="detail-section"> <div class="detail-section-title">Tax implications — if sold today</div> <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"> <div class="tax-scenario" style="${lt ? 'border:1px solid rgba(0,201,122,0.3)' : ''}"> <div class="tax-scenario-title" style="color:${lt ? 'var(--green)' : 'var(--text3)'}">Long-term ${lt ? '✓ Applies' : '(not yet)'}</div> <div class="tax-big" style="color:var(--red)">${fmtUSD(ltTax)}</div> <div style="font-size:11px;color:var(--text3);margin-top:4px">${settings.ltRate}% fed + ${settings.stateRate}% state = ${settings.ltRate + settings.stateRate}%</div> <div style="font-size:12px;color:var(--green);margin-top:6px">Net: ${fmtUSD(gain - ltTax)}</div> </div> <div class="tax-scenario" style="${!lt ? 'border:1px solid rgba(245,166,35,0.3)' : ''}"> <div class="tax-scenario-title" style="color:${!lt ? 'var(--amber)' : 'var(--text3)'}">Short-term ${!lt ? '✓ Applies' : '(was applicable)'}</div> <div class="tax-big" style="color:var(--red)">${fmtUSD(stTax)}</div> <div style="font-size:11px;color:var(--text3);margin-top:4px">${settings.stRate}% fed + ${settings.stateRate}% state = ${settings.stRate + settings.stateRate}%</div> <div style="font-size:12px;color:var(--green);margin-top:6px">Net: ${fmtUSD(gain - stTax)}</div> </div> </div> ${p.purchaseDate && !lt ?`<div style="background:var(--amber-bg);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--amber)">
+⚠️ Holding ${holdingLabel(p.purchaseDate)} — wait until ${new Date(new Date(p.purchaseDate+‘T00:00:00’).getTime() + 366*86400000).toLocaleDateString(‘en-US’,{month:‘short’,day:‘numeric’,year:‘numeric’})} for long-term rate. Tax savings: ${fmtUSD(stTax - ltTax)}.
+</div>`: ''} ${lt ?`<div style="background:var(--green-bg);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--green)">
 ✓ Held over 1 year — long-term capital gains rate applies. Savings vs. short-term: ${fmtUSD(stTax - ltTax)}.
-</div>' : ''} </div>';
+</div>` : ''} </div>`;
 } else if (gain < 0) {
-taxHTML = '<div class="detail-section"> <div class="detail-section-title">Tax implications</div> <div style="background:var(--green-bg);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--green)"> This position has an unrealized loss of ${fmtUSD(Math.abs(gain))}. Selling would harvest a tax loss you can use to offset other gains (tax-loss harvesting). </div> </div>';
+taxHTML = `<div class="detail-section"> <div class="detail-section-title">Tax implications</div> <div style="background:var(--green-bg);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--green)"> This position has an unrealized loss of ${fmtUSD(Math.abs(gain))}. Selling would harvest a tax loss you can use to offset other gains (tax-loss harvesting). </div> </div>`;
 }
 
-$('detailContent').innerHTML = '<div class="modal-title">${p.ticker} <span style="font-size:14px;color:var(--text3);font-weight:400">${p.name || ''}</span></div> <div class="detail-section"> <div class="detail-section-title">Position summary</div> <div class="detail-row"><span class="label">Shares</span><span class="val">${fmt(p.shares, 4)}</span></div> <div class="detail-row"><span class="label">Avg cost</span><span class="val">${fmtUSD(p.cost)}</span></div> <div class="detail-row"><span class="label">Current price</span><span class="val">${fmtUSD(p.price)}</span></div> <div class="detail-row"><span class="label">Market value</span><span class="val">${fmtUSD(val)}</span></div> <div class="detail-row"><span class="label">Cost basis</span><span class="val">${fmtUSD(costBasis)}</span></div> <div class="detail-row"><span class="label">Unrealized gain/loss</span><span class="val" style="color:${gain >= 0 ? 'var(--green)' : 'var(--red)'}">${gain >= 0 ? '+' : ''}${fmtUSD(gain)} (${fmt(pnlPct)}%)</span></div> <div class="detail-row"><span class="label">Purchase date</span><span class="val">${p.purchaseDate ? new Date(p.purchaseDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'}</span></div> <div class="detail-row"><span class="label">Holding period</span><span class="val">${holdingLabel(p.purchaseDate)} <span class="pill ${lt ? 'pill-green' : 'pill-amber'}" style="font-size:10px">${lt ? 'Long-term' : 'Short-term'}</span></span></div> </div> <div class="detail-section"> <div class="detail-section-title">Technical signals</div> <div class="detail-row"><span class="label">RSI (14)</span><span class="val" style="color:${rsi !== null ? rsiColor(rsi) : 'var(--text3)'}">${rsi !== null ? rsi + ' · ' + rsiLabel(rsi) : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">SMA 50 / 200</span><span class="val" style="color:var(--text2)">${ind?.sma50 ? '$'+ind.sma50.toFixed(2) : '—'} / ${ind?.sma200 ? '$'+ind.sma200.toFixed(2) : '—'}</span></div> <div class="detail-row"><span class="label">MA trend</span><span class="val">${ind?.sma50 && ind?.sma200 ? (ind.sma50 > ind.sma200 ? '🟢 Golden cross' : '🔴 Death cross') : '—'}</span></div> <div class="detail-row"><span class="label">Bollinger %B</span><span class="val" style="color:${ind?.bb ? (ind.bb.pct > 80 ? 'var(--red)' : ind.bb.pct < 20 ? 'var(--green)' : 'var(--text2)') : 'var(--text3)'}">${ind?.bb ? ind.bb.pct + '% (' + (ind.bb.pct > 80 ? 'near upper band' : ind.bb.pct < 20 ? 'near lower band' : 'mid-band') + ')' : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">MACD</span><span class="val" style="color:${ind?.macd?.histogram != null ? (ind.macd.histogram > 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)'}">${ind?.macd?.histogram != null ? (ind.macd.histogram > 0 ? '▲ Bullish histogram' : '▼ Bearish histogram') : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">Volume vs avg</span><span class="val" style="color:${ind?.volRatio != null ? (ind.volRatio > 1.5 ? 'var(--amber)' : 'var(--text2)') : 'var(--text3)'}">${ind?.volRatio != null ? (ind.volRatio * 100).toFixed(0) + '% of 20-day avg' : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">Sell signals</span><span class="val" style="color:${ind?.sellSignals?.length ? 'var(--red)' : 'var(--green)'}">${ind?.sellSignals?.length ? ind.sellSignals.join(', ') : '✓ None'}</span></div> <div class="detail-row"><span class="label">Buy signals</span><span class="val" style="color:${ind?.buySignals?.length ? 'var(--green)' : 'var(--text3)'}">${ind?.buySignals?.length ? ind.buySignals.join(', ') : 'None'}</span></div> </div> ${taxHTML} <div class="detail-section"> <div class="detail-section-title">Charts</div> ${chartControlsHTML('pos')} </div> <button class="delete-btn" onclick="deletePosition(${idx})">Remove position</button> <button class="btn-secondary" onclick="closeDetail()">Close</button>';
-$('detailModal').classList.add('open');
-renderTwoPanel(posChartTicker, posChartRange, posChartMom, 'pos');
+$(‘detailContent’).innerHTML = `<div class="modal-title">${p.ticker} <span style="font-size:14px;color:var(--text3);font-weight:400">${p.name || ''}</span></div> <div class="detail-section"> <div class="detail-section-title">Position summary</div> <div class="detail-row"><span class="label">Shares</span><span class="val">${fmt(p.shares, 4)}</span></div> <div class="detail-row"><span class="label">Avg cost</span><span class="val">${fmtUSD(p.cost)}</span></div> <div class="detail-row"><span class="label">Current price</span><span class="val">${fmtUSD(p.price)}</span></div> <div class="detail-row"><span class="label">Market value</span><span class="val">${fmtUSD(val)}</span></div> <div class="detail-row"><span class="label">Cost basis</span><span class="val">${fmtUSD(costBasis)}</span></div> <div class="detail-row"><span class="label">Unrealized gain/loss</span><span class="val" style="color:${gain >= 0 ? 'var(--green)' : 'var(--red)'}">${gain >= 0 ? '+' : ''}${fmtUSD(gain)} (${fmt(pnlPct)}%)</span></div> <div class="detail-row"><span class="label">Purchase date</span><span class="val">${p.purchaseDate ? new Date(p.purchaseDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'}</span></div> <div class="detail-row"><span class="label">Holding period</span><span class="val">${holdingLabel(p.purchaseDate)} <span class="pill ${lt ? 'pill-green' : 'pill-amber'}" style="font-size:10px">${lt ? 'Long-term' : 'Short-term'}</span></span></div> </div> <div class="detail-section"> <div class="detail-section-title">Technical signals</div> <div class="detail-row"><span class="label">RSI (14)</span><span class="val" style="color:${rsi !== null ? rsiColor(rsi) : 'var(--text3)'}">${rsi !== null ? rsi + ' · ' + rsiLabel(rsi) : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">SMA 50 / 200</span><span class="val" style="color:var(--text2)">${ind?.sma50 ? '$'+ind.sma50.toFixed(2) : '—'} / ${ind?.sma200 ? '$'+ind.sma200.toFixed(2) : '—'}</span></div> <div class="detail-row"><span class="label">MA trend</span><span class="val">${ind?.sma50 && ind?.sma200 ? (ind.sma50 > ind.sma200 ? '🟢 Golden cross' : '🔴 Death cross') : '—'}</span></div> <div class="detail-row"><span class="label">Bollinger %B</span><span class="val" style="color:${ind?.bb ? (ind.bb.pct > 80 ? 'var(--red)' : ind.bb.pct < 20 ? 'var(--green)' : 'var(--text2)') : 'var(--text3)'}">${ind?.bb ? ind.bb.pct + '% (' + (ind.bb.pct > 80 ? 'near upper band' : ind.bb.pct < 20 ? 'near lower band' : 'mid-band') + ')' : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">MACD</span><span class="val" style="color:${ind?.macd?.histogram != null ? (ind.macd.histogram > 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)'}">${ind?.macd?.histogram != null ? (ind.macd.histogram > 0 ? '▲ Bullish histogram' : '▼ Bearish histogram') : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">Volume vs avg</span><span class="val" style="color:${ind?.volRatio != null ? (ind.volRatio > 1.5 ? 'var(--amber)' : 'var(--text2)') : 'var(--text3)'}">${ind?.volRatio != null ? (ind.volRatio * 100).toFixed(0) + '% of 20-day avg' : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">Sell signals</span><span class="val" style="color:${ind?.sellSignals?.length ? 'var(--red)' : 'var(--green)'}">${ind?.sellSignals?.length ? ind.sellSignals.join(', ') : '✓ None'}</span></div> <div class="detail-row"><span class="label">Buy signals</span><span class="val" style="color:${ind?.buySignals?.length ? 'var(--green)' : 'var(--text3)'}">${ind?.buySignals?.length ? ind.buySignals.join(', ') : 'None'}</span></div> </div> ${taxHTML} <div class="detail-section"> <div class="detail-section-title">Charts</div> ${chartControlsHTML('pos')} </div> <button class="delete-btn" onclick="deletePosition(${idx})">Remove position</button> <button class="btn-secondary" onclick="closeDetail()">Close</button>`;
+$(‘detailModal’).classList.add(‘open’);
+renderTwoPanel(posChartTicker, posChartRange, posChartMom, ‘pos’);
 }
 
-function closeDetail() { $('detailModal').classList.remove('open'); }
+function closeDetail() { $(‘detailModal’).classList.remove(‘open’); }
 
 function deletePosition(idx) {
 const t = positions[idx].ticker;
@@ -1609,71 +1609,71 @@ positions.splice(idx, 1);
 save();
 closeDetail();
 renderAll();
-showToast('${t} removed');
+showToast(`${t} removed`);
 }
 
 // ─── Event listeners ──────────────────────────────────────────────────────────
 function navigateTo(tab) {
-document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
-document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-const navItem = document.querySelector('.nav-item[data-nav="${tab}"]');
-if (navItem) navItem.classList.add('active');
-$('page-' + tab).classList.add('active');
+document.querySelectorAll(’.nav-item’).forEach(x => x.classList.remove(‘active’));
+document.querySelectorAll(’.page’).forEach(p => p.classList.remove(‘active’));
+const navItem = document.querySelector(`.nav-item[data-nav="${tab}"]`);
+if (navItem) navItem.classList.add(‘active’);
+$(‘page-’ + tab).classList.add(‘active’);
 activeTab = tab;
-if (tab === 'alerts') renderAlerts();
-if (tab === 'buys') renderBuys();
-if (tab === 'settings') renderSettings();
+if (tab === ‘alerts’) renderAlerts();
+if (tab === ‘buys’) renderBuys();
+if (tab === ‘settings’) renderSettings();
 }
 
-document.querySelectorAll('.nav-item').forEach(n => {
-n.addEventListener('click', () => navigateTo(n.dataset.nav));
+document.querySelectorAll(’.nav-item’).forEach(n => {
+n.addEventListener(‘click’, () => navigateTo(n.dataset.nav));
 });
 
-$('addBtn').addEventListener('click', () => {
-$('f-date').valueAsDate = new Date();
-$('addModal').classList.add('open');
+$(‘addBtn’).addEventListener(‘click’, () => {
+$(‘f-date’).valueAsDate = new Date();
+$(‘addModal’).classList.add(‘open’);
 });
-$('cancelAddBtn').addEventListener('click', () => $('addModal').classList.remove('open'));
-$('detailModal').addEventListener('click', e => { if (e.target === $('detailModal')) closeDetail(); });
-$('addModal').addEventListener('click', e => { if (e.target === $('addModal')) $('addModal').classList.remove('open'); });
+$(‘cancelAddBtn’).addEventListener(‘click’, () => $(‘addModal’).classList.remove(‘open’));
+$(‘detailModal’).addEventListener(‘click’, e => { if (e.target === $(‘detailModal’)) closeDetail(); });
+$(‘addModal’).addEventListener(‘click’, e => { if (e.target === $(‘addModal’)) $(‘addModal’).classList.remove(‘open’); });
 
-$('savePositionBtn').addEventListener('click', () => {
-const ticker = $('f-ticker').value.trim().toUpperCase();
-const shares = parseFloat($('f-shares').value);
-const cost = parseFloat($('f-cost').value);
-const price = parseFloat($('f-price').value);
-const purchaseDate = $('f-date').value;
-if (!ticker || isNaN(shares) || isNaN(cost)) { showToast('Fill in required fields'); return; }
-positions.push({ ticker, name: $('f-name').value.trim(), shares, cost, price: isNaN(price) ? cost : price, purchaseDate });
+$(‘savePositionBtn’).addEventListener(‘click’, () => {
+const ticker = $(‘f-ticker’).value.trim().toUpperCase();
+const shares = parseFloat($(‘f-shares’).value);
+const cost = parseFloat($(‘f-cost’).value);
+const price = parseFloat($(‘f-price’).value);
+const purchaseDate = $(‘f-date’).value;
+if (!ticker || isNaN(shares) || isNaN(cost)) { showToast(‘Fill in required fields’); return; }
+positions.push({ ticker, name: $(‘f-name’).value.trim(), shares, cost, price: isNaN(price) ? cost : price, purchaseDate });
 save();
-$('addModal').classList.remove('open');
-['f-ticker','f-name','f-shares','f-cost','f-price'].forEach(id => $(id).value = '');
+$(‘addModal’).classList.remove(‘open’);
+[‘f-ticker’,‘f-name’,‘f-shares’,‘f-cost’,‘f-price’].forEach(id => $(id).value = ‘’);
 renderAll();
-showToast('${ticker} added');
+showToast(`${ticker} added`);
 if (settings.apiKey) refreshPrices();
 });
 
-$('saveSettingsBtn').addEventListener('click', () => {
+$(‘saveSettingsBtn’).addEventListener(‘click’, () => {
 const oldWatchlist = settings.watchlist;
-settings.apiKey = $('apiKeyInput').value.trim().replace(//+$/, '');  // strip trailing slash
-settings.pwaSecret = $('pwaSecretInput').value.trim();
-settings.anthropicKey = $('anthropicKeyInput').value.trim();
-settings.watchlist = $('watchlistInput').value.trim();
-settings.stRate = parseFloat($('stRateInput').value) || 32;
-settings.ltRate = parseFloat($('ltRateInput').value) || 15;
-settings.stateRate = parseFloat($('stateRateInput').value) || 0;
-localStorage.setItem('sp-settings', JSON.stringify(settings));
+settings.apiKey = $(‘apiKeyInput’).value.trim().replace(//+$/, ‘’);  // strip trailing slash
+settings.pwaSecret = $(‘pwaSecretInput’).value.trim();
+settings.anthropicKey = $(‘anthropicKeyInput’).value.trim();
+settings.watchlist = $(‘watchlistInput’).value.trim();
+settings.stRate = parseFloat($(‘stRateInput’).value) || 32;
+settings.ltRate = parseFloat($(‘ltRateInput’).value) || 15;
+settings.stateRate = parseFloat($(‘stateRateInput’).value) || 0;
+localStorage.setItem(‘sp-settings’, JSON.stringify(settings));
 // Bust buy cache if watchlist changed
-if (oldWatchlist !== settings.watchlist) localStorage.removeItem('sp-buy-cache');
-showToast('Settings saved');
+if (oldWatchlist !== settings.watchlist) localStorage.removeItem(‘sp-buy-cache’);
+showToast(‘Settings saved’);
 updateApiStatus(settings.apiKey ? null : false);
 renderAll();
 });
 
-let activeTab = 'portfolio';  // updated by navigateTo()
+let activeTab = ‘portfolio’;  // updated by navigateTo()
 
-$('refreshBtn').addEventListener('click', () => {
-if (activeTab === 'buys') {
+$(‘refreshBtn’).addEventListener(‘click’, () => {
+if (activeTab === ‘buys’) {
 loadBuyIdeas(true);
 } else {
 refreshPrices();
