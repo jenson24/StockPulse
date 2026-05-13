@@ -274,7 +274,7 @@
       </div>
     </div>
     <div class="settings-row">
-      <input class="settings-input" id="anthropicKeyInput" type="password" placeholder="sk-ant-..." style="width:100%"/>
+      <input class="settings-input" id="anthropicKeyInput" type="password" placeholder="sk-ant-" style="width:100%"/>
     </div>
     <div class="settings-row">
       <div>
@@ -437,7 +437,7 @@ function calcTax(gain, dateStr) {
 }
 
 // ─── Technical Indicator Engine ──────────────────────────────────────────────
-const indicatorCache = {};  // { AAPL: { indicators: {...}, ts: Date.now() } }
+const indicatorCache = {};  // { AAPL: { indicators: {}, ts: Date.now() } }
 
 function calcRSI(closes, period = 14) {
   if (closes.length < period + 1) return null;
@@ -523,8 +523,8 @@ function computeAllIndicators(candles) {
   const volRatio = (avgVol20 && lastVol) ? lastVol / avgVol20 : null;
 
   // 52-week high/low from all available data
-  const high52 = Math.max(...c);
-  const low52 = Math.min(...c);
+  const high52 = Math.max(c);
+  const low52 = Math.min(c);
   const rangePos = high52 > low52
     ? Math.round(((price - low52) / (high52 - low52)) * 100) : null;
 
@@ -659,7 +659,7 @@ async function testAnthropicConnection() {
     return;
   }
 
-  msgEl.innerHTML = '<span style="color:var(--text3)">Testing…</span>';
+  msgEl.innerHTML = '<span style="color:var(--text3)">Testing...</span>';
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -803,18 +803,18 @@ function renderPortfolioWithRSIs(rsiMap) {
 
     const pnlColor = pnlPct >= 0 ? 'var(--green)' : 'var(--red)';
     const rsiC = rsi !== null ? rsiColor(rsi) : 'var(--text3)';
-    const rsiText = rsi !== null ? `${rsi} · ${rsiLabel(rsi)}` : 'Loading…';
+    const rsiText = rsi !== null ? `${rsi} · ${rsiLabel(rsi)}` : 'Loading...';
     const rsiW = rsi !== null ? rsi + '%' : '50%';
 
     // Bollinger band position bar (0–100%)
     const bbPct = ind?.bb?.pct ?? null;
     const bbC = bbPct !== null ? (bbPct > 80 ? 'var(--red)' : bbPct < 20 ? 'var(--green)' : 'var(--text2)') : 'var(--text3)';
-    const bbText = bbPct !== null ? `${bbPct}% · ${bbPct > 80 ? 'Near upper' : bbPct < 20 ? 'Near lower' : 'Mid-band'}` : 'Loading…';
+    const bbText = bbPct !== null ? `${bbPct}% · ${bbPct > 80 ? 'Near upper' : bbPct < 20 ? 'Near lower' : 'Mid-band'}` : 'Loading...';
 
     // MACD signal
     const macdH = ind?.macd?.histogram ?? null;
     const macdC = macdH !== null ? (macdH > 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)';
-    const macdText = macdH !== null ? (macdH > 0 ? '▲ Bullish' : '▼ Bearish') : 'Loading…';
+    const macdText = macdH !== null ? (macdH > 0 ? '▲ Bullish' : '▼ Bearish') : 'Loading...';
     const macdBarW = macdH !== null ? Math.min(Math.abs(macdH) * 200, 100) + '%' : '50%';
 
     const alertPill = isAlert ? `<span class="pill pill-red">Sell signal</span>` : isWarn ? `<span class="pill pill-amber">Watch</span>` : '';
@@ -1136,7 +1136,7 @@ async function loadBuyIdeas(forceRefresh = false) {
 
   // Show loading state
   el.innerHTML = `<div style="text-align:center;padding:40px 20px">
-    <div style="font-size:13px;color:var(--text3);margin-bottom:6px">Step 1/3 — AI selecting universe…</div>
+    <div style="font-size:13px;color:var(--text3);margin-bottom:6px">Step 1/3 — AI selecting universe...</div>
     <div id="buyLoadStatus" style="font-size:11px;color:var(--text3);margin-bottom:16px">Asking Claude which stocks to scan</div>
     <div style="display:flex;justify-content:center;gap:6px">
       <div style="width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.2s ease-in-out infinite"></div>
@@ -1161,7 +1161,7 @@ universe = (settings.watchlist || DEFAULT_WATCHLIST).split(',').map(t => t.trim(
 }
 // Limit to 20 to stay within rate limits
 universe = universe.slice(0, 20);
-setStatus(2, `Fetching live data for ${universe.length} stocks…`);
+setStatus(2, `Fetching live data for ${universe.length} stocks...`);
 
 // Step 2: Fetch live market data + indicators for universe
 let marketData = [];
@@ -1172,7 +1172,7 @@ const indResults = await fetchAllIndicators(universe);
 universeIndicators = indResults;
 }
 
-setStatus(3, 'Scoring picks with AI…');
+setStatus(3, 'Scoring picks with AI...');
 
 // Step 3: Generate scored picks
 let ideas = null;
@@ -1182,7 +1182,7 @@ ideas = await generateBuyIdeasWithAI(marketData, portfolioTickers, universeIndic
 
 if (ideas && ideas.length > 0) {
 // Pre-fetch fundamentals for the 5 picked tickers so detail cards are instant
-setStatus(3, 'Fetching fundamentals…');
+setStatus(3, 'Fetching fundamentals...');
 const pickedTickers = ideas.map(i => i.ticker);
 const fundamentals = settings.apiKey ? await fetchFundamentals(pickedTickers) : {};
 
@@ -1317,8 +1317,8 @@ const data=raw.slice(sliceStart), sma50=sma50All.slice(sliceStart);
 const sma200=sma200All.slice(sliceStart), bollinger=bollingerAll.slice(sliceStart);
 const closes=data.map(d=>d.c), n=closes.length;
 if (n<2) return '<div style="color:var(--text3);font-size:12px;padding:20px;text-align:center">Not enough data</div>';
-const allVals=[…closes,…bollinger.filter(Boolean).flatMap(b=>[b.upper,b.lower]),…sma50.filter(Boolean),…sma200.filter(Boolean)];
-const minY=Math.min(…allVals)*0.998, maxY=Math.max(…allVals)*1.002;
+const allVals=[...closes,...bollinger.filter(Boolean).flatMap(b=>[b.upper,b.lower]),...sma50.filter(Boolean),...sma200.filter(Boolean)];
+const minY=Math.min(...allVals)*0.998, maxY=Math.max(...allVals)*1.002;
 const xFn=i=>PAD.l+(i/(n-1))*cW, yFn=v=>toSvgY(v,minY,maxY,PAD.t,PAD.t+cH);
 const isUp=closes[n-1]>=closes[0], priceC=isUp?'#00c97a':'#ff4d4d';
 const pricePts=closes.map((c,i)=>`${xFn(i).toFixed(2)},${yFn(c).toFixed(2)}`).join(' ');
@@ -1326,7 +1326,7 @@ const fillPts=`${xFn(0).toFixed(2)},${(PAD.t+cH).toFixed(2)} ${pricePts} ${xFn(n
 const bbUpPts=svgPolyline(bollinger.map((b,i)=>[i,b?.upper]),xFn,yFn);
 const bbLoPts=svgPolyline(bollinger.map((b,i)=>[i,b?.lower]),xFn,yFn);
 const bbMidPts=svgPolyline(bollinger.map((b,i)=>[i,b?.mid]),xFn,yFn);
-const bbFillPts=[…bollinger.map((b,i)=>b?`${xFn(i).toFixed(2)},${yFn(b.upper).toFixed(2)}`:null).filter(Boolean),…bollinger.map((b,i)=>b?`${xFn(i).toFixed(2)},${yFn(b.lower).toFixed(2)}`:null).filter(Boolean).reverse()].join(' ');
+const bbFillPts=[...bollinger.map((b,i)=>b?`${xFn(i).toFixed(2)},${yFn(b.upper).toFixed(2)}`:null).filter(Boolean),...bollinger.map((b,i)=>b?`${xFn(i).toFixed(2)},${yFn(b.lower).toFixed(2)}`:null).filter(Boolean).reverse()].join(' ');
 const yTicks=[0,0.25,0.5,0.75,1].map(p=>minY+p*(maxY-minY));
 const xLabels=data.reduce((acc,d,i)=>{const dt=new Date(d.t);if(i===0||dt.getDate()===1)acc.push({i,label:dt.toLocaleDateString('en-US',{month:'short'})});return acc;},[]).slice(0,5);
 const legend=[{c:priceC,l:'Price',dash:false},{c:'#4a9eff',l:'SMA 50',dash:false},{c:'#f5a623',l:'SMA 200',dash:false},{c:'#7c6fcd',l:'BB',dash:true}];
@@ -1344,8 +1344,8 @@ const yFn=v=>toSvgY(v,0,100,PAD.t,PAD.t+cH);
 return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"> <clipPath id="rClip${id}"><rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${cH}"/></clipPath> <rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${(yFn(70)-PAD.t).toFixed(2)}" fill="rgba(255,77,77,0.07)" clip-path="url(#rClip${id})"/> <rect x="${PAD.l}" y="${yFn(30).toFixed(2)}" width="${cW}" height="${(PAD.t+cH-yFn(30)).toFixed(2)}" fill="rgba(0,201,122,0.07)" clip-path="url(#rClip${id})"/> ${[{v:70,c:'rgba(255,77,77,0.4)'},{v:50,c:'rgba(255,255,255,0.06)'},{v:30,c:'rgba(0,201,122,0.4)'}].map(({v,c})=>`<line x1="${PAD.l}" y1="${yFn(v).toFixed(2)}" x2="${PAD.l+cW}" y2="${yFn(v).toFixed(2)}" stroke="${c}" stroke-width="0.5" stroke-dasharray="${v===50?'none':'3,2'}"/><text x="${PAD.l-4}" y="${(yFn(v)+3.5).toFixed(2)}" text-anchor="end" font-size="9" fill="rgba(255,255,255,0.35)">${v}</text>`).join('')} <line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <line x1="${PAD.l}" y1="${PAD.t+cH}" x2="${PAD.l+cW}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <g clip-path="url(#rClip${id})"> <polyline points="${svgPolyline(rsi.map((v,i)=>[i,v]),xFn,yFn)}" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/> </g> <text x="${PAD.l+4}" y="${PAD.t+10}" font-size="9" fill="#a78bfa" font-weight="600">RSI (14)</text> </svg>`;
 }
 const ml=macdAll.macdLine.slice(sliceStart), sl=macdAll.signalLine.slice(sliceStart), hl=macdAll.histogram.slice(sliceStart);
-const allM=[…ml,…sl.filter(Boolean),…hl.filter(Boolean)];
-const minM=Math.min(…allM)*1.15, maxM=Math.max(…allM)*1.15;
+const allM=[...ml,...sl.filter(Boolean),...hl.filter(Boolean)];
+const minM=Math.min(...allM)*1.15, maxM=Math.max(...allM)*1.15;
 const yFn=v=>toSvgY(v,minM,maxM,PAD.t,PAD.t+cH), zeroY=yFn(0);
 const barW=Math.max(1,cW/n-0.5);
 return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"> <clipPath id="mClip${id}"><rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${cH}"/></clipPath> <line x1="${PAD.l}" y1="${zeroY.toFixed(2)}" x2="${PAD.l+cW}" y2="${zeroY.toFixed(2)}" stroke="rgba(255,255,255,0.25)" stroke-width="0.5"/> <line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <line x1="${PAD.l}" y1="${PAD.t+cH}" x2="${PAD.l+cW}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <g clip-path="url(#mClip${id})"> ${hl.map((h,i)=>{if(h===null)return '';const bx=(xFn(i)-barW/2).toFixed(2),bh=Math.abs(yFn(h)-zeroY).toFixed(2),by=(h>=0?zeroY-parseFloat(bh):zeroY).toFixed(2);return `<rect x="${bx}" y="${by}" width="${barW.toFixed(2)}" height="${bh}" fill="${h>=0?'#00c97a':'#ff4d4d'}" opacity="0.7"/>`;}).join('')} <polyline points="${svgPolyline(ml.map((v,i)=>[i,v]),xFn,yFn)}" fill="none" stroke="#4a9eff" stroke-width="1.2"/> <polyline points="${svgPolyline(sl.map((v,i)=>[i,v]),xFn,yFn)}" fill="none" stroke="#f5a623" stroke-width="1.2"/> </g> ${[{c:'#4a9eff',l:'MACD'},{c:'#f5a623',l:'Signal'},{c:'#00c97a',l:'Histogram'}].map(({c,l},i)=>`<g transform="translate(${PAD.l+i*76},${PAD.t-3})"><line x1="0" y1="0" x2="13" y2="0" stroke="${c}" stroke-width="1.5"/><text x="17" y="3.5" font-size="8.5" fill="rgba(255,255,255,0.4)">${l}</text></g>`).join('')} </svg>`;
@@ -1362,7 +1362,7 @@ const cached=indicatorCache[ticker?.toUpperCase()];
 const priceEl=$(`${prefix}PriceChart`), momEl=$(`${prefix}MomChart`);
 if (!priceEl||!momEl) return;
 if (!cached||!cached.raw||cached.raw.length<20) {
-const msg='<div style="color:var(--text3);font-size:12px;padding:20px;text-align:center">Chart data loading…</div>';
+const msg='<div style="color:var(--text3);font-size:12px;padding:20px;text-align:center">Chart data loading...</div>';
 priceEl.innerHTML=msg; momEl.innerHTML=''; return;
 }
 const raw=cached.raw, closes=raw.map(d=>d.c);
