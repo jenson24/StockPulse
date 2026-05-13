@@ -319,7 +319,7 @@
 
   <div class="section-label" style="margin-top:16px">About</div>
   <div class="settings-card">
-    <div class="settings-row"><div class="settings-label">Version</div><div style="font-size:13px;color:var(--text3)">1.0.1</div></div>
+    <div class="settings-row"><div class="settings-label">Version</div><div style="font-size:13px;color:var(--text3)">1.0.2</div></div>
     <div class="settings-row"><div class="settings-label">Data source</div><div style="font-size:13px;color:var(--text3)">Charles Schwab API</div></div>
     <div class="settings-row"><div><div class="settings-label">Disclaimer</div><div class="settings-sub" style="max-width:220px">Not financial advice. For informational use only.</div></div></div>
   </div>
@@ -1157,7 +1157,7 @@ const portfolioTickers = positions.map(p => p.ticker.toUpperCase());
 let universe = await askAIForUniverse(portfolioTickers, currentIndicators);
 if (!universe || universe.length === 0) {
 // Fallback to default watchlist
-universe = (settings.watchlist || DEFAULT_WATCHLIST).split(’,’).map(t => t.trim().toUpperCase()).filter(Boolean);
+universe = (settings.watchlist || DEFAULT_WATCHLIST).split(',').map(t => t.trim().toUpperCase()).filter(Boolean);
 }
 // Limit to 20 to stay within rate limits
 universe = universe.slice(0, 20);
@@ -1172,7 +1172,7 @@ const indResults = await fetchAllIndicators(universe);
 universeIndicators = indResults;
 }
 
-setStatus(3, ‘Scoring picks with AI…’);
+setStatus(3, 'Scoring picks with AI…');
 
 // Step 3: Generate scored picks
 let ideas = null;
@@ -1182,7 +1182,7 @@ ideas = await generateBuyIdeasWithAI(marketData, portfolioTickers, universeIndic
 
 if (ideas && ideas.length > 0) {
 // Pre-fetch fundamentals for the 5 picked tickers so detail cards are instant
-setStatus(3, ‘Fetching fundamentals…’);
+setStatus(3, 'Fetching fundamentals…');
 const pickedTickers = ideas.map(i => i.ticker);
 const fundamentals = settings.apiKey ? await fetchFundamentals(pickedTickers) : {};
 
@@ -1206,10 +1206,10 @@ el.innerHTML = `<div class="empty"> <div class="empty-icon">🤖</div> <div clas
 }
 
 function renderBuyCards(ideas) {
-const el = $(‘buysList’);
+const el = $('buysList');
 const cached = loadCachedBuys();
 const isToday = !!cached;
-const lastUpdated = isToday ? `Today · ${new Date().toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'})}` : ‘Cached’;
+const lastUpdated = isToday ? `Today · ${new Date().toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'})}` : 'Cached';
 
 el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
 <span style="font-size:11px;color:var(--text3)">Generated ${lastUpdated}</span>
@@ -1308,7 +1308,7 @@ return bottom - ((v-minV)/(maxV-minV))*(bottom-top);
 
 function svgPolyline(pairs, xFn, yFn) {
 return pairs.filter(([,v])=>v!==null&&!isNaN(v))
-.map(([i,v])=>`${xFn(i).toFixed(2)},${yFn(v).toFixed(2)}`).join(’ ’);
+.map(([i,v])=>`${xFn(i).toFixed(2)},${yFn(v).toFixed(2)}`).join(' ');
 }
 
 function buildPricePanel(raw, sma50All, sma200All, bollingerAll, sliceStart, W, H, PAD, id) {
@@ -1316,29 +1316,29 @@ const cW=W-PAD.l-PAD.r, cH=H-PAD.t-PAD.b;
 const data=raw.slice(sliceStart), sma50=sma50All.slice(sliceStart);
 const sma200=sma200All.slice(sliceStart), bollinger=bollingerAll.slice(sliceStart);
 const closes=data.map(d=>d.c), n=closes.length;
-if (n<2) return ‘<div style="color:var(--text3);font-size:12px;padding:20px;text-align:center">Not enough data</div>’;
+if (n<2) return '<div style="color:var(--text3);font-size:12px;padding:20px;text-align:center">Not enough data</div>';
 const allVals=[…closes,…bollinger.filter(Boolean).flatMap(b=>[b.upper,b.lower]),…sma50.filter(Boolean),…sma200.filter(Boolean)];
 const minY=Math.min(…allVals)*0.998, maxY=Math.max(…allVals)*1.002;
 const xFn=i=>PAD.l+(i/(n-1))*cW, yFn=v=>toSvgY(v,minY,maxY,PAD.t,PAD.t+cH);
-const isUp=closes[n-1]>=closes[0], priceC=isUp?’#00c97a’:’#ff4d4d’;
-const pricePts=closes.map((c,i)=>`${xFn(i).toFixed(2)},${yFn(c).toFixed(2)}`).join(’ ‘);
+const isUp=closes[n-1]>=closes[0], priceC=isUp?'#00c97a':'#ff4d4d';
+const pricePts=closes.map((c,i)=>`${xFn(i).toFixed(2)},${yFn(c).toFixed(2)}`).join(' ');
 const fillPts=`${xFn(0).toFixed(2)},${(PAD.t+cH).toFixed(2)} ${pricePts} ${xFn(n-1).toFixed(2)},${(PAD.t+cH).toFixed(2)}`;
 const bbUpPts=svgPolyline(bollinger.map((b,i)=>[i,b?.upper]),xFn,yFn);
 const bbLoPts=svgPolyline(bollinger.map((b,i)=>[i,b?.lower]),xFn,yFn);
 const bbMidPts=svgPolyline(bollinger.map((b,i)=>[i,b?.mid]),xFn,yFn);
-const bbFillPts=[…bollinger.map((b,i)=>b?`${xFn(i).toFixed(2)},${yFn(b.upper).toFixed(2)}`:null).filter(Boolean),…bollinger.map((b,i)=>b?`${xFn(i).toFixed(2)},${yFn(b.lower).toFixed(2)}`:null).filter(Boolean).reverse()].join(’ ’);
+const bbFillPts=[…bollinger.map((b,i)=>b?`${xFn(i).toFixed(2)},${yFn(b.upper).toFixed(2)}`:null).filter(Boolean),…bollinger.map((b,i)=>b?`${xFn(i).toFixed(2)},${yFn(b.lower).toFixed(2)}`:null).filter(Boolean).reverse()].join(' ');
 const yTicks=[0,0.25,0.5,0.75,1].map(p=>minY+p*(maxY-minY));
-const xLabels=data.reduce((acc,d,i)=>{const dt=new Date(d.t);if(i===0||dt.getDate()===1)acc.push({i,label:dt.toLocaleDateString(‘en-US’,{month:‘short’})});return acc;},[]).slice(0,5);
-const legend=[{c:priceC,l:‘Price’,dash:false},{c:’#4a9eff’,l:‘SMA 50’,dash:false},{c:’#f5a623’,l:‘SMA 200’,dash:false},{c:’#7c6fcd’,l:‘BB’,dash:true}];
+const xLabels=data.reduce((acc,d,i)=>{const dt=new Date(d.t);if(i===0||dt.getDate()===1)acc.push({i,label:dt.toLocaleDateString('en-US',{month:'short'})});return acc;},[]).slice(0,5);
+const legend=[{c:priceC,l:'Price',dash:false},{c:'#4a9eff',l:'SMA 50',dash:false},{c:'#f5a623',l:'SMA 200',dash:false},{c:'#7c6fcd',l:'BB',dash:true}];
 return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible"> <defs> <linearGradient id="pGrad${id}" x1="0" y1="0" x2="0" y2="1"> <stop offset="0%" stop-color="${priceC}" stop-opacity="0.2"/><stop offset="100%" stop-color="${priceC}" stop-opacity="0"/> </linearGradient> <clipPath id="pClip${id}"><rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${cH}"/></clipPath> </defs> ${yTicks.map(v=>`<line x1="${PAD.l}" y1="${yFn(v).toFixed(2)}" x2="${PAD.l+cW}" y2="${yFn(v).toFixed(2)}" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>`).join('')} ${yTicks.map(v=>`<text x="${PAD.l-4}" y="${(yFn(v)+3.5).toFixed(2)}" text-anchor="end" font-size="9" fill="rgba(255,255,255,0.35)">$${v.toFixed(0)}</text>`).join('')} ${xLabels.map(({i,label})=>`<text x="${xFn(i).toFixed(2)}" y="${H-5}" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">${label}</text>`).join('')} <line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <line x1="${PAD.l}" y1="${PAD.t+cH}" x2="${PAD.l+cW}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <g clip-path="url(#pClip${id})"> ${bbFillPts?`<polygon points="${bbFillPts}" fill="rgba(124,111,205,0.07)"/>`:''} <polyline points="${bbUpPts}"  fill="none" stroke="#7c6fcd" stroke-width="0.75" stroke-dasharray="3,2"/> <polyline points="${bbLoPts}"  fill="none" stroke="#7c6fcd" stroke-width="0.75" stroke-dasharray="3,2"/> <polyline points="${bbMidPts}" fill="none" stroke="#7c6fcd" stroke-width="0.5" stroke-opacity="0.5"/> <polyline points="${svgPolyline(sma200.map((v,i)=>[i,v]),xFn,yFn)}" fill="none" stroke="#f5a623" stroke-width="1.2" stroke-opacity="0.85"/> <polyline points="${svgPolyline(sma50.map((v,i)=>[i,v]),xFn,yFn)}"  fill="none" stroke="#4a9eff" stroke-width="1.2"/> <polygon points="${fillPts}" fill="url(#pGrad${id})"/> <polyline points="${pricePts}" fill="none" stroke="${priceC}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/> </g> ${legend.map(({c,l,dash},i)=>`<g transform="translate(${PAD.l+i*76},${PAD.t-3})"><line x1="0" y1="0" x2="13" y2="0" stroke="${c}" stroke-width="${dash?1:1.5}" stroke-dasharray="${dash?'3,2':'none'}"/><text x="17" y="3.5" font-size="8.5" fill="rgba(255,255,255,0.4)">${l}</text></g>`).join('')} </svg>`;
 }
 
 function buildMomentumPanel(raw, rsiAll, macdAll, sliceStart, mode, W, H, PAD, id) {
 const cW=W-PAD.l-PAD.r, cH=H-PAD.t-PAD.b;
 const n=raw.length-sliceStart;
-if (n<2) return ‘’;
+if (n<2) return '';
 const xFn=i=>PAD.l+(i/(n-1))*cW;
-if (mode===‘rsi’) {
+if (mode==='rsi') {
 const rsi=rsiAll.slice(sliceStart);
 const yFn=v=>toSvgY(v,0,100,PAD.t,PAD.t+cH);
 return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"> <clipPath id="rClip${id}"><rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${cH}"/></clipPath> <rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${(yFn(70)-PAD.t).toFixed(2)}" fill="rgba(255,77,77,0.07)" clip-path="url(#rClip${id})"/> <rect x="${PAD.l}" y="${yFn(30).toFixed(2)}" width="${cW}" height="${(PAD.t+cH-yFn(30)).toFixed(2)}" fill="rgba(0,201,122,0.07)" clip-path="url(#rClip${id})"/> ${[{v:70,c:'rgba(255,77,77,0.4)'},{v:50,c:'rgba(255,255,255,0.06)'},{v:30,c:'rgba(0,201,122,0.4)'}].map(({v,c})=>`<line x1="${PAD.l}" y1="${yFn(v).toFixed(2)}" x2="${PAD.l+cW}" y2="${yFn(v).toFixed(2)}" stroke="${c}" stroke-width="0.5" stroke-dasharray="${v===50?'none':'3,2'}"/><text x="${PAD.l-4}" y="${(yFn(v)+3.5).toFixed(2)}" text-anchor="end" font-size="9" fill="rgba(255,255,255,0.35)">${v}</text>`).join('')} <line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <line x1="${PAD.l}" y1="${PAD.t+cH}" x2="${PAD.l+cW}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <g clip-path="url(#rClip${id})"> <polyline points="${svgPolyline(rsi.map((v,i)=>[i,v]),xFn,yFn)}" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/> </g> <text x="${PAD.l+4}" y="${PAD.t+10}" font-size="9" fill="#a78bfa" font-weight="600">RSI (14)</text> </svg>`;
@@ -1362,8 +1362,8 @@ const cached=indicatorCache[ticker?.toUpperCase()];
 const priceEl=$(`${prefix}PriceChart`), momEl=$(`${prefix}MomChart`);
 if (!priceEl||!momEl) return;
 if (!cached||!cached.raw||cached.raw.length<20) {
-const msg=’<div style="color:var(--text3);font-size:12px;padding:20px;text-align:center">Chart data loading…</div>’;
-priceEl.innerHTML=msg; momEl.innerHTML=’’; return;
+const msg='<div style="color:var(--text3);font-size:12px;padding:20px;text-align:center">Chart data loading…</div>';
+priceEl.innerHTML=msg; momEl.innerHTML=''; return;
 }
 const raw=cached.raw, closes=raw.map(d=>d.c);
 const sma50All=chartSMA(closes,50), sma200All=chartSMA(closes,200);
@@ -1372,26 +1372,26 @@ const sliceStart=getSliceStart(raw,months);
 const W=340, PAD={t:20,r:8,b:24,l:44}, id=prefix+months;
 priceEl.innerHTML=buildPricePanel(raw,sma50All,sma200All,bollingerAll,sliceStart,W,185,PAD,id);
 momEl.innerHTML=buildMomentumPanel(raw,rsiAll,macdAll,sliceStart,momentumMode,W,100,PAD,id+momentumMode);
-[‘1’,‘3’,‘6’].forEach(m=>{
+['1','3','6'].forEach(m=>{
 const btn=$(`${prefix}RangeBtn${m}`); if(!btn) return;
 const active=parseInt(m)===months;
-btn.style.background=active?‘rgba(74,158,255,0.2)’:‘transparent’;
-btn.style.color=active?’#4a9eff’:’#555’;
-btn.style.borderColor=active?’#4a9eff’:‘rgba(255,255,255,0.12)’;
+btn.style.background=active?'rgba(74,158,255,0.2)':'transparent';
+btn.style.color=active?'#4a9eff':'#555';
+btn.style.borderColor=active?'#4a9eff':'rgba(255,255,255,0.12)';
 });
-[‘rsi’,‘macd’].forEach(m=>{
+['rsi','macd'].forEach(m=>{
 const btn=$(`${prefix}MomBtn${m}`); if(!btn) return;
 const active=m===momentumMode;
-btn.style.background=active?‘rgba(167,139,250,0.15)’:‘transparent’;
-btn.style.color=active?’#a78bfa’:’#555’;
-btn.style.borderColor=active?’#a78bfa’:‘rgba(255,255,255,0.1)’;
+btn.style.background=active?'rgba(167,139,250,0.15)':'transparent';
+btn.style.color=active?'#a78bfa':'#555';
+btn.style.borderColor=active?'#a78bfa':'rgba(255,255,255,0.1)';
 });
 }
 
 function chartControlsHTML(prefix) {
 return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"> <div style="display:flex;gap:5px"> ${['1','3','6'].map(m=>`<button id="${prefix}RangeBtn${m}" onclick="on${prefix}Range(${m})"
 style="padding:4px 12px;border-radius:8px;border:0.5px solid;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s">${m}M</button>`).join('')} </div> <div style="display:flex;gap:5px"> ${['rsi','macd'].map(m=>`<button id="${prefix}MomBtn${m}" onclick="on${prefix}Mom('${m}')"
-style="padding:4px 11px;border-radius:8px;border:0.5px solid;font-size:11px;font-weight:600;cursor:pointer;text-transform:uppercase;transition:all 0.15s">${m}</button>`).join(’’)}
+style="padding:4px 11px;border-radius:8px;border:0.5px solid;font-size:11px;font-weight:600;cursor:pointer;text-transform:uppercase;transition:all 0.15s">${m}</button>`).join('')}
 </div>
 
   </div>
@@ -1402,18 +1402,18 @@ style="padding:4px 11px;border-radius:8px;border:0.5px solid;font-size:11px;font
 let currentBuyIdea = null;
 
 // Per-modal chart state
-let posChartRange = 1, posChartMom = ‘rsi’, posChartTicker = null;
-let buyChartRange = 1, buyChartMom = ‘rsi’, buyChartTicker = null;
+let posChartRange = 1, posChartMom = 'rsi', posChartTicker = null;
+let buyChartRange = 1, buyChartMom = 'rsi', buyChartTicker = null;
 
-function onposRange(m) { posChartRange = m; renderTwoPanel(posChartTicker, posChartRange, posChartMom, ‘pos’); }
-function onposMom(m)   { posChartMom   = m; renderTwoPanel(posChartTicker, posChartRange, posChartMom, ‘pos’); }
-function onbuyRange(m) { buyChartRange = m; renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, ‘buy’); }
-function onbuyMom(m)   { buyChartMom   = m; renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, ‘buy’); }
+function onposRange(m) { posChartRange = m; renderTwoPanel(posChartTicker, posChartRange, posChartMom, 'pos'); }
+function onposMom(m)   { posChartMom   = m; renderTwoPanel(posChartTicker, posChartRange, posChartMom, 'pos'); }
+function onbuyRange(m) { buyChartRange = m; renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, 'buy'); }
+function onbuyMom(m)   { buyChartMom   = m; renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, 'buy'); }
 
 function renderBuyDetailChart(months) {
 if (currentBuyIdea) {
 buyChartRange = months || 1;
-renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, ‘buy’);
+renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, 'buy');
 }
 }
 
@@ -1423,28 +1423,28 @@ if (!ideas || !ideas[idx]) return;
 const b = ideas[idx];
 currentBuyIdea = b;
 buyChartTicker = b.ticker?.toUpperCase();
-buyChartRange = 1; buyChartMom = ‘rsi’;
+buyChartRange = 1; buyChartMom = 'rsi';
 
 const ind = b.indicators || indicatorCache[b.ticker?.toUpperCase()]?.indicators || null;
 const fund = b.fundamentals || null;
 const score = Math.round(b.score);
-const scoreColor = score >= 80 ? ‘#00c97a’ : score >= 65 ? ‘#f5a623’ : ‘#999’;
-const priceStr = b.price ? ‘$’ + parseFloat(b.price).toFixed(2) : ‘N/A’;
-const chgColor = (b.change || ‘’).startsWith(’+’) ? ‘var(–green)’ : ‘var(–red)’;
+const scoreColor = score >= 80 ? '#00c97a' : score >= 65 ? '#f5a623' : '#999';
+const priceStr = b.price ? '$' + parseFloat(b.price).toFixed(2) : 'N/A';
+const chgColor = (b.change || '').startsWith('+') ? 'var(–green)' : 'var(–red)';
 
 // Buy signals from indicators
 const buySignals = ind?.buySignals || [];
 const sellSignals = ind?.sellSignals || [];
 
 // Dividend info
-let divHTML = ‘’;
+let divHTML = '';
 if (fund) {
 // dividendYield from Schwab is already a percentage value e.g. 0.3682 = 0.37%
-const divYield = fund.dividendYield != null ? fund.dividendYield.toFixed(2) + ‘%’ : null;
-const divAmt = fund.dividendAmount != null ? ‘$’ + parseFloat(fund.dividendAmount).toFixed(2) + ‘/yr’ : null;
-const divPay = fund.dividendPayAmount != null ? ‘$’ + parseFloat(fund.dividendPayAmount).toFixed(2) + ‘/payment’ : null;
+const divYield = fund.dividendYield != null ? fund.dividendYield.toFixed(2) + '%' : null;
+const divAmt = fund.dividendAmount != null ? '$' + parseFloat(fund.dividendAmount).toFixed(2) + '/yr' : null;
+const divPay = fund.dividendPayAmount != null ? '$' + parseFloat(fund.dividendPayAmount).toFixed(2) + '/payment' : null;
 const divFreq = fund.dividendFrequency || null;
-const fmtDate = s => s ? new Date(s).toLocaleDateString(‘en-US’, {month:‘short’,day:‘numeric’,year:‘numeric’}) : null;
+const fmtDate = s => s ? new Date(s).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) : null;
 const exDiv = fmtDate(fund.dividendDate);
 const payDate = fmtDate(fund.dividendPayDate);
 const nextExDiv = fmtDate(fund.nextDividendDate);
@@ -1472,27 +1472,27 @@ if (divYield || divAmt) {
 }
 
 // Fundamentals section
-let fundHTML = ‘’;
+let fundHTML = '';
 if (fund) {
-const pe   = fund.peRatio != null ? fund.peRatio.toFixed(1) : ‘—’;
-const peg  = fund.pegRatio != null ? fund.pegRatio.toFixed(2) : ‘—’;
-const eps  = fund.eps != null ? ‘$’ + parseFloat(fund.eps).toFixed(2) : ‘—’;
-const beta = fund.beta != null ? fund.beta.toFixed(2) : ‘—’;
+const pe   = fund.peRatio != null ? fund.peRatio.toFixed(1) : '—';
+const peg  = fund.pegRatio != null ? fund.pegRatio.toFixed(2) : '—';
+const eps  = fund.eps != null ? '$' + parseFloat(fund.eps).toFixed(2) : '—';
+const beta = fund.beta != null ? fund.beta.toFixed(2) : '—';
 const mcap = fund.marketCap != null
-? (fund.marketCap >= 1e12 ? ‘$’ + (fund.marketCap/1e12).toFixed(2) + ‘T’
-: fund.marketCap >= 1e9  ? ‘$’ + (fund.marketCap/1e9).toFixed(1) + ‘B’
-: ‘$’ + (fund.marketCap/1e6).toFixed(0) + ‘M’) : ‘—’;
-const high52 = fund.high52 != null ? ‘$’ + fund.high52.toFixed(2) : (ind?.high52 ? ‘$’ + ind.high52.toFixed(2) : ‘—’);
-const low52  = fund.low52  != null ? ‘$’ + fund.low52.toFixed(2)  : (ind?.low52  ? ‘$’ + ind.low52.toFixed(2)  : ‘—’);
+? (fund.marketCap >= 1e12 ? '$' + (fund.marketCap/1e12).toFixed(2) + 'T'
+: fund.marketCap >= 1e9  ? '$' + (fund.marketCap/1e9).toFixed(1) + 'B'
+: '$' + (fund.marketCap/1e6).toFixed(0) + 'M') : '—';
+const high52 = fund.high52 != null ? '$' + fund.high52.toFixed(2) : (ind?.high52 ? '$' + ind.high52.toFixed(2) : '—');
+const low52  = fund.low52  != null ? '$' + fund.low52.toFixed(2)  : (ind?.low52  ? '$' + ind.low52.toFixed(2)  : '—');
 fundHTML = `<div class="detail-section"> <div class="detail-section-title">Fundamentals</div> <div class="detail-row"><span class="label">Market cap</span><span class="val">${mcap}</span></div> <div class="detail-row"><span class="label">P/E ratio</span><span class="val">${pe}</span></div> <div class="detail-row"><span class="label">PEG ratio</span><span class="val">${peg}</span></div> <div class="detail-row"><span class="label">EPS (TTM)</span><span class="val">${eps}</span></div> <div class="detail-row"><span class="label">Beta</span><span class="val">${beta}</span></div> <div class="detail-row"><span class="label">52-week range</span><span class="val">${low52} – ${high52}</span></div> </div>`;
 }
 
-$(‘buyDetailContent’).innerHTML = `
+$('buyDetailContent').innerHTML = `
 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
 <div>
 <div style="font-size:22px;font-weight:700;color:var(--text)">${b.ticker}</div>
-<div style="font-size:13px;color:var(--text3);margin-top:2px">${b.name || ‘’}</div>
-<div style="font-size:18px;font-weight:600;margin-top:6px">${priceStr} <span style="font-size:13px;color:${chgColor}">${b.change || ‘’}</span></div>
+<div style="font-size:13px;color:var(--text3);margin-top:2px">${b.name || ''}</div>
+<div style="font-size:18px;font-weight:600;margin-top:6px">${priceStr} <span style="font-size:13px;color:${chgColor}">${b.change || ''}</span></div>
 </div>
 <div style="text-align:center">
 <div style="font-size:28px;font-weight:700;color:${scoreColor}">${score}</div>
@@ -1547,20 +1547,20 @@ ${fundHTML}
 
 `;
 
-$(‘buyDetailModal’).classList.add(‘open’);
-$(‘buyDetailModal’).onclick = e => { if (e.target === $(‘buyDetailModal’)) $(‘buyDetailModal’).classList.remove(‘open’); };
+$('buyDetailModal').classList.add('open');
+$('buyDetailModal').onclick = e => { if (e.target === $('buyDetailModal')) $('buyDetailModal').classList.remove('open'); };
 
-renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, ‘buy’);
+renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, 'buy');
 }
 
 function renderSettings() {
-$(‘apiKeyInput’).value = settings.apiKey || ‘’;
-$(‘pwaSecretInput’).value = settings.pwaSecret || ‘’;
-$(‘anthropicKeyInput’).value = settings.anthropicKey || ‘’;
-$(‘watchlistInput’).value = settings.watchlist || DEFAULT_WATCHLIST;
-$(‘stRateInput’).value = settings.stRate || 32;
-$(‘ltRateInput’).value = settings.ltRate || 15;
-$(‘stateRateInput’).value = settings.stateRate || 0;
+$('apiKeyInput').value = settings.apiKey || '';
+$('pwaSecretInput').value = settings.pwaSecret || '';
+$('anthropicKeyInput').value = settings.anthropicKey || '';
+$('watchlistInput').value = settings.watchlist || DEFAULT_WATCHLIST;
+$('stRateInput').value = settings.stRate || 32;
+$('ltRateInput').value = settings.ltRate || 15;
+$('stateRateInput').value = settings.stateRate || 0;
 updateApiStatus(settings.apiKey && settings.pwaSecret ? null : false);
 if (settings.apiKey) checkWorkerStatus();
 }
@@ -1572,7 +1572,7 @@ function openDetail(idx) {
 const p = positions[idx];
 if (!p) return;
 posChartTicker = p.ticker.toUpperCase();
-posChartRange = 1; posChartMom = ‘rsi’;
+posChartRange = 1; posChartMom = 'rsi';
 const ind = currentIndicators[p.ticker.toUpperCase()] ?? null;
 const rsi = ind?.rsi ?? null;
 const val = p.shares * p.price;
@@ -1585,10 +1585,10 @@ const taxInfo = calcTax(gain, p.purchaseDate);
 const stTax = gain > 0 ? gain * ((settings.stRate + settings.stateRate) / 100) : 0;
 const ltTax = gain > 0 ? gain * ((settings.ltRate + settings.stateRate) / 100) : 0;
 
-let taxHTML = ‘’;
+let taxHTML = '';
 if (gain > 0) {
 taxHTML = `<div class="detail-section"> <div class="detail-section-title">Tax implications — if sold today</div> <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"> <div class="tax-scenario" style="${lt ? 'border:1px solid rgba(0,201,122,0.3)' : ''}"> <div class="tax-scenario-title" style="color:${lt ? 'var(--green)' : 'var(--text3)'}">Long-term ${lt ? '✓ Applies' : '(not yet)'}</div> <div class="tax-big" style="color:var(--red)">${fmtUSD(ltTax)}</div> <div style="font-size:11px;color:var(--text3);margin-top:4px">${settings.ltRate}% fed + ${settings.stateRate}% state = ${settings.ltRate + settings.stateRate}%</div> <div style="font-size:12px;color:var(--green);margin-top:6px">Net: ${fmtUSD(gain - ltTax)}</div> </div> <div class="tax-scenario" style="${!lt ? 'border:1px solid rgba(245,166,35,0.3)' : ''}"> <div class="tax-scenario-title" style="color:${!lt ? 'var(--amber)' : 'var(--text3)'}">Short-term ${!lt ? '✓ Applies' : '(was applicable)'}</div> <div class="tax-big" style="color:var(--red)">${fmtUSD(stTax)}</div> <div style="font-size:11px;color:var(--text3);margin-top:4px">${settings.stRate}% fed + ${settings.stateRate}% state = ${settings.stRate + settings.stateRate}%</div> <div style="font-size:12px;color:var(--green);margin-top:6px">Net: ${fmtUSD(gain - stTax)}</div> </div> </div> ${p.purchaseDate && !lt ?`<div style="background:var(--amber-bg);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--amber)">
-⚠️ Holding ${holdingLabel(p.purchaseDate)} — wait until ${new Date(new Date(p.purchaseDate+‘T00:00:00’).getTime() + 366*86400000).toLocaleDateString(‘en-US’,{month:‘short’,day:‘numeric’,year:‘numeric’})} for long-term rate. Tax savings: ${fmtUSD(stTax - ltTax)}.
+⚠️ Holding ${holdingLabel(p.purchaseDate)} — wait until ${new Date(new Date(p.purchaseDate+'T00:00:00').getTime() + 366*86400000).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} for long-term rate. Tax savings: ${fmtUSD(stTax - ltTax)}.
 </div>`: ''} ${lt ?`<div style="background:var(--green-bg);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--green)">
 ✓ Held over 1 year — long-term capital gains rate applies. Savings vs. short-term: ${fmtUSD(stTax - ltTax)}.
 </div>` : ''} </div>`;
@@ -1596,12 +1596,12 @@ taxHTML = `<div class="detail-section"> <div class="detail-section-title">Tax im
 taxHTML = `<div class="detail-section"> <div class="detail-section-title">Tax implications</div> <div style="background:var(--green-bg);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--green)"> This position has an unrealized loss of ${fmtUSD(Math.abs(gain))}. Selling would harvest a tax loss you can use to offset other gains (tax-loss harvesting). </div> </div>`;
 }
 
-$(‘detailContent’).innerHTML = `<div class="modal-title">${p.ticker} <span style="font-size:14px;color:var(--text3);font-weight:400">${p.name || ''}</span></div> <div class="detail-section"> <div class="detail-section-title">Position summary</div> <div class="detail-row"><span class="label">Shares</span><span class="val">${fmt(p.shares, 4)}</span></div> <div class="detail-row"><span class="label">Avg cost</span><span class="val">${fmtUSD(p.cost)}</span></div> <div class="detail-row"><span class="label">Current price</span><span class="val">${fmtUSD(p.price)}</span></div> <div class="detail-row"><span class="label">Market value</span><span class="val">${fmtUSD(val)}</span></div> <div class="detail-row"><span class="label">Cost basis</span><span class="val">${fmtUSD(costBasis)}</span></div> <div class="detail-row"><span class="label">Unrealized gain/loss</span><span class="val" style="color:${gain >= 0 ? 'var(--green)' : 'var(--red)'}">${gain >= 0 ? '+' : ''}${fmtUSD(gain)} (${fmt(pnlPct)}%)</span></div> <div class="detail-row"><span class="label">Purchase date</span><span class="val">${p.purchaseDate ? new Date(p.purchaseDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'}</span></div> <div class="detail-row"><span class="label">Holding period</span><span class="val">${holdingLabel(p.purchaseDate)} <span class="pill ${lt ? 'pill-green' : 'pill-amber'}" style="font-size:10px">${lt ? 'Long-term' : 'Short-term'}</span></span></div> </div> <div class="detail-section"> <div class="detail-section-title">Technical signals</div> <div class="detail-row"><span class="label">RSI (14)</span><span class="val" style="color:${rsi !== null ? rsiColor(rsi) : 'var(--text3)'}">${rsi !== null ? rsi + ' · ' + rsiLabel(rsi) : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">SMA 50 / 200</span><span class="val" style="color:var(--text2)">${ind?.sma50 ? '$'+ind.sma50.toFixed(2) : '—'} / ${ind?.sma200 ? '$'+ind.sma200.toFixed(2) : '—'}</span></div> <div class="detail-row"><span class="label">MA trend</span><span class="val">${ind?.sma50 && ind?.sma200 ? (ind.sma50 > ind.sma200 ? '🟢 Golden cross' : '🔴 Death cross') : '—'}</span></div> <div class="detail-row"><span class="label">Bollinger %B</span><span class="val" style="color:${ind?.bb ? (ind.bb.pct > 80 ? 'var(--red)' : ind.bb.pct < 20 ? 'var(--green)' : 'var(--text2)') : 'var(--text3)'}">${ind?.bb ? ind.bb.pct + '% (' + (ind.bb.pct > 80 ? 'near upper band' : ind.bb.pct < 20 ? 'near lower band' : 'mid-band') + ')' : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">MACD</span><span class="val" style="color:${ind?.macd?.histogram != null ? (ind.macd.histogram > 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)'}">${ind?.macd?.histogram != null ? (ind.macd.histogram > 0 ? '▲ Bullish histogram' : '▼ Bearish histogram') : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">Volume vs avg</span><span class="val" style="color:${ind?.volRatio != null ? (ind.volRatio > 1.5 ? 'var(--amber)' : 'var(--text2)') : 'var(--text3)'}">${ind?.volRatio != null ? (ind.volRatio * 100).toFixed(0) + '% of 20-day avg' : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">Sell signals</span><span class="val" style="color:${ind?.sellSignals?.length ? 'var(--red)' : 'var(--green)'}">${ind?.sellSignals?.length ? ind.sellSignals.join(', ') : '✓ None'}</span></div> <div class="detail-row"><span class="label">Buy signals</span><span class="val" style="color:${ind?.buySignals?.length ? 'var(--green)' : 'var(--text3)'}">${ind?.buySignals?.length ? ind.buySignals.join(', ') : 'None'}</span></div> </div> ${taxHTML} <div class="detail-section"> <div class="detail-section-title">Charts</div> ${chartControlsHTML('pos')} </div> <button class="delete-btn" onclick="deletePosition(${idx})">Remove position</button> <button class="btn-secondary" onclick="closeDetail()">Close</button>`;
-$(‘detailModal’).classList.add(‘open’);
-renderTwoPanel(posChartTicker, posChartRange, posChartMom, ‘pos’);
+$('detailContent').innerHTML = `<div class="modal-title">${p.ticker} <span style="font-size:14px;color:var(--text3);font-weight:400">${p.name || ''}</span></div> <div class="detail-section"> <div class="detail-section-title">Position summary</div> <div class="detail-row"><span class="label">Shares</span><span class="val">${fmt(p.shares, 4)}</span></div> <div class="detail-row"><span class="label">Avg cost</span><span class="val">${fmtUSD(p.cost)}</span></div> <div class="detail-row"><span class="label">Current price</span><span class="val">${fmtUSD(p.price)}</span></div> <div class="detail-row"><span class="label">Market value</span><span class="val">${fmtUSD(val)}</span></div> <div class="detail-row"><span class="label">Cost basis</span><span class="val">${fmtUSD(costBasis)}</span></div> <div class="detail-row"><span class="label">Unrealized gain/loss</span><span class="val" style="color:${gain >= 0 ? 'var(--green)' : 'var(--red)'}">${gain >= 0 ? '+' : ''}${fmtUSD(gain)} (${fmt(pnlPct)}%)</span></div> <div class="detail-row"><span class="label">Purchase date</span><span class="val">${p.purchaseDate ? new Date(p.purchaseDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'}</span></div> <div class="detail-row"><span class="label">Holding period</span><span class="val">${holdingLabel(p.purchaseDate)} <span class="pill ${lt ? 'pill-green' : 'pill-amber'}" style="font-size:10px">${lt ? 'Long-term' : 'Short-term'}</span></span></div> </div> <div class="detail-section"> <div class="detail-section-title">Technical signals</div> <div class="detail-row"><span class="label">RSI (14)</span><span class="val" style="color:${rsi !== null ? rsiColor(rsi) : 'var(--text3)'}">${rsi !== null ? rsi + ' · ' + rsiLabel(rsi) : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">SMA 50 / 200</span><span class="val" style="color:var(--text2)">${ind?.sma50 ? '$'+ind.sma50.toFixed(2) : '—'} / ${ind?.sma200 ? '$'+ind.sma200.toFixed(2) : '—'}</span></div> <div class="detail-row"><span class="label">MA trend</span><span class="val">${ind?.sma50 && ind?.sma200 ? (ind.sma50 > ind.sma200 ? '🟢 Golden cross' : '🔴 Death cross') : '—'}</span></div> <div class="detail-row"><span class="label">Bollinger %B</span><span class="val" style="color:${ind?.bb ? (ind.bb.pct > 80 ? 'var(--red)' : ind.bb.pct < 20 ? 'var(--green)' : 'var(--text2)') : 'var(--text3)'}">${ind?.bb ? ind.bb.pct + '% (' + (ind.bb.pct > 80 ? 'near upper band' : ind.bb.pct < 20 ? 'near lower band' : 'mid-band') + ')' : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">MACD</span><span class="val" style="color:${ind?.macd?.histogram != null ? (ind.macd.histogram > 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)'}">${ind?.macd?.histogram != null ? (ind.macd.histogram > 0 ? '▲ Bullish histogram' : '▼ Bearish histogram') : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">Volume vs avg</span><span class="val" style="color:${ind?.volRatio != null ? (ind.volRatio > 1.5 ? 'var(--amber)' : 'var(--text2)') : 'var(--text3)'}">${ind?.volRatio != null ? (ind.volRatio * 100).toFixed(0) + '% of 20-day avg' : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">Sell signals</span><span class="val" style="color:${ind?.sellSignals?.length ? 'var(--red)' : 'var(--green)'}">${ind?.sellSignals?.length ? ind.sellSignals.join(', ') : '✓ None'}</span></div> <div class="detail-row"><span class="label">Buy signals</span><span class="val" style="color:${ind?.buySignals?.length ? 'var(--green)' : 'var(--text3)'}">${ind?.buySignals?.length ? ind.buySignals.join(', ') : 'None'}</span></div> </div> ${taxHTML} <div class="detail-section"> <div class="detail-section-title">Charts</div> ${chartControlsHTML('pos')} </div> <button class="delete-btn" onclick="deletePosition(${idx})">Remove position</button> <button class="btn-secondary" onclick="closeDetail()">Close</button>`;
+$('detailModal').classList.add('open');
+renderTwoPanel(posChartTicker, posChartRange, posChartMom, 'pos');
 }
 
-function closeDetail() { $(‘detailModal’).classList.remove(‘open’); }
+function closeDetail() { $('detailModal').classList.remove('open'); }
 
 function deletePosition(idx) {
 const t = positions[idx].ticker;
@@ -1614,66 +1614,66 @@ showToast(`${t} removed`);
 
 // ─── Event listeners ──────────────────────────────────────────────────────────
 function navigateTo(tab) {
-document.querySelectorAll(’.nav-item’).forEach(x => x.classList.remove(‘active’));
-document.querySelectorAll(’.page’).forEach(p => p.classList.remove(‘active’));
+document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
 const navItem = document.querySelector(`.nav-item[data-nav="${tab}"]`);
-if (navItem) navItem.classList.add(‘active’);
-$(‘page-’ + tab).classList.add(‘active’);
+if (navItem) navItem.classList.add('active');
+$('page-' + tab).classList.add('active');
 activeTab = tab;
-if (tab === ‘alerts’) renderAlerts();
-if (tab === ‘buys’) renderBuys();
-if (tab === ‘settings’) renderSettings();
+if (tab === 'alerts') renderAlerts();
+if (tab === 'buys') renderBuys();
+if (tab === 'settings') renderSettings();
 }
 
-document.querySelectorAll(’.nav-item’).forEach(n => {
-n.addEventListener(‘click’, () => navigateTo(n.dataset.nav));
+document.querySelectorAll('.nav-item').forEach(n => {
+n.addEventListener('click', () => navigateTo(n.dataset.nav));
 });
 
-$(‘addBtn’).addEventListener(‘click’, () => {
-$(‘f-date’).valueAsDate = new Date();
-$(‘addModal’).classList.add(‘open’);
+$('addBtn').addEventListener('click', () => {
+$('f-date').valueAsDate = new Date();
+$('addModal').classList.add('open');
 });
-$(‘cancelAddBtn’).addEventListener(‘click’, () => $(‘addModal’).classList.remove(‘open’));
-$(‘detailModal’).addEventListener(‘click’, e => { if (e.target === $(‘detailModal’)) closeDetail(); });
-$(‘addModal’).addEventListener(‘click’, e => { if (e.target === $(‘addModal’)) $(‘addModal’).classList.remove(‘open’); });
+$('cancelAddBtn').addEventListener('click', () => $('addModal').classList.remove('open'));
+$('detailModal').addEventListener('click', e => { if (e.target === $('detailModal')) closeDetail(); });
+$('addModal').addEventListener('click', e => { if (e.target === $('addModal')) $('addModal').classList.remove('open'); });
 
-$(‘savePositionBtn’).addEventListener(‘click’, () => {
-const ticker = $(‘f-ticker’).value.trim().toUpperCase();
-const shares = parseFloat($(‘f-shares’).value);
-const cost = parseFloat($(‘f-cost’).value);
-const price = parseFloat($(‘f-price’).value);
-const purchaseDate = $(‘f-date’).value;
-if (!ticker || isNaN(shares) || isNaN(cost)) { showToast(‘Fill in required fields’); return; }
-positions.push({ ticker, name: $(‘f-name’).value.trim(), shares, cost, price: isNaN(price) ? cost : price, purchaseDate });
+$('savePositionBtn').addEventListener('click', () => {
+const ticker = $('f-ticker').value.trim().toUpperCase();
+const shares = parseFloat($('f-shares').value);
+const cost = parseFloat($('f-cost').value);
+const price = parseFloat($('f-price').value);
+const purchaseDate = $('f-date').value;
+if (!ticker || isNaN(shares) || isNaN(cost)) { showToast('Fill in required fields'); return; }
+positions.push({ ticker, name: $('f-name').value.trim(), shares, cost, price: isNaN(price) ? cost : price, purchaseDate });
 save();
-$(‘addModal’).classList.remove(‘open’);
-[‘f-ticker’,‘f-name’,‘f-shares’,‘f-cost’,‘f-price’].forEach(id => $(id).value = ‘’);
+$('addModal').classList.remove('open');
+['f-ticker','f-name','f-shares','f-cost','f-price'].forEach(id => $(id).value = '');
 renderAll();
 showToast(`${ticker} added`);
 if (settings.apiKey) refreshPrices();
 });
 
-$(‘saveSettingsBtn’).addEventListener(‘click’, () => {
+$('saveSettingsBtn').addEventListener('click', () => {
 const oldWatchlist = settings.watchlist;
-settings.apiKey = $(‘apiKeyInput’).value.trim().replace(//+$/, ‘’);  // strip trailing slash
-settings.pwaSecret = $(‘pwaSecretInput’).value.trim();
-settings.anthropicKey = $(‘anthropicKeyInput’).value.trim();
-settings.watchlist = $(‘watchlistInput’).value.trim();
-settings.stRate = parseFloat($(‘stRateInput’).value) || 32;
-settings.ltRate = parseFloat($(‘ltRateInput’).value) || 15;
-settings.stateRate = parseFloat($(‘stateRateInput’).value) || 0;
-localStorage.setItem(‘sp-settings’, JSON.stringify(settings));
+settings.apiKey = $('apiKeyInput').value.trim().replace(//+$/, '');  // strip trailing slash
+settings.pwaSecret = $('pwaSecretInput').value.trim();
+settings.anthropicKey = $('anthropicKeyInput').value.trim();
+settings.watchlist = $('watchlistInput').value.trim();
+settings.stRate = parseFloat($('stRateInput').value) || 32;
+settings.ltRate = parseFloat($('ltRateInput').value) || 15;
+settings.stateRate = parseFloat($('stateRateInput').value) || 0;
+localStorage.setItem('sp-settings', JSON.stringify(settings));
 // Bust buy cache if watchlist changed
-if (oldWatchlist !== settings.watchlist) localStorage.removeItem(‘sp-buy-cache’);
-showToast(‘Settings saved’);
+if (oldWatchlist !== settings.watchlist) localStorage.removeItem('sp-buy-cache');
+showToast('Settings saved');
 updateApiStatus(settings.apiKey ? null : false);
 renderAll();
 });
 
-let activeTab = ‘portfolio’;  // updated by navigateTo()
+let activeTab = 'portfolio';  // updated by navigateTo()
 
-$(‘refreshBtn’).addEventListener(‘click’, () => {
-if (activeTab === ‘buys’) {
+$('refreshBtn').addEventListener('click', () => {
+if (activeTab === 'buys') {
 loadBuyIdeas(true);
 } else {
 refreshPrices();
