@@ -1317,8 +1317,8 @@ const data=raw.slice(sliceStart), sma50=sma50All.slice(sliceStart);
 const sma200=sma200All.slice(sliceStart), bollinger=bollingerAll.slice(sliceStart);
 const closes=data.map(d=>d.c), n=closes.length;
 if (n<2) return ‘<div style="color:var(--text3);font-size:12px;padding:20px;text-align:center">Not enough data</div>’;
-const allVals=[…closes,…bollinger.filter(Boolean).flatMap(b=>[b.upper,b.lower]),…sma50.filter(Boolean),…sma200.filter(Boolean)];
-const minY=Math.min(…allVals)*0.998, maxY=Math.max(…allVals)*1.002;
+const allVals=[...closes,...bollinger.filter(Boolean).flatMap(b=>[b.upper,b.lower]),...sma50.filter(Boolean),...sma200.filter(Boolean)];
+const minY=Math.min(...allVals)*0.998, maxY=Math.max(...allVals)*1.002;
 const xFn=i=>PAD.l+(i/(n-1))*cW, yFn=v=>toSvgY(v,minY,maxY,PAD.t,PAD.t+cH);
 const isUp=closes[n-1]>=closes[0], priceC=isUp?’#00c97a’:’#ff4d4d’;
 const pricePts=closes.map((c,i)=>`${xFn(i).toFixed(2)},${yFn(c).toFixed(2)}`).join(’ ‘);
@@ -1326,7 +1326,7 @@ const fillPts=`${xFn(0).toFixed(2)},${(PAD.t+cH).toFixed(2)} ${pricePts} ${xFn(n
 const bbUpPts=svgPolyline(bollinger.map((b,i)=>[i,b?.upper]),xFn,yFn);
 const bbLoPts=svgPolyline(bollinger.map((b,i)=>[i,b?.lower]),xFn,yFn);
 const bbMidPts=svgPolyline(bollinger.map((b,i)=>[i,b?.mid]),xFn,yFn);
-const bbFillPts=[…bollinger.map((b,i)=>b?`${xFn(i).toFixed(2)},${yFn(b.upper).toFixed(2)}`:null).filter(Boolean),…bollinger.map((b,i)=>b?`${xFn(i).toFixed(2)},${yFn(b.lower).toFixed(2)}`:null).filter(Boolean).reverse()].join(’ ’);
+const bbFillPts=[...bollinger.map((b,i)=>b?`${xFn(i).toFixed(2)},${yFn(b.upper).toFixed(2)}`:null).filter(Boolean),...bollinger.map((b,i)=>b?`${xFn(i).toFixed(2)},${yFn(b.lower).toFixed(2)}`:null).filter(Boolean).reverse()].join(’ ’);
 const yTicks=[0,0.25,0.5,0.75,1].map(p=>minY+p*(maxY-minY));
 const xLabels=data.reduce((acc,d,i)=>{const dt=new Date(d.t);if(i===0||dt.getDate()===1)acc.push({i,label:dt.toLocaleDateString(‘en-US’,{month:‘short’})});return acc;},[]).slice(0,5);
 const legend=[{c:priceC,l:‘Price’,dash:false},{c:’#4a9eff’,l:‘SMA 50’,dash:false},{c:’#f5a623’,l:‘SMA 200’,dash:false},{c:’#7c6fcd’,l:‘BB’,dash:true}];
@@ -1344,8 +1344,8 @@ const yFn=v=>toSvgY(v,0,100,PAD.t,PAD.t+cH);
 return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"> <clipPath id="rClip${id}"><rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${cH}"/></clipPath> <rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${(yFn(70)-PAD.t).toFixed(2)}" fill="rgba(255,77,77,0.07)" clip-path="url(#rClip${id})"/> <rect x="${PAD.l}" y="${yFn(30).toFixed(2)}" width="${cW}" height="${(PAD.t+cH-yFn(30)).toFixed(2)}" fill="rgba(0,201,122,0.07)" clip-path="url(#rClip${id})"/> ${[{v:70,c:'rgba(255,77,77,0.4)'},{v:50,c:'rgba(255,255,255,0.06)'},{v:30,c:'rgba(0,201,122,0.4)'}].map(({v,c})=>`<line x1="${PAD.l}" y1="${yFn(v).toFixed(2)}" x2="${PAD.l+cW}" y2="${yFn(v).toFixed(2)}" stroke="${c}" stroke-width="0.5" stroke-dasharray="${v===50?'none':'3,2'}"/><text x="${PAD.l-4}" y="${(yFn(v)+3.5).toFixed(2)}" text-anchor="end" font-size="9" fill="rgba(255,255,255,0.35)">${v}</text>`).join('')} <line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <line x1="${PAD.l}" y1="${PAD.t+cH}" x2="${PAD.l+cW}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <g clip-path="url(#rClip${id})"> <polyline points="${svgPolyline(rsi.map((v,i)=>[i,v]),xFn,yFn)}" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/> </g> <text x="${PAD.l+4}" y="${PAD.t+10}" font-size="9" fill="#a78bfa" font-weight="600">RSI (14)</text> </svg>`;
 }
 const ml=macdAll.macdLine.slice(sliceStart), sl=macdAll.signalLine.slice(sliceStart), hl=macdAll.histogram.slice(sliceStart);
-const allM=[…ml,…sl.filter(Boolean),…hl.filter(Boolean)];
-const minM=Math.min(…allM)*1.15, maxM=Math.max(…allM)*1.15;
+const allM=[...ml,…sl.filter(Boolean),...hl.filter(Boolean)];
+const minM=Math.min(...allM)*1.15, maxM=Math.max(...allM)*1.15;
 const yFn=v=>toSvgY(v,minM,maxM,PAD.t,PAD.t+cH), zeroY=yFn(0);
 const barW=Math.max(1,cW/n-0.5);
 return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"> <clipPath id="mClip${id}"><rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${cH}"/></clipPath> <line x1="${PAD.l}" y1="${zeroY.toFixed(2)}" x2="${PAD.l+cW}" y2="${zeroY.toFixed(2)}" stroke="rgba(255,255,255,0.25)" stroke-width="0.5"/> <line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <line x1="${PAD.l}" y1="${PAD.t+cH}" x2="${PAD.l+cW}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <g clip-path="url(#mClip${id})"> ${hl.map((h,i)=>{if(h===null)return '';const bx=(xFn(i)-barW/2).toFixed(2),bh=Math.abs(yFn(h)-zeroY).toFixed(2),by=(h>=0?zeroY-parseFloat(bh):zeroY).toFixed(2);return `<rect x="${bx}" y="${by}" width="${barW.toFixed(2)}" height="${bh}" fill="${h>=0?'#00c97a':'#ff4d4d'}" opacity="0.7"/>`;}).join('')} <polyline points="${svgPolyline(ml.map((v,i)=>[i,v]),xFn,yFn)}" fill="none" stroke="#4a9eff" stroke-width="1.2"/> <polyline points="${svgPolyline(sl.map((v,i)=>[i,v]),xFn,yFn)}" fill="none" stroke="#f5a623" stroke-width="1.2"/> </g> ${[{c:'#4a9eff',l:'MACD'},{c:'#f5a623',l:'Signal'},{c:'#00c97a',l:'Histogram'}].map(({c,l},i)=>`<g transform="translate(${PAD.l+i*76},${PAD.t-3})"><line x1="0" y1="0" x2="13" y2="0" stroke="${c}" stroke-width="1.5"/><text x="17" y="3.5" font-size="8.5" fill="rgba(255,255,255,0.4)">${l}</text></g>`).join('')} </svg>`;
@@ -1430,7 +1430,7 @@ const fund = b.fundamentals || null;
 const score = Math.round(b.score);
 const scoreColor = score >= 80 ? ‘#00c97a’ : score >= 65 ? ‘#f5a623’ : ‘#999’;
 const priceStr = b.price ? ‘$’ + parseFloat(b.price).toFixed(2) : ‘N/A’;
-const chgColor = (b.change || ‘’).startsWith(’+’) ? ‘var(–green)’ : ‘var(–red)’;
+const chgColor = (b.change || ‘’).startsWith(’+’) ? ‘var(-green)’ : ‘var(-red)’;
 
 // Buy signals from indicators
 const buySignals = ind?.buySignals || [];
@@ -1655,7 +1655,7 @@ if (settings.apiKey) refreshPrices();
 
 $(‘saveSettingsBtn’).addEventListener(‘click’, () => {
 const oldWatchlist = settings.watchlist;
-settings.apiKey = $(‘apiKeyInput’).value.trim().replace(//+$/, ‘’);  // strip trailing slash
+settings.apiKey = $(‘apiKeyInput’).value.trim().replace(/\/+$/, ‘’);  // strip trailing slash
 settings.pwaSecret = $(‘pwaSecretInput’).value.trim();
 settings.anthropicKey = $(‘anthropicKeyInput’).value.trim();
 settings.watchlist = $(‘watchlistInput’).value.trim();
