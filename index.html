@@ -319,7 +319,7 @@
 
   <div class="section-label" style="margin-top:16px">About</div>
   <div class="settings-card">
-    <div class="settings-row"><div class="settings-label">Version</div><div style="font-size:13px;color:var(--text3)">1.0.0</div></div>
+    <div class="settings-row"><div class="settings-label">Version</div><div style="font-size:13px;color:var(--text3)">1.0.1</div></div>
     <div class="settings-row"><div class="settings-label">Data source</div><div style="font-size:13px;color:var(--text3)">Charles Schwab API</div></div>
     <div class="settings-row"><div><div class="settings-label">Disclaimer</div><div class="settings-sub" style="max-width:220px">Not financial advice. For informational use only.</div></div></div>
   </div>
@@ -1147,7 +1147,7 @@ async function loadBuyIdeas(forceRefresh = false) {
   <style>@keyframes pulse{0%,100%{opacity:0.2}50%{opacity:1}}</style>`;
 
 const setStatus = (step, msg) => {
-const el2 = $(‘buyLoadStatus’);
+const el2 = $('buyLoadStatus');
 if (el2) { el2.previousElementSibling.textContent = `Step ${step}/3 — ${msg}`; }
 };
 
