@@ -522,6 +522,7 @@ async function handleFundamentals(request, env) {
         const divFreqLabel = f.dividendFreq ? (freqMap[f.dividendFreq] || `${f.dividendFreq}x/year`) : null;
 
         return [sym, {
+          sector:            inst.sector ?? null,       
           peRatio:           f.peRatio ?? null,
           eps:               f.epsTTM ?? null,
           dividendYield:     f.dividendYield ?? null,   // already a percentage e.g. 0.3682
