@@ -175,6 +175,37 @@
 .nav-item.active .nav-label { color: var(--accent); }
 
 
+
+    /* Portfolio Health Panel */
+    .health-panel { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 16px; margin-bottom: 14px; overflow: hidden; }
+    .health-header { display: flex; justify-content: space-between; align-items: center; padding: 13px 16px; cursor: pointer; user-select: none; }
+    .health-header-left { display: flex; align-items: center; gap: 10px; }
+    .health-title { font-size: 13px; font-weight: 600; color: var(--text2); }
+    .health-chevron { font-size: 11px; color: var(--text3); transition: transform 0.25s; }
+    .health-chevron.open { transform: rotate(180deg); }
+    .health-body { display: none; padding: 0 16px 16px; }
+    .health-body.open { display: block; }
+    .health-section-title { font-size: 10px; font-weight: 600; letter-spacing: 1px; color: var(--text3); text-transform: uppercase; margin: 14px 0 10px; }
+    /* Donut chart */
+    .donut-wrap { display: flex; align-items: center; gap: 16px; margin-bottom: 4px; }
+    .donut-legend { flex: 1; min-width: 0; }
+    .legend-item { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
+    .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .legend-label { font-size: 12px; color: var(--text2); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .legend-pct { font-size: 12px; font-weight: 600; color: var(--text); flex-shrink: 0; }
+    .legend-warn { font-size: 10px; color: var(--red); margin-left: 3px; }
+    /* Allocation bars */
+    .alloc-row { margin-bottom: 9px; }
+    .alloc-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+    .alloc-ticker { font-size: 12px; font-weight: 600; }
+    .alloc-right { font-size: 11px; color: var(--text2); display: flex; align-items: center; gap: 5px; }
+    .alloc-track { height: 5px; background: var(--bg4); border-radius: 99px; overflow: hidden; }
+    .alloc-fill { height: 100%; border-radius: 99px; transition: width 0.4s ease; }
+    /* Position card allocation strip */
+    .pos-alloc-strip { margin-top: 8px; padding-top: 8px; border-top: 0.5px solid var(--border); display: flex; align-items: center; gap: 8px; }
+    .pos-alloc-bar-wrap { flex: 1; height: 3px; background: var(--bg4); border-radius: 99px; overflow: hidden; }
+    .pos-alloc-bar { height: 100%; border-radius: 99px; }
+    .pos-alloc-label { font-size: 10px; color: var(--text3); flex-shrink: 0; min-width: 36px; text-align: right; }
   </style>
 </head>
 <body>
@@ -204,6 +235,25 @@
 
   <div class="page active" id="page-portfolio">
     <div class="section">
+      <!-- PORTFOLIO HEALTH PANEL -->
+      <div id="healthPanel" class="health-panel" style="display:none">
+        <div class="health-header" onclick="toggleHealth()">
+          <div class="health-header-left">
+            <span class="health-title">Portfolio Health</span>
+            <span id="healthAlertBadge" style="display:none" class="pill pill-red" style="font-size:10px"></span>
+          </div>
+          <span class="health-chevron" id="healthChevron">▼</span>
+        </div>
+        <div class="health-body" id="healthBody">
+          <div class="health-section-title">Sector Concentration</div>
+          <div class="donut-wrap">
+            <svg id="donutSvg" width="100" height="100" viewBox="0 0 100 100"></svg>
+            <div class="donut-legend" id="donutLegend"></div>
+          </div>
+          <div class="health-section-title">Position Sizing</div>
+          <div id="allocBars"></div>
+        </div>
+      </div>
       <div class="section-label">Positions</div>
       <div id="positionsList"></div>
       <button class="add-btn" id="addBtn">
@@ -290,6 +340,23 @@
     <div id="anthropicStatusMsg" style="padding:0 16px 12px;font-size:12px;color:var(--text3)"></div>
   </div>
 
+  <div class="section-label" style="margin-top:16px">Position &amp; Concentration Limits</div>
+  <div class="settings-card">
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">Max position size</div>
+        <div class="settings-sub">Alert when single position exceeds this</div>
+      </div>
+      <input class="settings-input" id="maxPosInput" type="number" placeholder="10" style="width:80px"/> <span style="color:var(--text3);font-size:14px;margin-left:4px">%</span>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">Max sector concentration</div>
+        <div class="settings-sub">Alert when one sector exceeds this</div>
+      </div>
+      <input class="settings-input" id="maxSectorInput" type="number" placeholder="30" style="width:80px"/> <span style="color:var(--text3);font-size:14px;margin-left:4px">%</span>
+    </div>
+  </div>
   <div class="section-label" style="margin-top:16px">Tax settings</div>
   <div class="settings-card">
     <div class="settings-row">
@@ -318,7 +385,7 @@
 
   <div class="section-label" style="margin-top:16px">About</div>
   <div class="settings-card">
-    <div class="settings-row"><div class="settings-label">Version</div><div style="font-size:13px;color:var(--text3)">1.0.2</div></div>
+    <div class="settings-row"><div class="settings-label">Version</div><div style="font-size:13px;color:var(--text3)">1.0.1</div></div>
     <div class="settings-row"><div class="settings-label">Data source</div><div style="font-size:13px;color:var(--text3)">Charles Schwab API</div></div>
     <div class="settings-row"><div><div class="settings-label">Disclaimer</div><div class="settings-sub" style="max-width:220px">Not financial advice. For informational use only.</div></div></div>
   </div>
@@ -396,7 +463,7 @@
 <script>
 // ─── State ───────────────────────────────────────────────────────────────────
 let positions = JSON.parse(localStorage.getItem('sp-positions') || '[]');
-let settings = JSON.parse(localStorage.getItem('sp-settings') || '{"apiKey":"","pwaSecret":"","anthropicKey":"","watchlist":"","stRate":32,"ltRate":15,"stateRate":0}');
+let settings = JSON.parse(localStorage.getItem('sp-settings') || '{"apiKey":"","pwaSecret":"","anthropicKey":"","watchlist":"","stRate":32,"ltRate":15,"stateRate":0,"maxPos":10,"maxSector":30}');
 let liveprices = {};
 let cachedBuyIdeas = null;
 let buyIdeasGeneratedDate = null;
@@ -767,6 +834,179 @@ function updateApiStatus(ok) {
   }
 }
 
+
+// ─── Sector & Concentration Engine ───────────────────────────────────────────
+// Sector palette: 10 distinct colors that work on dark backgrounds
+const SECTOR_COLORS = [
+  '#4a9eff','#00c97a','#f5a623','#ff4d4d','#a78bfa',
+  '#38bdf8','#fb923c','#34d399','#f472b6','#facc15'
+];
+
+const SECTOR_MAP = {}; // { AAPL: 'Technology' } — persisted via positions[].sector
+
+// Known static sectors for common tickers (fallback when API unavailable)
+const STATIC_SECTORS = {
+  AAPL:'Technology',MSFT:'Technology',NVDA:'Technology',GOOGL:'Communication Services',
+  GOOG:'Communication Services',META:'Communication Services',AMZN:'Consumer Discretionary',
+  TSLA:'Consumer Discretionary',JPM:'Financials',BAC:'Financials',WFC:'Financials',
+  GS:'Financials',MS:'Financials',V:'Financials',MA:'Financials',
+  JNJ:'Healthcare',UNH:'Healthcare',PFE:'Healthcare',ABBV:'Healthcare',MRK:'Healthcare',
+  LLY:'Healthcare',XLV:'Healthcare',
+  XOM:'Energy',CVX:'Energy',COP:'Energy',
+  HD:'Consumer Discretionary',NKE:'Consumer Discretionary',MCD:'Consumer Discretionary',
+  PG:'Consumer Staples',KO:'Consumer Staples',PEP:'Consumer Staples',WMT:'Consumer Staples',
+  COST:'Consumer Staples',
+  NEE:'Utilities',DUK:'Utilities',SO:'Utilities',
+  AMT:'Real Estate',PLD:'Real Estate',SPG:'Real Estate',
+  CAT:'Industrials',BA:'Industrials',HON:'Industrials',UPS:'Industrials',GE:'Industrials',
+  LIN:'Materials',FCX:'Materials',NEM:'Materials',
+  BRK:'Financials','BRK.B':'Financials','BRK.A':'Financials',
+  SPY:'ETF - Broad',QQQ:'ETF - Broad',IWM:'ETF - Broad',VTI:'ETF - Broad',
+  XLK:'ETF - Technology',XLF:'ETF - Financials',XLE:'ETF - Energy',XLI:'ETF - Industrials',
+  GLD:'Commodities',SLV:'Commodities',TLT:'Fixed Income',AGG:'Fixed Income',
+};
+
+async function fetchSectorForTicker(ticker) {
+  const up = ticker.toUpperCase();
+  if (STATIC_SECTORS[up]) return STATIC_SECTORS[up];
+  if (!settings.apiKey || !settings.pwaSecret) return null;
+  try {
+    const data = await workerGet(`/fundamentals?symbols=${encodeURIComponent(up)}`);
+    if (data.ok && data.fundamentals && data.fundamentals[up]) {
+      const sector = data.fundamentals[up].sector || data.fundamentals[up].assetType || null;
+      return sector || null;
+    }
+  } catch(e) { console.warn('fetchSector failed for', up, e); }
+  return null;
+}
+
+function getSector(ticker) {
+  const up = ticker.toUpperCase();
+  // Check position object first (persisted)
+  const pos = positions.find(p => p.ticker.toUpperCase() === up);
+  if (pos?.sector) return pos.sector;
+  // Fall back to static map
+  return STATIC_SECTORS[up] || 'Other';
+}
+
+function computeConcentration() {
+  if (positions.length === 0) return { totalVal: 0, bySector: {}, byPosition: [], sectorColors: {} };
+  const totalVal = positions.reduce((s, p) => s + p.shares * p.price, 0);
+  const bySector = {};
+  const byPosition = positions.map((p, i) => {
+    const val = p.shares * p.price;
+    const pct = totalVal > 0 ? val / totalVal * 100 : 0;
+    const sector = getSector(p.ticker);
+    bySector[sector] = (bySector[sector] || 0) + pct;
+    return { i, ticker: p.ticker, name: p.name, val, pct, sector };
+  }).sort((a, b) => b.pct - a.pct);
+
+  // Assign stable colors to sectors (sorted by weight)
+  const sectorsSorted = Object.entries(bySector).sort((a, b) => b[1] - a[1]).map(([s]) => s);
+  const sectorColors = {};
+  sectorsSorted.forEach((s, i) => { sectorColors[s] = SECTOR_COLORS[i % SECTOR_COLORS.length]; });
+
+  return { totalVal, bySector, byPosition, sectorColors };
+}
+
+function renderHealthPanel() {
+  if (positions.length === 0) {
+    $('healthPanel').style.display = 'none';
+    return;
+  }
+  $('healthPanel').style.display = 'block';
+
+  const maxPos = settings.maxPos || 10;
+  const maxSector = settings.maxSector || 30;
+  const { bySector, byPosition, sectorColors } = computeConcentration();
+
+  // Count concentration warnings
+  const posWarnings = byPosition.filter(p => p.pct > maxPos).length;
+  const sectorWarnings = Object.entries(bySector).filter(([,pct]) => pct > maxSector).length;
+  const totalWarnings = posWarnings + sectorWarnings;
+
+  const badge = $('healthAlertBadge');
+  if (totalWarnings > 0) {
+    badge.style.display = 'inline-flex';
+    badge.textContent = totalWarnings + ' risk' + (totalWarnings > 1 ? 's' : '');
+  } else {
+    badge.style.display = 'none';
+  }
+
+  // ── Donut chart ──
+  const sectors = Object.entries(bySector).sort((a, b) => b[1] - a[1]);
+  const cx = 50, cy = 50, r = 38, strokeW = 14;
+  const circumference = 2 * Math.PI * r;
+  let offset = 0;
+  // Rotate so first slice starts at top
+  const svgArcs = sectors.map(([sector, pct]) => {
+    const dash = pct / 100 * circumference;
+    const gap = circumference - dash;
+    const color = sectorColors[sector];
+    const arc = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="${strokeW}"
+      stroke-dasharray="${dash.toFixed(2)} ${gap.toFixed(2)}"
+      stroke-dashoffset="${(-offset * circumference / 100 + circumference / 4).toFixed(2)}"
+      style="transition: stroke-dasharray 0.4s ease"/>`;
+    offset += pct;
+    return arc;
+  }).join('');
+
+  $('donutSvg').innerHTML = `
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--bg4)" stroke-width="${strokeW}"/>
+    ${svgArcs}
+    <text x="${cx}" y="${cy - 5}" text-anchor="middle" font-size="9" fill="var(--text3)" font-family="sans-serif">${sectors.length}</text>
+    <text x="${cx}" y="${cy + 8}" text-anchor="middle" font-size="8" fill="var(--text3)" font-family="sans-serif">sectors</text>
+  `;
+
+  // ── Legend ──
+  $('donutLegend').innerHTML = sectors.map(([sector, pct]) => {
+    const over = pct > maxSector;
+    return `<div class="legend-item">
+      <div class="legend-dot" style="background:${sectorColors[sector]}"></div>
+      <span class="legend-label">${sector}</span>
+      <span class="legend-pct">${pct.toFixed(1)}%${over ? '<span class="legend-warn">⚠</span>' : ''}</span>
+    </div>`;
+  }).join('');
+
+  // ── Allocation bars ──
+  $('allocBars').innerHTML = byPosition.map(p => {
+    const over = p.pct > maxPos;
+    const under = p.pct < 1;
+    const barColor = over ? 'var(--red)' : under ? 'var(--text3)' : 'var(--accent)';
+    const warning = over ? `<span style="font-size:10px;color:var(--red)">⚠ Oversized</span>`
+                  : under ? `<span style="font-size:10px;color:var(--text3)">Too small</span>` : '';
+    return `<div class="alloc-row">
+      <div class="alloc-top">
+        <span class="alloc-ticker">${p.ticker}</span>
+        <div class="alloc-right">${warning}<span>${p.pct.toFixed(1)}%</span></div>
+      </div>
+      <div class="alloc-track">
+        <div class="alloc-fill" style="width:${Math.min(p.pct, 100)}%;background:${barColor}"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleHealth() {
+  const body = $('healthBody');
+  const chevron = $('healthChevron');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  chevron.classList.toggle('open', !isOpen);
+}
+
+// ── Fetch sector for a newly added position (Option B) ──
+async function enrichPositionSector(ticker) {
+  const up = ticker.toUpperCase();
+  const pos = positions.find(p => p.ticker.toUpperCase() === up);
+  if (!pos || pos.sector) return; // already has sector
+  const sector = await fetchSectorForTicker(up);
+  if (sector) {
+    pos.sector = sector;
+    save();
+  }
+}
+
 // ─── Render ───────────────────────────────────────────────────────────────────
 let currentIndicators = {};  // populated by renderPortfolio, reused by renderAlerts & openDetail
 
@@ -869,6 +1109,9 @@ function renderPortfolioWithRSIs(rsiMap) {
     if (alertCount > 0) { badge.textContent = alertCount; badge.style.display = 'inline-block'; }
     else badge.style.display = 'none';
   }
+
+  // Update Portfolio Health panel
+  renderHealthPanel();
 }
 
 async function renderPortfolio() {
@@ -888,9 +1131,13 @@ function renderAlerts() {
     const gain = (p.price - p.cost) * p.shares;
     const taxInfo = calcTax(gain, p.purchaseDate);
     const sellCount = ind?.sellSignals?.length ?? 0;
-    const isAlert = sellCount >= 2 || pnl > 25;
+    const totalVal = positions.reduce((s, q) => s + q.shares * q.price, 0);
+    const posPct = totalVal > 0 ? (p.price * p.shares / totalVal * 100) : 0;
+    const maxPos = settings.maxPos || 10;
+    const isSizeAlert = posPct > maxPos;
+    const isAlert = sellCount >= 2 || pnl > 25 || isSizeAlert;
     const isWarn = !isAlert && (sellCount === 1 || pnl > 15);
-    return { ...p, i, ind, pnl, gain, taxInfo, isAlert, isWarn };
+    return { ...p, i, ind, pnl, gain, taxInfo, isAlert, isWarn, isSizeAlert, posPct };
   }).filter(p => p.isAlert || p.isWarn);
 
   if (alerts.length === 0) {
@@ -902,6 +1149,7 @@ function renderAlerts() {
     const reasons = [...(p.ind?.sellSignals || [])];
     if (p.pnl > 25) reasons.push(`Up ${fmt(p.pnl)}% — consider taking profits`);
     else if (p.pnl > 15) reasons.push(`Up ${fmt(p.pnl)}% — watch for exit opportunity`);
+    if (p.isSizeAlert) reasons.push(`${fmt(p.posPct)}% of portfolio — exceeds ${settings.maxPos || 10}% max position size`);
 
     const lt = isLongTerm(p.purchaseDate);
     const taxLine = p.taxInfo ? `<div class="alert-tax">
@@ -1558,6 +1806,8 @@ $('watchlistInput').value = settings.watchlist || DEFAULT_WATCHLIST;
 $('stRateInput').value = settings.stRate || 32;
 $('ltRateInput').value = settings.ltRate || 15;
 $('stateRateInput').value = settings.stateRate || 0;
+$('maxPosInput').value = settings.maxPos || 10;
+$('maxSectorInput').value = settings.maxSector || 30;
 updateApiStatus(settings.apiKey && settings.pwaSecret ? null : false);
 if (settings.apiKey) checkWorkerStatus();
 }
@@ -1647,7 +1897,10 @@ $('addModal').classList.remove('open');
 ['f-ticker','f-name','f-shares','f-cost','f-price'].forEach(id => $(id).value = '');
 renderAll();
 showToast(`${ticker} added`);
-if (settings.apiKey) refreshPrices();
+if (settings.apiKey) {
+  refreshPrices();
+  enrichPositionSector(ticker);
+}
 });
 
 $('saveSettingsBtn').addEventListener('click', () => {
@@ -1659,6 +1912,8 @@ settings.watchlist = $('watchlistInput').value.trim();
 settings.stRate = parseFloat($('stRateInput').value) || 32;
 settings.ltRate = parseFloat($('ltRateInput').value) || 15;
 settings.stateRate = parseFloat($('stateRateInput').value) || 0;
+settings.maxPos = parseFloat($('maxPosInput').value) || 10;
+settings.maxSector = parseFloat($('maxSectorInput').value) || 30;
 localStorage.setItem('sp-settings', JSON.stringify(settings));
 // Bust buy cache if watchlist changed
 if (oldWatchlist !== settings.watchlist) localStorage.removeItem('sp-buy-cache');
@@ -1681,7 +1936,11 @@ refreshPrices();
 renderBuys();
 renderAll();
 updateApiStatus(settings.apiKey && settings.pwaSecret ? null : false);
-if (settings.apiKey && settings.pwaSecret && positions.length > 0) refreshPrices();
+if (settings.apiKey && settings.pwaSecret && positions.length > 0) {
+  refreshPrices();
+  // Backfill sectors for any positions that don't have one yet
+  positions.filter(p => !p.sector).forEach(p => enrichPositionSector(p.ticker));
+}
 </script>
 
 </body>
