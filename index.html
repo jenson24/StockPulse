@@ -435,6 +435,22 @@
     </div>
     <div class="field"><label>PURCHASE DATE *</label><input id="f-date" type="date"/></div>
     <div class="field"><label>CURRENT PRICE (auto-fetched if API key set)</label><input id="f-price" type="number" step="0.01" placeholder="178.50"/></div>
+    <div class="field">
+      <label>SECTOR</label>
+      <select id="f-sector">
+        <option value="Information Technology">Information Technology</option>
+        <option value="Health Care">Health Care</option>
+        <option value="Financials">Financials</option>
+        <option value="Consumer Discretionary">Consumer Discretionary</option>
+        <option value="Communication Services">Communication Services</option>
+        <option value="Industrials">Industrials</option>
+        <option value="Consumer Staples">Consumer Staples</option>
+        <option value="Energy">Energy</option>
+        <option value="Utilities">Utilities</option>
+        <option value="Real Estate">Real Estate</option>
+        <option value="Materials">Materials</option>
+      </select>
+    </div>
     <button class="btn-primary" id="savePositionBtn">Add position</button>
     <button class="btn-secondary" id="cancelAddBtn">Cancel</button>
   </div>
@@ -1891,8 +1907,9 @@ const shares = parseFloat($('f-shares').value);
 const cost = parseFloat($('f-cost').value);
 const price = parseFloat($('f-price').value);
 const purchaseDate = $('f-date').value;
+const sector = $('f-sector').value;
 if (!ticker || isNaN(shares) || isNaN(cost)) { showToast('Fill in required fields'); return; }
-positions.push({ ticker, name: $('f-name').value.trim(), shares, cost, price: isNaN(price) ? cost : price, purchaseDate });
+positions.push({ ticker, name: $('f-name').value.trim(), shares, cost, price: isNaN(price) ? cost : price, purchaseDate, sector });
 save();
 $('addModal').classList.remove('open');
 ['f-ticker','f-name','f-shares','f-cost','f-price'].forEach(id => $(id).value = '');
