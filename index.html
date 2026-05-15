@@ -138,10 +138,10 @@
     .modal-subtitle { font-size: 12px; color: var(--text2); margin-bottom: 18px; line-height: 1.5; }
     .field { margin-bottom: 14px; }
     .field label { font-size: 12px; color: var(--text3); display: block; margin-bottom: 6px; font-weight: 500; letter-spacing: 0.3px; }
-    .field input { width: 100%; padding: 12px 14px; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 12px; color: var(--text); font-size: 15px; }
+    .field input { width: 100%; padding: 12px 14px; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 12px; color: var(--text); font-size: 15px; box-sizing: border-box;}
     .field input:focus { outline: none; border-color: var(--accent); }
     .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .field select { width: 100%; padding: 12px 14px; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 12px; color: var(--text); font-size: 15px; appearance: none; -webkit-appearance: none; -moz-appearance: none; cursor: pointer;  /* Custom dropdown arrow */ background-image:   linear-gradient(45deg, transparent 50%, var(--text2) 50%),   linear-gradient(135deg, var(--text2) 50%, transparent 50%); background-position:   calc(100% - 18px) calc(50% - 3px),   calc(100% - 12px) calc(50% - 3px); background-size: 6px 6px, 6px 6px; background-repeat: no-repeat; }
+    .field select { width: 100%; padding: 12px 14px; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 12px; color: var(--text); font-size: 15px; appearance: none; -webkit-appearance: none; -moz-appearance: none; cursor: pointer;  /* Custom dropdown arrow */ background-image:   linear-gradient(45deg, transparent 50%, var(--text2) 50%),   linear-gradient(135deg, var(--text2) 50%, transparent 50%); background-position:   calc(100% - 18px) calc(50% - 3px),   calc(100% - 12px) calc(50% - 3px); background-size: 6px 6px, 6px 6px; background-repeat: no-repeat; box-sizing: border-box;}
     .field select:focus { outline: none; border-color: var(--accent); }
     .btn-primary { width: 100%; padding: 15px; background: var(--accent); color: #fff; border: none; border-radius: 14px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 6px; }
     .btn-secondary { width: 100%; padding: 15px; background: var(--bg3); color: var(--text2); border: none; border-radius: 14px; font-size: 15px; cursor: pointer; margin-top: 8px; }
@@ -357,6 +357,25 @@
       <input class="settings-input" id="maxSectorInput" type="number" placeholder="30" style="width:80px"/> <span style="color:var(--text3);font-size:14px;margin-left:4px">%</span>
     </div>
   </div>
+
+  <div class="section-label" style="margin-top:16px">Buy &amp; Sell Alerts</div>
+  <div class="settings-card">
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">Sell Signal Indicator</div>
+        <div class="settings-sub">Alert when a position's growth exceeds this</div>
+      </div>
+      <input class="settings-input" id="sigAlertInput" type="number" placeholder="100" style="width:80px"/> <span style="color:var(--text3);font-size:14px;margin-left:4px">%</span>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">Sell Warning Indicator</div>
+        <div class="settings-sub">Warn when a position's growth exceeds this</div>
+      </div>
+      <input class="settings-input" id="sigWarnInput" type="number" placeholder="50" style="width:80px"/> <span style="color:var(--text3);font-size:14px;margin-left:4px">%</span>
+    </div>
+  </div>
+  
   <div class="section-label" style="margin-top:16px">Tax settings</div>
   <div class="settings-card">
     <div class="settings-row">
@@ -482,7 +501,7 @@
 <script>
 // ─── State ───────────────────────────────────────────────────────────────────
 let positions = JSON.parse(localStorage.getItem('sp-positions') || '[]');
-let settings = JSON.parse(localStorage.getItem('sp-settings') || '{"apiKey":"","pwaSecret":"","anthropicKey":"","watchlist":"","stRate":32,"ltRate":15,"stateRate":0,"maxPos":10,"maxSector":30}');
+let settings = JSON.parse(localStorage.getItem('sp-settings') || '{"apiKey":"","pwaSecret":"","anthropicKey":"","watchlist":"","stRate":32,"ltRate":15,"stateRate":0,"maxPos":10,"maxSector":30,"sigAlert":100,"sigWarn":50}');
 let liveprices = {};
 let cachedBuyIdeas = null;
 let buyIdeasGeneratedDate = null;
@@ -1032,6 +1051,9 @@ let currentIndicators = {};  // populated by renderPortfolio, reused by renderAl
 function renderPortfolioWithRSIs(rsiMap) {
   currentIndicators = rsiMap;
   const el = $('positionsList');
+  const sigAlert = settings.sigAlert;
+  const sigWarn = settings.sigWarn;
+
   if (positions.length === 0) {
     el.innerHTML = `<div class="empty"><div class="empty-icon">📈</div><div class="empty-title">No positions yet</div><div class="empty-sub">Tap "Add position" to start tracking your portfolio.</div></div>`;
     $('totalValue').textContent = '$0.00';
@@ -1049,8 +1071,8 @@ function renderPortfolioWithRSIs(rsiMap) {
     const ind = rsiMap[p.ticker.toUpperCase()] ?? null;
     const rsi = ind?.rsi ?? null;
     const sellCount = ind?.sellSignals?.length ?? 0;
-    const isAlert = sellCount >= 2 || pnlPct > 25;
-    const isWarn = !isAlert && (sellCount === 1 || pnlPct > 15);
+    const isAlert = sellCount >= 2 || pnlPct > sigAlert;
+    const isWarn = !isAlert && (sellCount === 1 || pnlPct > sigWarn);
     const sector = p.sector || null;
     if (isAlert) alertCount++;
     totalVal += val; totalCost += cost;
@@ -1145,6 +1167,8 @@ async function renderPortfolio() {
 
 function renderAlerts() {
   const el = $('alertsList');
+  const sigAlert = settings.sigAlert;
+  const sigWarn = settings.sigWarn;
   const alerts = positions.map((p, i) => {
     const ind = currentIndicators[p.ticker.toUpperCase()] ?? null;
     const pnl = (p.price - p.cost) / p.cost * 100;
@@ -1155,8 +1179,8 @@ function renderAlerts() {
     const posPct = totalVal > 0 ? (p.price * p.shares / totalVal * 100) : 0;
     const maxPos = settings.maxPos || 10;
     const isSizeAlert = posPct > maxPos;
-    const isAlert = sellCount >= 2 || pnl > 25 || isSizeAlert;
-    const isWarn = !isAlert && (sellCount === 1 || pnl > 15);
+    const isAlert = sellCount >= 2 || pnl > sigAlert || isSizeAlert;
+    const isWarn = !isAlert && (sellCount === 1 || pnl > sigWarn);
     return { ...p, i, ind, pnl, gain, taxInfo, isAlert, isWarn, isSizeAlert, posPct };
   }).filter(p => p.isAlert || p.isWarn);
 
@@ -1167,8 +1191,10 @@ function renderAlerts() {
 
   el.innerHTML = alerts.map(p => {
     const reasons = [...(p.ind?.sellSignals || [])];
-    if (p.pnl > 25) reasons.push(`Up ${fmt(p.pnl)}% — consider taking profits`);
-    else if (p.pnl > 15) reasons.push(`Up ${fmt(p.pnl)}% — watch for exit opportunity`);
+    const sigAlert = settings.sigAlert;
+    const sigWarn = settings.sigWarn;
+    if (p.pnl > sigAlert) reasons.push(`Up ${fmt(p.pnl)}% — consider taking profits`);
+    else if (p.pnl > sigWarn) reasons.push(`Up ${fmt(p.pnl)}% — watch for exit opportunity`);
     if (p.isSizeAlert) reasons.push(`${fmt(p.posPct)}% of portfolio — exceeds ${settings.maxPos || 10}% max position size`);
 
     const lt = isLongTerm(p.purchaseDate);
@@ -1828,6 +1854,8 @@ $('ltRateInput').value = settings.ltRate || 15;
 $('stateRateInput').value = settings.stateRate || 0;
 $('maxPosInput').value = settings.maxPos || 10;
 $('maxSectorInput').value = settings.maxSector || 30;
+$('sigAlertInput').value = settings.maxPos || 100;
+$('sigWarnInput').value = settings.maxSector || 50;
 updateApiStatus(settings.apiKey && settings.pwaSecret ? null : false);
 if (settings.apiKey) checkWorkerStatus();
 }
@@ -1935,6 +1963,8 @@ settings.ltRate = parseFloat($('ltRateInput').value) || 15;
 settings.stateRate = parseFloat($('stateRateInput').value) || 0;
 settings.maxPos = parseFloat($('maxPosInput').value) || 10;
 settings.maxSector = parseFloat($('maxSectorInput').value) || 30;
+settings.sigAlert = parseFloat($('sigAlertInput').value) || 100;
+settings.sigWarn = parseFloat($('sigWarnInput').value) || 50;
 localStorage.setItem('sp-settings', JSON.stringify(settings));
 // Bust buy cache if watchlist changed
 if (oldWatchlist !== settings.watchlist) localStorage.removeItem('sp-buy-cache');
