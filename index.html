@@ -139,8 +139,10 @@
     .field { margin-bottom: 14px; }
     .field label { font-size: 12px; color: var(--text3); display: block; margin-bottom: 6px; font-weight: 500; letter-spacing: 0.3px; }
     .field input { width: 100%; padding: 12px 14px; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 12px; color: var(--text); font-size: 15px; box-sizing: border-box;}
+    .field input[type="date"] { min-width: 0; appearance: none; -webkit-appearance: none; }
     .field input:focus { outline: none; border-color: var(--accent); }
     .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .field-row .field { min-width: 0; }
     .field select { width: 100%; padding: 12px 14px; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 12px; color: var(--text); font-size: 15px; appearance: none; -webkit-appearance: none; -moz-appearance: none; cursor: pointer;  /* Custom dropdown arrow */ background-image:   linear-gradient(45deg, transparent 50%, var(--text2) 50%),   linear-gradient(135deg, var(--text2) 50%, transparent 50%); background-position:   calc(100% - 18px) calc(50% - 3px),   calc(100% - 12px) calc(50% - 3px); background-size: 6px 6px, 6px 6px; background-repeat: no-repeat; box-sizing: border-box;}
     .field select:focus { outline: none; border-color: var(--accent); }
     .btn-primary { width: 100%; padding: 15px; background: var(--accent); color: #fff; border: none; border-radius: 14px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 6px; }
@@ -404,7 +406,7 @@
 
   <div class="section-label" style="margin-top:16px">About</div>
   <div class="settings-card">
-    <div class="settings-row"><div class="settings-label">Version</div><div style="font-size:13px;color:var(--text3)">1.0.2</div></div>
+    <div class="settings-row"><div class="settings-label">Version</div><div style="font-size:13px;color:var(--text3)">1.0.4</div></div>
     <div class="settings-row"><div class="settings-label">Data source</div><div style="font-size:13px;color:var(--text3)">Charles Schwab API</div></div>
     <div class="settings-row"><div><div class="settings-label">Disclaimer</div><div class="settings-sub" style="max-width:220px">Not financial advice. For informational use only.</div></div></div>
   </div>
