@@ -208,6 +208,49 @@
     .pos-alloc-bar-wrap { flex: 1; height: 3px; background: var(--bg4); border-radius: 99px; overflow: hidden; }
     .pos-alloc-bar { height: 100%; border-radius: 99px; }
     .pos-alloc-label { font-size: 10px; color: var(--text3); flex-shrink: 0; min-width: 36px; text-align: right; }
+
+    /* ─── Watchlist Styles ─────────────────────────────────────────────────────── */
+    .wl-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s, background 0.15s; position: relative; }
+    .wl-card:active { background: var(--bg3); }
+    .wl-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .wl-ticker { font-size: 17px; font-weight: 700; }
+    .wl-name { font-size: 12px; color: var(--text3); margin-top: 2px; }
+    .wl-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+    .wl-price-col { text-align: right; }
+    .wl-price { font-size: 17px; font-weight: 600; }
+    .wl-price-chg { font-size: 12px; margin-top: 2px; }
+    .wl-remove-btn { background: var(--red-bg); border: 0.5px solid rgba(255,77,77,0.25); border-radius: 99px; padding: 4px 10px; font-size: 11px; color: var(--red); cursor: pointer; }
+    .wl-refresh-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .wl-last-updated { font-size: 11px; color: var(--text3); }
+    .wl-sort-wrap { display: flex; gap: 5px; }
+    .wl-sort-btn { padding: 4px 10px; border-radius: 8px; border: 0.5px solid var(--border2); background: transparent; color: var(--text3); font-size: 10px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .wl-sort-btn.active { background: var(--blue-bg); color: var(--blue); border-color: rgba(74,158,255,0.3); }
+    .wl-delta-grid { margin-top: 12px; padding-top: 12px; border-top: 0.5px solid var(--border); display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .wl-delta-label { font-size: 10px; color: var(--text3); margin-bottom: 3px; }
+    .wl-delta-val { font-size: 12px; font-weight: 600; }
+    .wl-delta-sub { font-size: 10px; color: var(--text3); margin-top: 1px; }
+    .wl-add-modal-ticker { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .wl-add-modal-sub { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
+    .wl-snapshot-row { background: var(--bg3); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
+    .wl-snapshot-row-label { font-size: 11px; color: var(--text3); margin-bottom: 2px; }
+    .wl-snapshot-row-val { font-size: 15px; font-weight: 600; }
+    .btn-watchlist { width: 100%; padding: 14px; background: var(--blue-bg); color: var(--blue); border: 0.5px solid rgba(74,158,255,0.3); border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-watchlist.added { background: var(--green-bg); color: var(--green); border-color: rgba(0,201,122,0.3); }
+    .corr-filter-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+    .corr-filter-btn { padding: 5px 11px; border-radius: 99px; border: 0.5px solid var(--border2); background: transparent; color: var(--text3); font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .corr-filter-btn.active { background: var(--blue-bg); color: var(--blue); border-color: rgba(74,158,255,0.3); }
+    .corr-matrix-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 16px; }
+    .corr-table { border-collapse: collapse; width: 100%; min-width: 340px; }
+    .corr-table th { font-size: 9px; font-weight: 600; color: var(--text3); padding: 4px 6px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 0.5px solid var(--border); }
+    .corr-table th:first-child { text-align: left; min-width: 68px; }
+    .corr-table td { font-size: 11px; padding: 6px; text-align: center; border-bottom: 0.5px solid var(--border); }
+    .corr-table td:first-child { text-align: left; font-weight: 600; font-size: 12px; color: var(--text); }
+    .corr-cell { display: inline-block; width: 36px; height: 22px; line-height: 22px; border-radius: 5px; font-size: 10px; font-weight: 600; }
+    .corr-section-title { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 10px; }
+    .corr-insight-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
+    .corr-insight-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .corr-insight-desc { font-size: 12px; color: var(--text2); line-height: 1.55; }
+  
   </style>
 </head>
 <body>
@@ -271,6 +314,26 @@
     <div class="section">
       <div class="section-label">Sell signals</div>
       <div id="alertsList"></div>
+    </div>
+  </div>
+
+  <!-- WATCHLIST -->
+  <div class="page" id="page-watchlist">
+    <div class="section">
+      <div class="section-label">Tracked Positions</div>
+      <div id="watchlistRefreshBar" class="wl-refresh-bar" style="display:none">
+        <span class="wl-last-updated" id="wlLastUpdated">—</span>
+        <div class="wl-sort-wrap">
+          <button class="wl-sort-btn active" id="wlSortDate" onclick="setWlSort('date')">Date added</button>
+          <button class="wl-sort-btn" id="wlSortPct" onclick="setWlSort('pct')">% change</button>
+          <button class="wl-sort-btn" id="wlSortRsi" onclick="setWlSort('rsi')">RSI</button>
+        </div>
+      </div>
+      <div id="watchlistCards"></div>
+    </div>
+    <div class="section" style="padding-top:20px">
+      <div class="section-label">Correlation Analysis</div>
+      <div id="corrView"></div>
     </div>
   </div>
 
@@ -433,6 +496,11 @@
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
     <span class="nav-label">Buy Ideas</span>
   </div>
+  <div class="nav-item" data-nav="watchlist" style="position:relative">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    <span id="badge-watchlist" style="display:none;position:absolute;top:2px;right:10px;background:var(--blue);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px"></span>
+    <span class="nav-label">Watchlist</span>
+  </div>
   <div class="nav-item" data-nav="settings">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
     <span class="nav-label">Settings</span>
@@ -500,12 +568,30 @@
   </div>
 </div>
 
+<!-- WATCHLIST DETAIL MODAL -->
+<div class="modal-backdrop" id="wlDetailModal">
+  <div class="modal" style="max-height:88vh">
+    <div class="modal-handle"></div>
+    <div id="wlDetailContent"></div>
+  </div>
+</div>
+
+<!-- ADD TO WATCHLIST CONFIRM MODAL -->
+<div class="modal-backdrop" id="wlAddModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="wlAddContent"></div>
+  </div>
+</div>
+  
 <script>
 // ─── State ───────────────────────────────────────────────────────────────────
 let positions = JSON.parse(localStorage.getItem('sp-positions') || '[]');
 let settings = JSON.parse(localStorage.getItem('sp-settings') || '{"apiKey":"","pwaSecret":"","anthropicKey":"","watchlist":"","stRate":32,"ltRate":15,"stateRate":0,"maxPos":10,"maxSector":30,"sigAlert":100,"sigWarn":50}');
 let liveprices = {};
 let cachedBuyIdeas = null;
+let watchlist = JSON.parse(localStorage.getItem('sp-watchlist') || '[]');
+let wlSort = 'date';
 let buyIdeasGeneratedDate = null;
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
@@ -1713,137 +1799,141 @@ renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, 'buy');
 }
 
 function openBuyDetail(idx) {
-const ideas = cachedBuyIdeas;
-if (!ideas || !ideas[idx]) return;
-const b = ideas[idx];
-currentBuyIdea = b;
-buyChartTicker = b.ticker?.toUpperCase();
-buyChartRange = 1; buyChartMom = 'rsi';
+  const ideas = cachedBuyIdeas;
+  if (!ideas || !ideas[idx]) return;
+  const b = ideas[idx];
+  currentBuyIdea = b;
+  buyChartTicker = b.ticker?.toUpperCase();
+  buyChartRange = 1; buyChartMom = 'rsi';
+  
+  const ind = b.indicators || indicatorCache[b.ticker?.toUpperCase()]?.indicators || null;
+  const fund = b.fundamentals || null;
+  const score = Math.round(b.score);
+  const scoreColor = score >= 80 ? '#00c97a' : score >= 65 ? '#f5a623' : '#999';
+  const priceStr = b.price ? '$' + parseFloat(b.price).toFixed(2) : 'N/A';
+  const chgColor = (b.change || '').startsWith('+') ? 'var(-green)' : 'var(-red)';
+  
+  // Buy signals from indicators
+  const buySignals = ind?.buySignals || [];
+  const sellSignals = ind?.sellSignals || [];
+  
+  // Dividend info
+  let divHTML = '';
+  if (fund) {
+    // dividendYield from Schwab is already a percentage value e.g. 0.3682 = 0.37%
+    const divYield = fund.dividendYield != null ? fund.dividendYield.toFixed(2) + '%' : null;
+    const divAmt = fund.dividendAmount != null ? '$' + parseFloat(fund.dividendAmount).toFixed(2) + '/yr' : null;
+    const divPay = fund.dividendPayAmount != null ? '$' + parseFloat(fund.dividendPayAmount).toFixed(2) + '/payment' : null;
+    const divFreq = fund.dividendFrequency || null;
+    const fmtDate = s => s ? new Date(s).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) : null;
+    const exDiv = fmtDate(fund.dividendDate);
+    const payDate = fmtDate(fund.dividendPayDate);
+    const nextExDiv = fmtDate(fund.nextDividendDate);
+    
+    if (divYield || divAmt) {
+      divHTML = `<div class="detail-section">
+        <div class="detail-section-title">Dividend</div>
+        ${divYield ? `<div class="detail-row"><span class="label">Yield</span><span class="val" style="color:var(--green)">${divYield}</span></div>` : ''}
+        ${divAmt ? `<div class="detail-row"><span class="label">Annual amount</span><span class="val">${divAmt}</span></div>` : ''}
+        ${divPay ? `<div class="detail-row"><span class="label">Per payment</span><span class="val">${divPay}</span></div>` : ''}
+        ${divFreq ? `<div class="detail-row"><span class="label">Frequency</span><span class="val">${divFreq}</span></div>` : ''}
+        ${exDiv ? `<div class="detail-row"><span class="label">Last ex-div date</span><span class="val">${exDiv}</span></div>` : ''}
+        ${payDate ? `<div class="detail-row"><span class="label">Next pay date</span><span class="val" style="color:var(--green)">${payDate}</span></div>` : ''}
+        ${nextExDiv ? `<div class="detail-row"><span class="label">Next ex-div date</span><span class="val">${nextExDiv}</span></div>` : ''}
+      </div>`;
+    } else {
+      divHTML = `<div class="detail-section">
+        <div class="detail-section-title">Dividend</div>
+        <div style="font-size:12px;color:var(--text3)">No dividend — growth/non-dividend stock</div>
+      </div>`;
+    }
 
-const ind = b.indicators || indicatorCache[b.ticker?.toUpperCase()]?.indicators || null;
-const fund = b.fundamentals || null;
-const score = Math.round(b.score);
-const scoreColor = score >= 80 ? '#00c97a' : score >= 65 ? '#f5a623' : '#999';
-const priceStr = b.price ? '$' + parseFloat(b.price).toFixed(2) : 'N/A';
-const chgColor = (b.change || '').startsWith('+') ? 'var(-green)' : 'var(-red)';
+  }
 
-// Buy signals from indicators
-const buySignals = ind?.buySignals || [];
-const sellSignals = ind?.sellSignals || [];
+  // Fundamentals section
+  let fundHTML = '';
+  if (fund) {
+  const pe   = fund.peRatio != null ? fund.peRatio.toFixed(1) : '—';
+  const peg  = fund.pegRatio != null ? fund.pegRatio.toFixed(2) : '—';
+  const eps  = fund.eps != null ? '$' + parseFloat(fund.eps).toFixed(2) : '—';
+  const beta = fund.beta != null ? fund.beta.toFixed(2) : '—';
+  const mcap = fund.marketCap != null
+  ? (fund.marketCap >= 1e12 ? '$' + (fund.marketCap/1e12).toFixed(2) + 'T'
+  : fund.marketCap >= 1e9  ? '$' + (fund.marketCap/1e9).toFixed(1) + 'B'
+  : '$' + (fund.marketCap/1e6).toFixed(0) + 'M') : '—';
+  const high52 = fund.high52 != null ? '$' + fund.high52.toFixed(2) : (ind?.high52 ? '$' + ind.high52.toFixed(2) : '—');
+  const low52  = fund.low52  != null ? '$' + fund.low52.toFixed(2)  : (ind?.low52  ? '$' + ind.low52.toFixed(2)  : '—');
+  fundHTML = `<div class="detail-section"> <div class="detail-section-title">Fundamentals</div> <div class="detail-row"><span class="label">Market cap</span><span class="val">${mcap}</span></div> <div class="detail-row"><span class="label">P/E ratio</span><span class="val">${pe}</span></div> <div class="detail-row"><span class="label">PEG ratio</span><span class="val">${peg}</span></div> <div class="detail-row"><span class="label">EPS (TTM)</span><span class="val">${eps}</span></div> <div class="detail-row"><span class="label">Beta</span><span class="val">${beta}</span></div> <div class="detail-row"><span class="label">52-week range</span><span class="val">${low52} – ${high52}</span></div> </div>`;
+  }
+  
+  $('buyDetailContent').innerHTML = `
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+  <div>
+  <div style="font-size:22px;font-weight:700;color:var(--text)">${b.ticker}</div>
+  <div style="font-size:13px;color:var(--text3);margin-top:2px">${b.name || ''}</div>
+  <div style="font-size:18px;font-weight:600;margin-top:6px">${priceStr} <span style="font-size:13px;color:${chgColor}">${b.change || ''}</span></div>
+  </div>
+  <div style="text-align:center">
+  <div style="font-size:28px;font-weight:700;color:${scoreColor}">${score}</div>
+  <div style="font-size:10px;color:var(--text3)">score</div>
+  </div>
+  </div>
+  
+  
+  <div class="detail-section">
+    <div class="detail-section-title">AI rationale</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.6">${b.reason}</div>
+  </div>
+  
+  <div class="detail-section">
+    <div class="detail-section-title">Technical signals</div>
+    ${buySignals.length ? `<div style="margin-bottom:8px">${buySignals.map(s =>
+      `<span style="display:inline-block;background:var(--green-bg);color:var(--green);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:500;margin:2px">✓ ${s}</span>`
+    ).join('')}</div>` : '<div style="font-size:12px;color:var(--text3);margin-bottom:8px">No buy signals detected</div>'}
+    ${sellSignals.length ? `<div>${sellSignals.map(s =>
+      `<span style="display:inline-block;background:var(--red-bg);color:var(--red);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:500;margin:2px">⚠ ${s}</span>`
+    ).join('')}</div>` : ''}
+    ${ind ? `<div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <div style="background:var(--bg3);border-radius:8px;padding:8px 10px">
+        <div style="font-size:10px;color:var(--text3)">RSI (14)</div>
+        <div style="font-size:14px;font-weight:600;color:${rsiColor(ind.rsi)}">${ind.rsi ?? '—'}</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:8px 10px">
+        <div style="font-size:10px;color:var(--text3)">Bollinger %B</div>
+        <div style="font-size:14px;font-weight:600;color:${ind.bb ? (ind.bb.pct > 80 ? 'var(--red)' : ind.bb.pct < 20 ? 'var(--green)' : 'var(--text2)') : 'var(--text3)'}">${ind.bb ? ind.bb.pct + '%' : '—'}</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:8px 10px">
+        <div style="font-size:10px;color:var(--text3)">MACD</div>
+        <div style="font-size:14px;font-weight:600;color:${ind.macd?.histogram != null ? (ind.macd.histogram > 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)'}">${ind.macd?.histogram != null ? (ind.macd.histogram > 0 ? '▲ Bullish' : '▼ Bearish') : '—'}</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:8px 10px">
+        <div style="font-size:10px;color:var(--text3)">MA trend</div>
+        <div style="font-size:14px;font-weight:600;color:${ind.sma50 && ind.sma200 ? (ind.sma50 > ind.sma200 ? 'var(--green)' : 'var(--red)') : 'var(--text3)'}">${ind.sma50 && ind.sma200 ? (ind.sma50 > ind.sma200 ? '✓ Golden' : '✗ Death') : '—'}</div>
+      </div>
+    </div>` : '<div style="font-size:12px;color:var(--text3)">Indicator data unavailable</div>'}
+  </div>
+  
+  ${divHTML}
+  ${fundHTML}
+  
+  <div class="detail-section">
+    <div class="detail-section-title">Charts</div>
+    ${chartControlsHTML('buy')}
+  </div>
 
-// Dividend info
-let divHTML = '';
-if (fund) {
-// dividendYield from Schwab is already a percentage value e.g. 0.3682 = 0.37%
-const divYield = fund.dividendYield != null ? fund.dividendYield.toFixed(2) + '%' : null;
-const divAmt = fund.dividendAmount != null ? '$' + parseFloat(fund.dividendAmount).toFixed(2) + '/yr' : null;
-const divPay = fund.dividendPayAmount != null ? '$' + parseFloat(fund.dividendPayAmount).toFixed(2) + '/payment' : null;
-const divFreq = fund.dividendFrequency || null;
-const fmtDate = s => s ? new Date(s).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) : null;
-const exDiv = fmtDate(fund.dividendDate);
-const payDate = fmtDate(fund.dividendPayDate);
-const nextExDiv = fmtDate(fund.nextDividendDate);
-
-if (divYield || divAmt) {
-  divHTML = `<div class="detail-section">
-    <div class="detail-section-title">Dividend</div>
-    ${divYield ? `<div class="detail-row"><span class="label">Yield</span><span class="val" style="color:var(--green)">${divYield}</span></div>` : ''}
-    ${divAmt ? `<div class="detail-row"><span class="label">Annual amount</span><span class="val">${divAmt}</span></div>` : ''}
-    ${divPay ? `<div class="detail-row"><span class="label">Per payment</span><span class="val">${divPay}</span></div>` : ''}
-    ${divFreq ? `<div class="detail-row"><span class="label">Frequency</span><span class="val">${divFreq}</span></div>` : ''}
-    ${exDiv ? `<div class="detail-row"><span class="label">Last ex-div date</span><span class="val">${exDiv}</span></div>` : ''}
-    ${payDate ? `<div class="detail-row"><span class="label">Next pay date</span><span class="val" style="color:var(--green)">${payDate}</span></div>` : ''}
-    ${nextExDiv ? `<div class="detail-row"><span class="label">Next ex-div date</span><span class="val">${nextExDiv}</span></div>` : ''}
-  </div>`;
-} else {
-  divHTML = `<div class="detail-section">
-    <div class="detail-section-title">Dividend</div>
-    <div style="font-size:12px;color:var(--text3)">No dividend — growth/non-dividend stock</div>
-  </div>`;
-}
-
-}
-
-// Fundamentals section
-let fundHTML = '';
-if (fund) {
-const pe   = fund.peRatio != null ? fund.peRatio.toFixed(1) : '—';
-const peg  = fund.pegRatio != null ? fund.pegRatio.toFixed(2) : '—';
-const eps  = fund.eps != null ? '$' + parseFloat(fund.eps).toFixed(2) : '—';
-const beta = fund.beta != null ? fund.beta.toFixed(2) : '—';
-const mcap = fund.marketCap != null
-? (fund.marketCap >= 1e12 ? '$' + (fund.marketCap/1e12).toFixed(2) + 'T'
-: fund.marketCap >= 1e9  ? '$' + (fund.marketCap/1e9).toFixed(1) + 'B'
-: '$' + (fund.marketCap/1e6).toFixed(0) + 'M') : '—';
-const high52 = fund.high52 != null ? '$' + fund.high52.toFixed(2) : (ind?.high52 ? '$' + ind.high52.toFixed(2) : '—');
-const low52  = fund.low52  != null ? '$' + fund.low52.toFixed(2)  : (ind?.low52  ? '$' + ind.low52.toFixed(2)  : '—');
-fundHTML = `<div class="detail-section"> <div class="detail-section-title">Fundamentals</div> <div class="detail-row"><span class="label">Market cap</span><span class="val">${mcap}</span></div> <div class="detail-row"><span class="label">P/E ratio</span><span class="val">${pe}</span></div> <div class="detail-row"><span class="label">PEG ratio</span><span class="val">${peg}</span></div> <div class="detail-row"><span class="label">EPS (TTM)</span><span class="val">${eps}</span></div> <div class="detail-row"><span class="label">Beta</span><span class="val">${beta}</span></div> <div class="detail-row"><span class="label">52-week range</span><span class="val">${low52} – ${high52}</span></div> </div>`;
-}
-
-$('buyDetailContent').innerHTML = `
-<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
-<div>
-<div style="font-size:22px;font-weight:700;color:var(--text)">${b.ticker}</div>
-<div style="font-size:13px;color:var(--text3);margin-top:2px">${b.name || ''}</div>
-<div style="font-size:18px;font-weight:600;margin-top:6px">${priceStr} <span style="font-size:13px;color:${chgColor}">${b.change || ''}</span></div>
-</div>
-<div style="text-align:center">
-<div style="font-size:28px;font-weight:700;color:${scoreColor}">${score}</div>
-<div style="font-size:10px;color:var(--text3)">score</div>
-</div>
-</div>
-
-
-<div class="detail-section">
-  <div class="detail-section-title">AI rationale</div>
-  <div style="font-size:13px;color:var(--text2);line-height:1.6">${b.reason}</div>
-</div>
-
-<div class="detail-section">
-  <div class="detail-section-title">Technical signals</div>
-  ${buySignals.length ? `<div style="margin-bottom:8px">${buySignals.map(s =>
-    `<span style="display:inline-block;background:var(--green-bg);color:var(--green);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:500;margin:2px">✓ ${s}</span>`
-  ).join('')}</div>` : '<div style="font-size:12px;color:var(--text3);margin-bottom:8px">No buy signals detected</div>'}
-  ${sellSignals.length ? `<div>${sellSignals.map(s =>
-    `<span style="display:inline-block;background:var(--red-bg);color:var(--red);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:500;margin:2px">⚠ ${s}</span>`
-  ).join('')}</div>` : ''}
-  ${ind ? `<div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px">
-    <div style="background:var(--bg3);border-radius:8px;padding:8px 10px">
-      <div style="font-size:10px;color:var(--text3)">RSI (14)</div>
-      <div style="font-size:14px;font-weight:600;color:${rsiColor(ind.rsi)}">${ind.rsi ?? '—'}</div>
-    </div>
-    <div style="background:var(--bg3);border-radius:8px;padding:8px 10px">
-      <div style="font-size:10px;color:var(--text3)">Bollinger %B</div>
-      <div style="font-size:14px;font-weight:600;color:${ind.bb ? (ind.bb.pct > 80 ? 'var(--red)' : ind.bb.pct < 20 ? 'var(--green)' : 'var(--text2)') : 'var(--text3)'}">${ind.bb ? ind.bb.pct + '%' : '—'}</div>
-    </div>
-    <div style="background:var(--bg3);border-radius:8px;padding:8px 10px">
-      <div style="font-size:10px;color:var(--text3)">MACD</div>
-      <div style="font-size:14px;font-weight:600;color:${ind.macd?.histogram != null ? (ind.macd.histogram > 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)'}">${ind.macd?.histogram != null ? (ind.macd.histogram > 0 ? '▲ Bullish' : '▼ Bearish') : '—'}</div>
-    </div>
-    <div style="background:var(--bg3);border-radius:8px;padding:8px 10px">
-      <div style="font-size:10px;color:var(--text3)">MA trend</div>
-      <div style="font-size:14px;font-weight:600;color:${ind.sma50 && ind.sma200 ? (ind.sma50 > ind.sma200 ? 'var(--green)' : 'var(--red)') : 'var(--text3)'}">${ind.sma50 && ind.sma200 ? (ind.sma50 > ind.sma200 ? '✓ Golden' : '✗ Death') : '—'}</div>
-    </div>
-  </div>` : '<div style="font-size:12px;color:var(--text3)">Indicator data unavailable</div>'}
-</div>
-
-${divHTML}
-${fundHTML}
-
-<div class="detail-section">
-  <div class="detail-section-title">Charts</div>
-  ${chartControlsHTML('buy')}
-</div>
-
-<button class="btn-secondary" onclick="$('buyDetailModal').classList.remove('open')" style="margin-top:8px">Close</button>
-
-
-`;
-
-$('buyDetailModal').classList.add('open');
-$('buyDetailModal').onclick = e => { if (e.target === $('buyDetailModal')) $('buyDetailModal').classList.remove('open'); };
-
-renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, 'buy');
+  <button class="btn-watchlist ${isOnWatchlist(b.ticker) ? 'added' : ''}" onclick="openWlAddModal('${b.ticker}','${b.name}','')">
+  ${isOnWatchlist(b.ticker) ? '✓ On Watchlist' : '+ Add to Watchlist'}
+  </button>
+  
+  <button class="btn-secondary" onclick="$('buyDetailModal').classList.remove('open')" style="margin-top:8px">Close</button>
+  
+  
+  `;
+  
+  $('buyDetailModal').classList.add('open');
+  $('buyDetailModal').onclick = e => { if (e.target === $('buyDetailModal')) $('buyDetailModal').classList.remove('open'); };
+  
+  renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, 'buy');
 }
 
 function renderSettings() {
@@ -1911,87 +2001,89 @@ showToast(`${t} removed`);
 
 // ─── Event listeners ──────────────────────────────────────────────────────────
 function navigateTo(tab) {
-document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
-document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-const navItem = document.querySelector(`.nav-item[data-nav="${tab}"]`);
-if (navItem) navItem.classList.add('active');
-$('page-' + tab).classList.add('active');
-activeTab = tab;
-if (tab === 'alerts') renderAlerts();
-if (tab === 'buys') renderBuys();
-if (tab === 'settings') renderSettings();
+  document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const navItem = document.querySelector(`.nav-item[data-nav="${tab}"]`);
+  if (navItem) navItem.classList.add('active');
+  $('page-' + tab).classList.add('active');
+  activeTab = tab;
+  if (tab === 'alerts') renderAlerts();
+  if (tab === 'buys') renderBuys();
+  if (tab === 'settings') renderSettings();
+  if (tab === 'watchlist') renderWatchlist();
 }
 
 document.querySelectorAll('.nav-item').forEach(n => {
-n.addEventListener('click', () => navigateTo(n.dataset.nav));
+  n.addEventListener('click', () => navigateTo(n.dataset.nav));
 });
 
 $('addBtn').addEventListener('click', () => {
-$('f-date').valueAsDate = new Date();
-$('addModal').classList.add('open');
+  $('f-date').valueAsDate = new Date();
+  $('addModal').classList.add('open');
 });
 $('cancelAddBtn').addEventListener('click', () => $('addModal').classList.remove('open'));
 $('detailModal').addEventListener('click', e => { if (e.target === $('detailModal')) closeDetail(); });
 $('addModal').addEventListener('click', e => { if (e.target === $('addModal')) $('addModal').classList.remove('open'); });
 
 $('savePositionBtn').addEventListener('click', () => {
-const ticker = $('f-ticker').value.trim().toUpperCase();
-const shares = parseFloat($('f-shares').value);
-const cost = parseFloat($('f-cost').value);
-const price = parseFloat($('f-price').value);
-const purchaseDate = $('f-date').value;
-const sector = $('f-sector').value;
-if (!ticker || isNaN(shares) || isNaN(cost)) { showToast('Fill in required fields'); return; }
-positions.push({ ticker, name: $('f-name').value.trim(), shares, cost, price: isNaN(price) ? cost : price, purchaseDate, sector });
-save();
-$('addModal').classList.remove('open');
-['f-ticker','f-name','f-shares','f-cost','f-price'].forEach(id => $(id).value = '');
-renderAll();
-showToast(`${ticker} added`);
-if (settings.apiKey) {
-  refreshPrices();
-  enrichPositionSector(ticker);
-}
+  const ticker = $('f-ticker').value.trim().toUpperCase();
+  const shares = parseFloat($('f-shares').value);
+  const cost = parseFloat($('f-cost').value);
+  const price = parseFloat($('f-price').value);
+  const purchaseDate = $('f-date').value;
+  const sector = $('f-sector').value;
+  if (!ticker || isNaN(shares) || isNaN(cost)) { showToast('Fill in required fields'); return; }
+  positions.push({ ticker, name: $('f-name').value.trim(), shares, cost, price: isNaN(price) ? cost : price, purchaseDate, sector });
+  save();
+  $('addModal').classList.remove('open');
+  ['f-ticker','f-name','f-shares','f-cost','f-price'].forEach(id => $(id).value = '');
+  renderAll();
+  showToast(`${ticker} added`);
+  if (settings.apiKey) {
+    refreshPrices();
+    enrichPositionSector(ticker);
+  }
 });
 
 $('saveSettingsBtn').addEventListener('click', () => {
-const oldWatchlist = settings.watchlist;
-settings.apiKey = $('apiKeyInput').value.trim().replace(/\/+$/, '');  // strip trailing slash
-settings.pwaSecret = $('pwaSecretInput').value.trim();
-settings.anthropicKey = $('anthropicKeyInput').value.trim();
-settings.watchlist = $('watchlistInput').value.trim();
-settings.stRate = parseFloat($('stRateInput').value) || 32;
-settings.ltRate = parseFloat($('ltRateInput').value) || 15;
-settings.stateRate = parseFloat($('stateRateInput').value) || 0;
-settings.maxPos = parseFloat($('maxPosInput').value) || 10;
-settings.maxSector = parseFloat($('maxSectorInput').value) || 30;
-settings.sigAlert = parseFloat($('sigAlertInput').value) || 100;
-settings.sigWarn = parseFloat($('sigWarnInput').value) || 50;
-localStorage.setItem('sp-settings', JSON.stringify(settings));
-// Bust buy cache if watchlist changed
-if (oldWatchlist !== settings.watchlist) localStorage.removeItem('sp-buy-cache');
-showToast('Settings saved');
-updateApiStatus(settings.apiKey ? null : false);
-renderAll();
+  const oldWatchlist = settings.watchlist;
+  settings.apiKey = $('apiKeyInput').value.trim().replace(/\/+$/, '');
+  settings.pwaSecret = $('pwaSecretInput').value.trim();
+  settings.anthropicKey = $('anthropicKeyInput').value.trim();
+  settings.watchlist = $('watchlistInput').value.trim();
+  settings.stRate = parseFloat($('stRateInput').value) || 32;
+  settings.ltRate = parseFloat($('ltRateInput').value) || 15;
+  settings.stateRate = parseFloat($('stateRateInput').value) || 0;
+  settings.maxPos = parseFloat($('maxPosInput').value) || 10;
+  settings.maxSector = parseFloat($('maxSectorInput').value) || 30;
+  settings.sigAlert = parseFloat($('sigAlertInput').value) || 100;
+  settings.sigWarn = parseFloat($('sigWarnInput').value) || 50;
+  localStorage.setItem('sp-settings', JSON.stringify(settings));
+  if (oldWatchlist !== settings.watchlist) localStorage.removeItem('sp-buy-cache');
+  showToast('Settings saved');
+  updateApiStatus(settings.apiKey ? null : false);
+  renderAll();
 });
 
-let activeTab = 'portfolio';  // updated by navigateTo()
+let activeTab = 'portfolio';
 
 $('refreshBtn').addEventListener('click', () => {
-if (activeTab === 'buys') {
-loadBuyIdeas(true);
-} else {
-refreshPrices();
-}
+  if (activeTab === 'buys') {
+    loadBuyIdeas(true);
+  } else if (activeTab === 'watchlist') {
+    refreshWatchlistPrices().then(() => { renderWatchlistCards(); renderCorrView(); });
+  } else {
+    refreshPrices();
+  }
 });
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 renderBuys();
 renderAll();
+updateWlBadge();
 updateApiStatus(settings.apiKey && settings.pwaSecret ? null : false);
 if (settings.apiKey && settings.pwaSecret && positions.length > 0) {
   refreshPrices();
-  // Backfill sectors for any positions that don't have one yet
   positions.filter(p => !p.sector).forEach(p => enrichPositionSector(p.ticker));
 }
 </script>
