@@ -469,7 +469,7 @@
 
   <div class="section-label" style="margin-top:16px">About</div>
   <div class="settings-card">
-    <div class="settings-row"><div class="settings-label">Version</div><div style="font-size:13px;color:var(--text3)">1.1.5</div></div>
+    <div class="settings-row"><div class="settings-label">Version</div><div style="font-size:13px;color:var(--text3)">1.1.6</div></div>
     <div class="settings-row"><div class="settings-label">Data source</div><div style="font-size:13px;color:var(--text3)">Charles Schwab API</div></div>
     <div class="settings-row"><div><div class="settings-label">Disclaimer</div><div class="settings-sub" style="max-width:220px">Not financial advice. For informational use only.</div></div></div>
   </div>
@@ -1921,8 +1921,16 @@ function openBuyDetail(idx) {
     ${chartControlsHTML('buy')}
   </div>
 
-  <button class="btn-watchlist ${isOnWatchlist(b.ticker) ? 'added' : ''}" onclick="openWlAddModal('${b.ticker}','${b.name}','${b.fundamentals.sector}',JSON.parse(`${JSON.stringify(JSON.stringify(ind))}`})">
-  ${isOnWatchlist(b.ticker) ? '✓ On Watchlist' : '+ Add to Watchlist'}
+  <button
+    class="btn-watchlist ${isOnWatchlist(b.ticker) ? 'added' : ''}"
+    onclick='openWlAddModal(
+      "${b.ticker}",
+      "${b.name}",
+      "${b.fundamentals.sector}",
+      ${JSON.stringify(ind).replace(/'/g, "&apos;")}
+    )'
+  >
+    ${isOnWatchlist(b.ticker) ? '✓ On Watchlist' : '+ Add to Watchlist'}
   </button>
   
   <button class="btn-secondary" onclick="$('buyDetailModal').classList.remove('open')" style="margin-top:8px">Close</button>
