@@ -469,7 +469,7 @@
 
   <div class="section-label" style="margin-top:16px">About</div>
   <div class="settings-card">
-    <div class="settings-row"><div class="settings-label">Version</div><div style="font-size:13px;color:var(--text3)">1.1.1</div></div>
+    <div class="settings-row"><div class="settings-label">Version</div><div style="font-size:13px;color:var(--text3)">1.1.2</div></div>
     <div class="settings-row"><div class="settings-label">Data source</div><div style="font-size:13px;color:var(--text3)">Charles Schwab API</div></div>
     <div class="settings-row"><div><div class="settings-label">Disclaimer</div><div class="settings-sub" style="max-width:220px">Not financial advice. For informational use only.</div></div></div>
   </div>
@@ -1921,7 +1921,7 @@ function openBuyDetail(idx) {
     ${chartControlsHTML('buy')}
   </div>
 
-  <button class="btn-watchlist ${isOnWatchlist(b.ticker) ? 'added' : ''}" onclick="openWlAddModal('${b.ticker}','${b.name}','')">
+  <button class="btn-watchlist ${isOnWatchlist(b.ticker) ? 'added' : ''}" onclick="openWlAddModal('${b.ticker}','${b.name}','${b.fundamentals.sector}','${ind}')">
   ${isOnWatchlist(b.ticker) ? '✓ On Watchlist' : '+ Add to Watchlist'}
   </button>
   
@@ -2216,10 +2216,10 @@ function openWlDetail(ticker) {
   $('wlDetailModal').onclick = e => { if (e.target === $('wlDetailModal')) $('wlDetailModal').classList.remove('open'); };
 }
 
-function openWlAddModal(ticker, name, sector) {
+function openWlAddModal(ticker, name, sector, ind) {
   const up = ticker.toUpperCase();
   if (isOnWatchlist(up)) { showToast(`${up} is already on watchlist`); return; }
-  const ind = (typeof currentIndicators !== 'undefined' && currentIndicators[up]) || null;
+  //const ind = (typeof currentIndicators !== 'undefined' && currentIndicators[up]) || null;
   const fields = [
     { label:'Price',     val: ind?.price ? '$'+ind.price.toFixed(2) : 'Will fetch on add' },
     { label:'RSI (14)',  val: ind?.rsi ?? 'N/A' },
