@@ -126,7 +126,12 @@ function renderPortfolioWithRSIs(rsiMap) {
 
     const macdH = ind?.macd?.histogram ?? null;
     const macdC = macdH !== null ? (macdH > 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)';
-    const macdText = macdH !== null ? (macdH > 0 ? '▲ Bullish' : '▼ Bearish') : 'Loading…';
+    const macdMomentum = ind?.macd?.momentumLabel ?? null;
+    const macdDiv = ind?.macd?.divergenceType ?? null;
+    let macdText = macdH !== null ? (macdH > 0 ? '▲ Bullish' : '▼ Bearish') : 'Loading…';
+    if (macdMomentum && macdMomentum !== 'Flat') macdText += ` · ${macdMomentum}`;
+    else if (macdDiv === 'bullish') macdText += ' · Div ↑';
+    else if (macdDiv === 'bearish') macdText += ' · Div ↓';
     const macdBarW = macdH !== null ? Math.min(Math.abs(macdH) * 200, 100) + '%' : '50%';
 
     const alertPill = isAlert ? `<span class="pill pill-red">Sell signal</span>` : isWarn ? `<span class="pill pill-amber">Watch</span>` : '';
@@ -221,12 +226,76 @@ function openDetail(idx) {
     taxHTML = `<div class="detail-section"> <div class="detail-section-title">Tax implications</div> <div style="background:var(--green-bg);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--green)"> This position has an unrealized loss of ${fmtUSD(Math.abs(gain))}. Selling would harvest a tax loss you can use to offset other gains (tax-loss harvesting). </div> </div>`;
   }
 
-  $('detailContent').innerHTML = `<div class="modal-title">${p.ticker} <span style="font-size:14px;color:var(--text3);font-weight:400">${p.name || ''}</span></div> <div class="modal-subtitle">${p.sector || 'Other'}</div> <div class="detail-section"> <div class="detail-section-title">Position summary</div> <div class="detail-row"><span class="label">Shares</span><span class="val">${fmt(p.shares, 4)}</span></div> <div class="detail-row"><span class="label">Avg cost</span><span class="val">${fmtUSD(p.cost)}</span></div> <div class="detail-row"><span class="label">Current price</span><span class="val">${fmtUSD(p.price)}</span></div> <div class="detail-row"><span class="label">Market value</span><span class="val">${fmtUSD(val)}</span></div> <div class="detail-row"><span class="label">Cost basis</span><span class="val">${fmtUSD(costBasis)}</span></div> <div class="detail-row"><span class="label">Unrealized gain/loss</span><span class="val" style="color:${gain >= 0 ? 'var(--green)' : 'var(--red)'}">${gain >= 0 ? '+' : ''}${fmtUSD(gain)} (${fmt(pnlPct)}%)</span></div> <div class="detail-row"><span class="label">Purchase date</span><span class="val">${p.purchaseDate ? new Date(p.purchaseDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'}</span></div> <div class="detail-row"><span class="label">Holding period</span><span class="val">${holdingLabel(p.purchaseDate)} <span class="pill ${lt ? 'pill-green' : 'pill-amber'}" style="font-size:10px">${lt ? 'Long-term' : 'Short-term'}</span></span></div> </div> <div class="detail-section"> <div class="detail-section-title">Technical signals</div> <div class="detail-row"><span class="label">RSI (14)</span><span class="val" style="color:${rsi !== null ? rsiColor(rsi) : 'var(--text3)'}">${rsi !== null ? rsi + ' · ' + rsiLabel(rsi) : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">SMA 50 / 200</span><span class="val" style="color:var(--text2)">${ind?.sma50 ? '$'+ind.sma50.toFixed(2) : '—'} / ${ind?.sma200 ? '$'+ind.sma200.toFixed(2) : '—'}</span></div> <div class="detail-row"><span class="label">MA trend</span><span class="val">${ind?.sma50 && ind?.sma200 ? (ind.sma50 > ind.sma200 ? '🟢 Golden cross' : '🔴 Death cross') : '—'}</span></div> <div class="detail-row"><span class="label">Bollinger %B</span><span class="val" style="color:${ind?.bb ? (ind.bb.pct > 80 ? 'var(--red)' : ind.bb.pct < 20 ? 'var(--green)' : 'var(--text2)') : 'var(--text3)'}">${ind?.bb ? ind.bb.pct + '% (' + (ind.bb.pct > 80 ? 'near upper band' : ind.bb.pct < 20 ? 'near lower band' : 'mid-band') + ')' : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">MACD</span><span class="val" style="color:${ind?.macd?.histogram != null ? (ind.macd.histogram > 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)'}">${ind?.macd?.histogram != null ? (ind.macd.histogram > 0 ? '▲ Bullish histogram' : '▼ Bearish histogram') : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">Volume vs avg</span><span class="val" style="color:${ind?.volRatio != null ? (ind.volRatio > 1.5 ? 'var(--amber)' : 'var(--text2)') : 'var(--text3)'}">${ind?.volRatio != null ? (ind.volRatio * 100).toFixed(0) + '% of 20-day avg' : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">Sell signals</span><span class="val" style="color:${ind?.sellSignals?.length ? 'var(--red)' : 'var(--green)'}">${ind?.sellSignals?.length ? ind.sellSignals.join(', ') : '✓ None'}</span></div> <div class="detail-row"><span class="label">Buy signals</span><span class="val" style="color:${ind?.buySignals?.length ? 'var(--green)' : 'var(--text3)'}">${ind?.buySignals?.length ? ind.buySignals.join(', ') : 'None'}</span></div> </div> ${taxHTML} <div class="detail-section"> <div class="detail-section-title">Charts</div> ${chartControlsHTML('pos')} </div> <button class="delete-btn" onclick="deletePosition(${idx})">Remove position</button> <button class="btn-secondary" onclick="closeDetail()">Close</button>`;
+  const macdMomentumRow = ind?.macd ? (() => {
+    const m = ind.macd;
+    const slopeStr = m.slope != null ? (m.slope > 0 ? '+' : '') + m.slope.toFixed(4) + '/bar' : '—';
+    const rocStr = m.roc != null ? (m.roc > 0 ? '+' : '') + m.roc.toFixed(2) + '%' : '—';
+    const divColor = m.divergenceType === 'bullish' ? 'var(--green)' : m.divergenceType === 'bearish' ? 'var(--red)' : 'var(--text3)';
+    const divLabel = m.divergenceType === 'bullish' ? '▲ Bullish divergence' : m.divergenceType === 'bearish' ? '▼ Bearish divergence' : m.divergenceType === 'none' ? 'None' : '—';
+    const momColor = m.momentumLabel?.includes('↑') ? 'var(--green)' : m.momentumLabel?.includes('↓') ? 'var(--red)' : 'var(--text3)';
+    return `<div class="detail-row"><span class="label">MACD momentum</span><span class="val" style="color:${momColor}">${m.momentumLabel || '—'}</span></div>
+    <div class="detail-row"><span class="label">MACD slope</span><span class="val" style="color:${momColor}">${slopeStr}</span></div>
+    <div class="detail-row"><span class="label">MACD rate of change</span><span class="val">${rocStr}</span></div>
+    <div class="detail-row"><span class="label">MACD divergence</span><span class="val" style="color:${divColor}">${divLabel}</span></div>`;
+  })() : '';
+
+  $('detailContent').innerHTML = `<div class="modal-title">${p.ticker} <span style="font-size:14px;color:var(--text3);font-weight:400">${p.name || ''}</span></div> <div class="modal-subtitle" style="display:flex;align-items:center;justify-content:space-between">${p.sector || 'Other'}<button class="edit-meta-btn" onclick="openEditPositionModal(${idx})">✏️ Edit</button></div> <div class="detail-section"> <div class="detail-section-title">Position summary</div> <div class="detail-row"><span class="label">Shares</span><span class="val">${fmt(p.shares, 4)}</span></div> <div class="detail-row"><span class="label">Avg cost</span><span class="val">${fmtUSD(p.cost)}</span></div> <div class="detail-row"><span class="label">Current price</span><span class="val">${fmtUSD(p.price)}</span></div> <div class="detail-row"><span class="label">Market value</span><span class="val">${fmtUSD(val)}</span></div> <div class="detail-row"><span class="label">Cost basis</span><span class="val">${fmtUSD(costBasis)}</span></div> <div class="detail-row"><span class="label">Unrealized gain/loss</span><span class="val" style="color:${gain >= 0 ? 'var(--green)' : 'var(--red)'}">${gain >= 0 ? '+' : ''}${fmtUSD(gain)} (${fmt(pnlPct)}%)</span></div> <div class="detail-row"><span class="label">Purchase date</span><span class="val">${p.purchaseDate ? new Date(p.purchaseDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'}</span></div> <div class="detail-row"><span class="label">Holding period</span><span class="val">${holdingLabel(p.purchaseDate)} <span class="pill ${lt ? 'pill-green' : 'pill-amber'}" style="font-size:10px">${lt ? 'Long-term' : 'Short-term'}</span></span></div> </div> <div class="detail-section"> <div class="detail-section-title">Technical signals</div> <div class="detail-row"><span class="label">RSI (14)</span><span class="val" style="color:${rsi !== null ? rsiColor(rsi) : 'var(--text3)'}">${rsi !== null ? rsi + ' · ' + rsiLabel(rsi) : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">SMA 50 / 200</span><span class="val" style="color:var(--text2)">${ind?.sma50 ? '$'+ind.sma50.toFixed(2) : '—'} / ${ind?.sma200 ? '$'+ind.sma200.toFixed(2) : '—'}</span></div> <div class="detail-row"><span class="label">MA trend</span><span class="val">${ind?.sma50 && ind?.sma200 ? (ind.sma50 > ind.sma200 ? '🟢 Golden cross' : '🔴 Death cross') : '—'}</span></div> <div class="detail-row"><span class="label">Bollinger %B</span><span class="val" style="color:${ind?.bb ? (ind.bb.pct > 80 ? 'var(--red)' : ind.bb.pct < 20 ? 'var(--green)' : 'var(--text2)') : 'var(--text3)'}">${ind?.bb ? ind.bb.pct + '% (' + (ind.bb.pct > 80 ? 'near upper band' : ind.bb.pct < 20 ? 'near lower band' : 'mid-band') + ')' : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">MACD</span><span class="val" style="color:${ind?.macd?.histogram != null ? (ind.macd.histogram > 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)'}">${ind?.macd?.histogram != null ? (ind.macd.histogram > 0 ? '▲ Bullish histogram' : '▼ Bearish histogram') : 'Unavailable'}</span></div> ${macdMomentumRow} <div class="detail-row"><span class="label">Volume vs avg</span><span class="val" style="color:${ind?.volRatio != null ? (ind.volRatio > 1.5 ? 'var(--amber)' : 'var(--text2)') : 'var(--text3)'}">${ind?.volRatio != null ? (ind.volRatio * 100).toFixed(0) + '% of 20-day avg' : 'Unavailable'}</span></div> <div class="detail-row"><span class="label">Sell signals</span><span class="val" style="color:${ind?.sellSignals?.length ? 'var(--red)' : 'var(--green)'}">${ind?.sellSignals?.length ? ind.sellSignals.join(', ') : '✓ None'}</span></div> <div class="detail-row"><span class="label">Buy signals</span><span class="val" style="color:${ind?.buySignals?.length ? 'var(--green)' : 'var(--text3)'}">${ind?.buySignals?.length ? ind.buySignals.join(', ') : 'None'}</span></div> </div> ${taxHTML} <div class="detail-section"> <div class="detail-section-title">Charts</div> ${chartControlsHTML('pos')} </div> <button class="delete-btn" onclick="deletePosition(${idx})">Remove position</button> <button class="btn-secondary" onclick="closeDetail()">Close</button>`;
   $('detailModal').classList.add('open');
   renderTwoPanel(posChartTicker, posChartRange, posChartMom, 'pos');
 }
 
 function closeDetail() { $('detailModal').classList.remove('open'); }
+
+// ─── Edit Position Metadata Modal ─────────────────────────────────────────────
+function openEditPositionModal(idx) {
+  const p = positions[idx];
+  if (!p) return;
+  const sectorOptions = ['Other','Information Technology','Health Care','Financials',
+    'Consumer Discretionary','Communication Services','Industrials','Consumer Staples',
+    'Energy','Utilities','Real Estate','Materials'];
+  $('editMetaContent').innerHTML = `
+    <div class="modal-title">Edit Position</div>
+    <div class="modal-subtitle">Update metadata for ${p.ticker}</div>
+    <div class="field-row">
+      <div class="field"><label>TICKER</label><input id="em-ticker" value="${p.ticker}" style="text-transform:uppercase" readonly/></div>
+      <div class="field"><label>COMPANY NAME</label><input id="em-name" value="${p.name || ''}" placeholder="e.g. Apple Inc."/></div>
+    </div>
+    <div class="field">
+      <label>SECTOR</label>
+      <select id="em-sector">
+        ${sectorOptions.map(s => `<option value="${s}" ${(p.sector||'Other')===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>SHARES</label><input id="em-shares" type="number" step="0.0001" value="${p.shares}"/></div>
+      <div class="field"><label>AVG COST / SHARE</label><input id="em-cost" type="number" step="0.01" value="${p.cost}"/></div>
+    </div>
+    <div class="field"><label>PURCHASE DATE</label><input id="em-date" type="date" value="${p.purchaseDate || ''}"/></div>
+    <button class="btn-primary" onclick="saveEditPosition(${idx})">Save changes</button>
+    <button class="btn-secondary" onclick="$('editMetaModal').classList.remove('open')">Cancel</button>
+  `;
+  $('editMetaModal').classList.add('open');
+  $('editMetaModal').onclick = e => { if (e.target === $('editMetaModal')) $('editMetaModal').classList.remove('open'); };
+}
+
+function saveEditPosition(idx) {
+  const p = positions[idx];
+  if (!p) return;
+  const name = $('em-name').value.trim();
+  const sector = $('em-sector').value;
+  const shares = parseFloat($('em-shares').value);
+  const cost = parseFloat($('em-cost').value);
+  const date = $('em-date').value;
+  if (isNaN(shares) || shares <= 0) { showToast('Shares must be a positive number'); return; }
+  if (isNaN(cost) || cost <= 0) { showToast('Cost must be a positive number'); return; }
+  positions[idx] = { ...p, name: name || p.ticker, sector, shares, cost, purchaseDate: date || p.purchaseDate };
+  save();
+  $('editMetaModal').classList.remove('open');
+  renderAll();
+  // Reopen detail with fresh data
+  setTimeout(() => openDetail(idx), 50);
+  showToast(`${p.ticker} updated ✓`);
+}
 
 function deletePosition(idx) {
   const t = positions[idx].ticker;
