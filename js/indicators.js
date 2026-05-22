@@ -38,16 +38,76 @@ function calcMACD(closes) {
   const ema26 = calcEMA(closes, 26);
   if (ema12 === null || ema26 === null) return null;
   const macdLine = ema12 - ema26;
+
+  // Build MACD line series for the last 9 bars (for signal) + extra bars for momentum
+  const lookback = Math.min(closes.length - 26, 20); // up to 20 bars of MACD history
   const macdSeries = [];
-  for (let i = closes.length - 9; i <= closes.length - 1; i++) {
+  for (let i = closes.length - lookback; i <= closes.length - 1; i++) {
     const e12 = calcEMA(closes.slice(0, i + 1), 12);
     const e26 = calcEMA(closes.slice(0, i + 1), 26);
     if (e12 !== null && e26 !== null) macdSeries.push(e12 - e26);
   }
-  const signal = macdSeries.length > 0
-    ? macdSeries.reduce((a, b) => a + b, 0) / macdSeries.length : null;
+
+  // Signal line = 9-period EMA of MACD (proper EMA, not simple average)
+  let signal = null;
+  if (macdSeries.length >= 9) {
+    signal = calcEMA(macdSeries, 9);
+  } else if (macdSeries.length > 0) {
+    signal = macdSeries.reduce((a, b) => a + b, 0) / macdSeries.length;
+  }
   const histogram = signal !== null ? macdLine - signal : null;
-  return { macdLine, signal, histogram };
+
+  // ── Momentum metrics ──────────────────────────────────────────────────────
+
+  // Slope: rate of change of the MACD line over the last 3 bars
+  let slope = null;
+  if (macdSeries.length >= 3) {
+    const recent = macdSeries.slice(-3);
+    slope = (recent[2] - recent[0]) / 2; // average rise per bar
+  }
+
+  // Divergence: compare MACD direction vs price direction over last 5 bars
+  // Positive = bullish divergence (price falling, MACD rising)
+  // Negative = bearish divergence (price rising, MACD falling)
+  let divergence = null;
+  let divergenceType = null;
+  if (macdSeries.length >= 5 && closes.length >= 5) {
+    const priceDelta = closes[closes.length - 1] - closes[closes.length - 5];
+    const macdDelta = macdSeries[macdSeries.length - 1] - macdSeries[macdSeries.length - 5];
+    // Divergence exists when price and MACD move in opposite directions
+    if (priceDelta < 0 && macdDelta > 0) {
+      divergence = Math.abs(macdDelta); // bullish
+      divergenceType = 'bullish';
+    } else if (priceDelta > 0 && macdDelta < 0) {
+      divergence = -Math.abs(macdDelta); // bearish
+      divergenceType = 'bearish';
+    } else {
+      divergence = 0;
+      divergenceType = 'none';
+    }
+  }
+
+  // Rate of change: % change in MACD line vs 5 bars ago
+  let roc = null;
+  if (macdSeries.length >= 5) {
+    const prev = macdSeries[macdSeries.length - 5];
+    const curr = macdSeries[macdSeries.length - 1];
+    // Avoid division by near-zero; use price scale instead
+    const priceRef = Math.abs(closes[closes.length - 1]);
+    roc = priceRef > 0 ? ((curr - prev) / priceRef) * 100 : null;
+  }
+
+  // Momentum strength label
+  let momentumLabel = null;
+  if (slope !== null) {
+    const absSlope = Math.abs(slope);
+    const priceScale = closes[closes.length - 1] * 0.001; // 0.1% of price as threshold
+    if (absSlope > priceScale * 2) momentumLabel = slope > 0 ? 'Accelerating ↑' : 'Accelerating ↓';
+    else if (absSlope > priceScale) momentumLabel = slope > 0 ? 'Building ↑' : 'Fading ↓';
+    else momentumLabel = 'Flat';
+  }
+
+  return { macdLine, signal, histogram, slope, divergence, divergenceType, roc, momentumLabel };
 }
 
 function calcBollinger(closes, period = 20, multiplier = 2) {
@@ -105,8 +165,20 @@ function computeAllIndicators(candles) {
     if (sma50 > sma200) buySignals.push('Golden cross (50MA > 200MA)');
   }
   if (macd !== null && macd.histogram !== null) {
-    if (macd.histogram < 0 && macd.macdLine < 0) sellSignals.push('MACD bearish');
-    if (macd.histogram > 0 && macd.macdLine > 0) buySignals.push('MACD bullish');
+    if (macd.histogram < 0 && macd.macdLine < 0) {
+      const extra = macd.divergenceType === 'bullish' ? ' (bullish divergence)' : macd.momentumLabel && macd.momentumLabel !== 'Flat' ? ` · ${macd.momentumLabel}` : '';
+      sellSignals.push(`MACD bearish${extra}`);
+    }
+    if (macd.histogram > 0 && macd.macdLine > 0) {
+      const extra = macd.divergenceType === 'bearish' ? ' (bearish divergence)' : macd.momentumLabel && macd.momentumLabel !== 'Flat' ? ` · ${macd.momentumLabel}` : '';
+      buySignals.push(`MACD bullish${extra}`);
+    }
+    if (macd.divergenceType === 'bullish' && !(macd.histogram < 0 && macd.macdLine < 0)) {
+      buySignals.push('MACD bullish divergence');
+    }
+    if (macd.divergenceType === 'bearish' && !(macd.histogram > 0 && macd.macdLine > 0)) {
+      sellSignals.push('MACD bearish divergence');
+    }
   }
   if (volRatio !== null && volRatio > 1.5) {
     if (sellSignals.length > 0) sellSignals.push('High volume confirms');
