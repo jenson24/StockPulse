@@ -383,6 +383,7 @@ function saveEditWatchlist(ticker) {
 }
 
 
+function updateWlBadge() {
   const badge = $('badge-watchlist');
   if (!badge) return;
   if (watchlist.length > 0) { badge.textContent = watchlist.length; badge.style.display = 'inline-block'; }
