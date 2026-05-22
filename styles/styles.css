@@ -231,6 +231,10 @@ body { display: flex; flex-direction: column; max-width: 430px; margin: 0 auto; 
 .btn-watchlist { width: 100%; padding: 14px; background: var(--blue-bg); color: var(--blue); border: 0.5px solid rgba(74,158,255,0.3); border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .btn-watchlist.added { background: var(--green-bg); color: var(--green); border-color: rgba(0,201,122,0.3); }
 
+/* ─── Edit Metadata Button ────────────────────────────────────────────────── */
+.edit-meta-btn { background: var(--bg4); border: 0.5px solid var(--border2); border-radius: 99px; padding: 4px 12px; font-size: 12px; color: var(--text2); cursor: pointer; flex-shrink: 0; transition: background 0.15s; }
+.edit-meta-btn:active { background: var(--bg3); }
+
 /* ─── Correlation Analysis ────────────────────────────────────────────────── */
 .corr-filter-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
 .corr-filter-btn { padding: 5px 11px; border-radius: 99px; border: 0.5px solid var(--border2); background: transparent; color: var(--text3); font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
