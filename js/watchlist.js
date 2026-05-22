@@ -5,12 +5,16 @@ function saveWatchlist() { localStorage.setItem('sp-watchlist', JSON.stringify(w
 function isOnWatchlist(ticker) { return watchlist.some(w => w.ticker.toUpperCase() === ticker.toUpperCase()); }
 
 function snapshotFromIndicators(ind, price) {
-  if (!ind) return { price: price ?? null, rsi: null, bb: null, macd: null, sma50: null, sma200: null };
+  if (!ind) return { price: price ?? null, rsi: null, bb: null, macd: null, sma50: null, sma200: null, macdSlope: null, macdDiv: null, macdRoc: null };
   return {
     price: price ?? ind.price ?? null,
     rsi: ind.rsi ?? null,
     bb: ind.bb?.pct ?? null,
     macd: ind.macd?.histogram ?? null,
+    macdSlope: ind.macd?.slope ?? null,
+    macdDiv: ind.macd?.divergenceType ?? null,
+    macdRoc: ind.macd?.roc ?? null,
+    macdMomentum: ind.macd?.momentumLabel ?? null,
     sma50: ind.sma50 ?? null,
     sma200: ind.sma200 ?? null,
   };
@@ -113,7 +117,7 @@ function renderWatchlistCards() {
     el.innerHTML = `<div class="empty">
       <div class="empty-icon">👁</div>
       <div class="empty-title">Watchlist is empty</div>
-      <div class="empty-sub">Add stocks from the Buy Ideas or position detail views to track how price and indicators change over time.</div>
+      <div class="empty-sub">Add stocks from the Buy Ideas or position detail views, or tap "Add to Watchlist" above to start tracking.</div>
     </div>`;
     return;
   }
@@ -151,7 +155,7 @@ function renderWatchlistCards() {
       <div class="wl-delta-grid">
         <div class="wl-delta"><div class="wl-delta-label">RSI Δ</div><div class="wl-delta-val" style="color:${deltaColor(rsiDelta,'rsi')}">${fmtDelta(rsiDelta,'rsi',1)}</div><div class="wl-delta-sub">Now: ${w.current?.rsi ?? '—'}</div></div>
         <div class="wl-delta"><div class="wl-delta-label">BB %B Δ</div><div class="wl-delta-val" style="color:${deltaColor(bbDelta,'bb')}">${fmtDelta(bbDelta,'bb',1)}</div><div class="wl-delta-sub">Now: ${w.current?.bb ?? '—'}%</div></div>
-        <div class="wl-delta"><div class="wl-delta-label">MACD Δ</div><div class="wl-delta-val" style="color:${deltaColor(macdDelta,'macd')}">${fmtDelta(macdDelta,'macd',3)}</div><div class="wl-delta-sub">Now: ${w.current?.macd != null ? (w.current.macd > 0 ? '▲' : '▼') : '—'}</div></div>
+        <div class="wl-delta"><div class="wl-delta-label">MACD Δ</div><div class="wl-delta-val" style="color:${deltaColor(macdDelta,'macd')}">${fmtDelta(macdDelta,'macd',3)}</div><div class="wl-delta-sub">${w.current?.macdMomentum ? w.current.macdMomentum : w.current?.macd != null ? (w.current.macd > 0 ? '▲' : '▼') : '—'}</div></div>
         <div class="wl-delta"><div class="wl-delta-label">SMA 50 Δ</div><div class="wl-delta-val" style="color:${deltaColor(sma50D,'sma50')}">${sma50D !== null ? (sma50D >= 0?'+':'')+' $'+Math.abs(sma50D).toFixed(2) : '—'}</div><div class="wl-delta-sub">Now: ${w.current?.sma50 ? '$'+w.current.sma50.toFixed(2) : '—'}</div></div>
         <div class="wl-delta"><div class="wl-delta-label">SMA 200 Δ</div><div class="wl-delta-val" style="color:${deltaColor(sma200D,'sma200')}">${sma200D !== null ? (sma200D >= 0?'+':'')+' $'+Math.abs(sma200D).toFixed(2) : '—'}</div><div class="wl-delta-sub">Now: ${w.current?.sma200 ? '$'+w.current.sma200.toFixed(2) : '—'}</div></div>
         <div class="wl-delta"><div class="wl-delta-label">Price Δ $</div><div class="wl-delta-val" style="color:${priceColor}">${basePrice && curPrice ? (curPrice>=basePrice?'+':'')+' $'+(curPrice-basePrice).toFixed(2) : '—'}</div><div class="wl-delta-sub">Base: ${basePrice ? '$'+basePrice.toFixed(2) : '—'}</div></div>
@@ -191,9 +195,23 @@ function openWlDetail(ticker) {
     </div>`;
   }).join('');
 
+  // Enhanced MACD momentum rows
+  const cur = w.current;
+  const macdMomentumRows = cur ? (() => {
+    const momColor = cur.macdMomentum?.includes('↑') ? 'var(--green)' : cur.macdMomentum?.includes('↓') ? 'var(--red)' : 'var(--text3)';
+    const divColor = cur.macdDiv === 'bullish' ? 'var(--green)' : cur.macdDiv === 'bearish' ? 'var(--red)' : 'var(--text3)';
+    const slopeStr = cur.macdSlope != null ? (cur.macdSlope > 0 ? '+' : '') + cur.macdSlope.toFixed(4) + '/bar' : '—';
+    const rocStr = cur.macdRoc != null ? (cur.macdRoc > 0 ? '+' : '') + cur.macdRoc.toFixed(2) + '%' : '—';
+    const divLabel = cur.macdDiv === 'bullish' ? '▲ Bullish' : cur.macdDiv === 'bearish' ? '▼ Bearish' : cur.macdDiv === 'none' ? 'None' : '—';
+    return `<div class="detail-row"><span class="label">MACD momentum</span><span class="val" style="color:${momColor}">${cur.macdMomentum || '—'}</span></div>
+    <div class="detail-row"><span class="label">MACD slope</span><span class="val" style="color:${momColor}">${slopeStr}</span></div>
+    <div class="detail-row"><span class="label">MACD rate of change</span><span class="val">${rocStr}</span></div>
+    <div class="detail-row"><span class="label">MACD divergence</span><span class="val" style="color:${divColor}">${divLabel}</span></div>`;
+  })() : '';
+
   $('wlDetailContent').innerHTML = `
     <div class="modal-title">${w.ticker} <span style="font-size:14px;color:var(--text3);font-weight:400">${w.name}</span></div>
-    <div class="modal-subtitle">${w.sector} · Added ${addedDate} (${daysAgo} day${daysAgo!==1?'s':''} ago)</div>
+    <div class="modal-subtitle" style="display:flex;align-items:center;justify-content:space-between">${w.sector} · Added ${addedDate} (${daysAgo} day${daysAgo!==1?'s':''} ago)<button class="edit-meta-btn" onclick="openEditWatchlistModal('${w.ticker}')">✏️ Edit</button></div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
       <div style="flex:1">
         <div style="font-size:28px;font-weight:700;color:${priceColor}">${w.current?.price ? '$'+w.current.price.toFixed(2) : '—'}</div>
@@ -207,6 +225,10 @@ function openWlDetail(ticker) {
     <div class="detail-section">
       <div class="detail-section-title">Indicator snapshots — baseline → current (delta)</div>
       ${snapshotRows}
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">MACD momentum analysis</div>
+      ${macdMomentumRows || '<div style="font-size:13px;color:var(--text3)">No MACD data available</div>'}
     </div>
     <button class="delete-btn" onclick="removeFromWatchlist('${w.ticker}');$('wlDetailModal').classList.remove('open')">Remove from watchlist</button>
     <button class="btn-secondary" onclick="$('wlDetailModal').classList.remove('open')">Close</button>
@@ -237,7 +259,130 @@ function openWlAddModal(ticker, name, sector, ind) {
   $('wlAddModal').onclick = e => { if (e.target === $('wlAddModal')) $('wlAddModal').classList.remove('open'); };
 }
 
-function updateWlBadge() {
+// ─── Direct Add to Watchlist (from Watchlist tab) ─────────────────────────────
+async function openDirectAddWatchlistModal() {
+  $('directWlContent').innerHTML = `
+    <div class="modal-title">Add to Watchlist</div>
+    <div class="modal-subtitle">Enter a ticker to track. Indicators will be fetched automatically if your Worker is connected.</div>
+    <div class="field-row">
+      <div class="field"><label>TICKER *</label><input id="dw-ticker" placeholder="AAPL" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"/></div>
+      <div class="field"><label>COMPANY NAME</label><input id="dw-name" placeholder="Apple Inc."/></div>
+    </div>
+    <div class="field">
+      <label>SECTOR</label>
+      <select id="dw-sector">
+        <option value="Other">Select a Sector</option>
+        <option value="Information Technology">Information Technology</option>
+        <option value="Health Care">Health Care</option>
+        <option value="Financials">Financials</option>
+        <option value="Consumer Discretionary">Consumer Discretionary</option>
+        <option value="Communication Services">Communication Services</option>
+        <option value="Industrials">Industrials</option>
+        <option value="Consumer Staples">Consumer Staples</option>
+        <option value="Energy">Energy</option>
+        <option value="Utilities">Utilities</option>
+        <option value="Real Estate">Real Estate</option>
+        <option value="Materials">Materials</option>
+      </select>
+    </div>
+    <button class="btn-primary" id="dw-addBtn" onclick="submitDirectAdd()">Fetch &amp; Add to Watchlist</button>
+    <button class="btn-secondary" onclick="$('directWlModal').classList.remove('open')">Cancel</button>
+  `;
+  $('directWlModal').classList.add('open');
+  $('directWlModal').onclick = e => { if (e.target === $('directWlModal')) $('directWlModal').classList.remove('open'); };
+  setTimeout(() => $('dw-ticker')?.focus(), 100);
+}
+
+async function submitDirectAdd() {
+  const ticker = ($('dw-ticker')?.value || '').trim().toUpperCase();
+  const name = ($('dw-name')?.value || '').trim();
+  const sector = $('dw-sector')?.value || 'Other';
+  if (!ticker) { showToast('Enter a ticker symbol'); return; }
+  if (isOnWatchlist(ticker)) { showToast(`${ticker} is already on watchlist`); return; }
+
+  const btn = $('dw-addBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Fetching…'; }
+
+  // Fetch live indicators first to show a preview before adding
+  let ind = currentIndicators[ticker] || null;
+  let price = null;
+  if (settings.apiKey && settings.pwaSecret) {
+    try { const pd = await fetchPrices([ticker]); price = pd[ticker] ?? null; } catch(e) {}
+    if (!ind) ind = await fetchIndicators(ticker);
+  }
+
+  $('directWlModal').classList.remove('open');
+
+  // Show the existing confirm modal so user sees the snapshot values
+  openWlAddModal(ticker, name || ticker, sector, ind ? { ...ind, price: price ?? ind.price } : null);
+}
+
+// ─── Edit Watchlist Entry Metadata ────────────────────────────────────────────
+function openEditWatchlistModal(ticker) {
+  const w = watchlist.find(x => x.ticker === ticker.toUpperCase());
+  if (!w) return;
+  const sectorOptions = ['Other','Information Technology','Health Care','Financials',
+    'Consumer Discretionary','Communication Services','Industrials','Consumer Staples',
+    'Energy','Utilities','Real Estate','Materials'];
+
+  $('editMetaContent').innerHTML = `
+    <div class="modal-title">Edit Watchlist Entry</div>
+    <div class="modal-subtitle">Update metadata for ${w.ticker}</div>
+    <div class="field-row">
+      <div class="field"><label>TICKER</label><input id="ew-ticker" value="${w.ticker}" readonly style="opacity:0.5"/></div>
+      <div class="field"><label>COMPANY NAME</label><input id="ew-name" value="${w.name || ''}" placeholder="e.g. Apple Inc."/></div>
+    </div>
+    <div class="field">
+      <label>SECTOR</label>
+      <select id="ew-sector">
+        ${sectorOptions.map(s => `<option value="${s}" ${(w.sector||'Other')===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+    </div>
+    <div class="detail-section" style="margin-top:14px">
+      <div class="detail-section-title">Current indicators (editable baseline)</div>
+      <div class="field-row">
+        <div class="field"><label>RSI</label><input id="ew-rsi" type="number" step="0.1" value="${w.current?.rsi ?? ''}"/></div>
+        <div class="field"><label>BB %B</label><input id="ew-bb" type="number" step="0.1" value="${w.current?.bb ?? ''}"/></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>SMA 50</label><input id="ew-sma50" type="number" step="0.01" value="${w.current?.sma50 ?? ''}"/></div>
+        <div class="field"><label>SMA 200</label><input id="ew-sma200" type="number" step="0.01" value="${w.current?.sma200 ?? ''}"/></div>
+      </div>
+      <div class="field"><label>MACD HISTOGRAM</label><input id="ew-macd" type="number" step="0.001" value="${w.current?.macd ?? ''}"/></div>
+    </div>
+    <button class="btn-primary" onclick="saveEditWatchlist('${w.ticker}')">Save changes</button>
+    <button class="btn-secondary" onclick="$('editMetaModal').classList.remove('open')">Cancel</button>
+  `;
+  $('editMetaModal').classList.add('open');
+  $('editMetaModal').onclick = e => { if (e.target === $('editMetaModal')) $('editMetaModal').classList.remove('open'); };
+}
+
+function saveEditWatchlist(ticker) {
+  const idx = watchlist.findIndex(x => x.ticker === ticker.toUpperCase());
+  if (idx === -1) return;
+  const w = watchlist[idx];
+  const name = $('ew-name').value.trim();
+  const sector = $('ew-sector').value;
+  const rsi = parseFloat($('ew-rsi').value) || null;
+  const bb = parseFloat($('ew-bb').value) || null;
+  const sma50 = parseFloat($('ew-sma50').value) || null;
+  const sma200 = parseFloat($('ew-sma200').value) || null;
+  const macd = parseFloat($('ew-macd').value);
+  const macdVal = isNaN(macd) ? w.current?.macd ?? null : macd;
+
+  watchlist[idx] = {
+    ...w,
+    name: name || w.ticker,
+    sector,
+    current: { ...w.current, rsi, bb, sma50, sma200, macd: macdVal, ts: Date.now() },
+  };
+  saveWatchlist();
+  $('editMetaModal').classList.remove('open');
+  renderWatchlist();
+  showToast(`${ticker} updated ✓`);
+}
+
+
   const badge = $('badge-watchlist');
   if (!badge) return;
   if (watchlist.length > 0) { badge.textContent = watchlist.length; badge.style.display = 'inline-block'; }
