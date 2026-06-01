@@ -1,5 +1,15 @@
 // ─── AI Buy Ideas Engine ──────────────────────────────────────────────────────
+
 const DEFAULT_WATCHLIST = 'AAPL,MSFT,NVDA,AMZN,GOOGL,META,TSLA,JPM,BRK.B,XLV,V,UNH,HD,PG,JNJ';
+
+// How many days of recommendation history to remember (prevents repeat picks)
+const RECO_HISTORY_DAYS = 3;
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// ─── Cache helpers ────────────────────────────────────────────────────────────
 
 function loadCachedBuys() {
   try {
@@ -15,55 +25,217 @@ function saveBuyCache(ideas) {
   localStorage.setItem('sp-buy-cache', JSON.stringify({ date: todayStr(), ideas }));
 }
 
-async function generateBuyIdeasWithAI(marketData, portfolioTickers, universeIndicators = {}) {
+// ─── Recommendation history (prevents same tickers repeating) ─────────────────
+
+function loadRecoHistory() {
+  try {
+    const raw = localStorage.getItem('sp-reco-history');
+    if (!raw) return [];
+    const hist = JSON.parse(raw); // [{ date, tickers: [] }]
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - RECO_HISTORY_DAYS);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    return hist.filter(h => h.date >= cutoffStr);
+  } catch(e) { return []; }
+}
+
+function saveRecoHistory(tickers) {
+  const hist = loadRecoHistory();
+  // Remove today's entry if exists, then prepend fresh one
+  const filtered = hist.filter(h => h.date !== todayStr());
+  filtered.unshift({ date: todayStr(), tickers: tickers.map(t => t.toUpperCase()) });
+  localStorage.setItem('sp-reco-history', JSON.stringify(filtered.slice(0, RECO_HISTORY_DAYS + 1)));
+}
+
+function recentlyRecommendedTickers() {
+  const hist = loadRecoHistory();
+  const today = todayStr();
+  // Exclude today's own entry so a manual refresh can still show today's picks
+  const tickers = new Set();
+  hist.filter(h => h.date !== today).forEach(h => h.tickers.forEach(t => tickers.add(t)));
+  return [...tickers];
+}
+
+// ─── MACD trough detection ────────────────────────────────────────────────────
+// Returns an object describing whether MACD has recently bottomed and is rising.
+// "Trough" = local minimum in MACD histogram within the last N bars, with
+// positive slope since then. This is computed locally so Claude receives
+// a precise, actionable signal rather than a blunt ▲/▼.
+
+function detectMACDTrough(indicators, lookback = 8) {
+  // indicators is the object returned by computeAllIndicators()
+  // We need the raw MACD series — stored in indicatorCache
+  const cached = indicatorCache[indicators._ticker];
+  if (!cached || !cached.raw) return null;
+
+  const closes = cached.raw.map(c => c.c).filter(v => v != null);
+  if (closes.length < 35) return null;
+
+  // Compute MACD histogram series for the last (lookback + 5) bars
+  const window = lookback + 5;
+  const slice = closes.slice(-Math.min(closes.length, 60 + window));
+
+  const histSeries = [];
+  for (let i = 35; i <= slice.length; i++) {
+    const seg = slice.slice(0, i);
+    const e12 = calcEMA(seg, 12);
+    const e26 = calcEMA(seg, 26);
+    if (e12 === null || e26 === null) continue;
+    const macdLine = e12 - e26;
+    // Signal: EMA(9) of last 9 MACD values
+    const macdSeg = [];
+    for (let j = Math.max(0, histSeries.length - 8); j < histSeries.length; j++) {
+      macdSeg.push(histSeries[j].macd);
+    }
+    macdSeg.push(macdLine);
+    const signal = macdSeg.reduce((a, b) => a + b, 0) / macdSeg.length;
+    histSeries.push({ macd: macdLine, signal, hist: macdLine - signal });
+  }
+
+  if (histSeries.length < lookback) return null;
+
+  const recent = histSeries.slice(-lookback);
+
+  // Find the minimum histogram value and its position
+  let minVal = Infinity, minIdx = -1;
+  recent.forEach((b, i) => {
+    if (b.hist < minVal) { minVal = b.hist; minIdx = i; }
+  });
+
+  if (minIdx < 0 || minIdx >= recent.length - 1) return null; // trough must not be the last bar
+
+  // Slope since trough: average change per bar
+  const barsAfterTrough = recent.length - 1 - minIdx;
+  const valueAtTrough   = recent[minIdx].hist;
+  const valueNow        = recent[recent.length - 1].hist;
+  const slopePerBar     = barsAfterTrough > 0 ? (valueNow - valueAtTrough) / barsAfterTrough : 0;
+
+  // Qualifying conditions:
+  // 1. The trough value was negative (came from below zero or was a dip)
+  // 2. The slope since trough is positive
+  // 3. Trough occurred within the last 1–6 bars (fresh signal)
+  const isTrough = valueAtTrough < 0 && slopePerBar > 0 && barsAfterTrough >= 1 && barsAfterTrough <= 6;
+
+  return {
+    isTrough,
+    barsAgo: barsAfterTrough,
+    troughValue: parseFloat(valueAtTrough.toFixed(4)),
+    currentHist: parseFloat(valueNow.toFixed(4)),
+    slopePerBar: parseFloat(slopePerBar.toFixed(4)),
+    summary: isTrough
+      ? `MACD trough ${barsAfterTrough}bar${barsAfterTrough !== 1 ? 's' : ''} ago (${valueAtTrough.toFixed(3)}), slope +${slopePerBar.toFixed(3)}/bar`
+      : null,
+  };
+}
+
+// ─── Local pre-filter ─────────────────────────────────────────────────────────
+// Runs before passing tickers to Claude, removing obviously poor setups.
+// Returns a scored+sorted subset ready for the AI scoring step.
+
+function preFilterUniverse(universe, universeIndicators) {
+  return universe
+    .map(ticker => {
+      const ind = universeIndicators[ticker] || null;
+      if (!ind) return { ticker, preScore: 0, ind, macdTrough: null };
+
+      let preScore = 50;
+      const macdTrough = ind._ticker ? detectMACDTrough(ind) : null;
+
+      // Hard disqualifiers — skip overbought / broken-down names
+      if (ind.rsi !== null && ind.rsi > 72)      preScore -= 30; // overbought
+      if (ind.bb && ind.bb.pct > 90)             preScore -= 20; // at upper band
+      if (ind.sma50 && ind.sma200 && ind.sma50 < ind.sma200) preScore -= 15; // death cross
+
+      // Positive signals
+      if (ind.rsi !== null && ind.rsi < 45)      preScore += 20; // approaching oversold
+      if (ind.rsi !== null && ind.rsi < 35)      preScore += 10; // oversold bonus
+      if (ind.bb && ind.bb.pct < 25)             preScore += 15; // near lower band
+      if (ind.sma50 && ind.sma200 && ind.sma50 > ind.sma200) preScore += 10; // golden cross
+      if (macdTrough?.isTrough)                  preScore += 25; // MACD trough — best signal
+      if (ind.volRatio && ind.volRatio > 1.3)    preScore += 8;  // volume confirmation
+
+      return { ticker, preScore, ind, macdTrough };
+    })
+    .filter(x => x.preScore >= 40) // drop the worst candidates
+    .sort((a, b) => b.preScore - a.preScore);
+}
+
+// ─── Portfolio sector summary ─────────────────────────────────────────────────
+
+function portfolioSectorSummary() {
+  if (!positions || positions.length === 0) return '';
+  const totalVal = positions.reduce((s, p) => s + p.shares * p.price, 0);
+  if (totalVal === 0) return '';
+
+  const bySector = {};
+  positions.forEach(p => {
+    const sec = getSector(p.ticker);
+    const val = p.shares * p.price;
+    bySector[sec] = (bySector[sec] || 0) + val;
+  });
+
+  return Object.entries(bySector)
+    .sort((a, b) => b[1] - a[1])
+    .map(([sec, val]) => `${sec}: ${((val / totalVal) * 100).toFixed(0)}%`)
+    .join(', ');
+}
+
+function overweightedSectors(threshold = 20) {
+  if (!positions || positions.length === 0) return [];
+  const totalVal = positions.reduce((s, p) => s + p.shares * p.price, 0);
+  if (totalVal === 0) return [];
+
+  const bySector = {};
+  positions.forEach(p => {
+    const sec = getSector(p.ticker);
+    const val = p.shares * p.price;
+    bySector[sec] = (bySector[sec] || 0) + val;
+  });
+
+  return Object.entries(bySector)
+    .filter(([, val]) => (val / totalVal) * 100 >= threshold)
+    .map(([sec]) => sec);
+}
+
+// ─── AI: generate universe of candidates ─────────────────────────────────────
+
+async function askAIForUniverse(portfolioTickers, portfolioIndicators) {
   if (!settings.anthropicKey) return null;
 
-  const portfolioContext = portfolioTickers.length > 0
-    ? `The user currently holds: ${portfolioTickers.join(', ')}. Do NOT recommend any of these.`
-    : 'The user has no current positions.';
+  const sectorSummary  = portfolioSectorSummary();
+  const heavySectors   = overweightedSectors(20);
+  const recentRecs     = recentlyRecommendedTickers();
+  const watchlistTickers = (settings.watchlist || DEFAULT_WATCHLIST)
+    .split(',').map(t => t.trim().toUpperCase()).filter(Boolean);
 
-  const marketSummary = marketData.map(s => {
-    const ind = universeIndicators[s.ticker] || {};
-    const price = s.price?.toFixed(2) ?? 'N/A';
-    const rsi = ind.rsi != null ? `RSI ${ind.rsi}` : '';
-    const bb = ind.bb != null ? `BB%B ${ind.bb.pct}%` : '';
-    const macd = ind.macd?.histogram != null ? `MACD ${ind.macd.histogram > 0 ? '▲' : '▼'}` : '';
-    const ma = (ind.sma50 && ind.sma200) ? (ind.sma50 > ind.sma200 ? 'golden cross' : 'death cross') : '';
-    const vol = ind.volRatio != null ? `vol ${(ind.volRatio * 100).toFixed(0)}% of avg` : '';
-    const buys = ind.buySignals?.length ? `buy signals: ${ind.buySignals.join(', ')}` : '';
-    const sells = ind.sellSignals?.length ? `sell signals: ${ind.sellSignals.join(', ')}` : '';
-    const indicators = [rsi, bb, macd, ma, vol, buys, sells].filter(Boolean).join(' | ');
-    return `${s.ticker}: $${price} (${s.change})${indicators ? ' — ' + indicators : ''}`;
-  }).join('\n');
+  // All tickers to exclude
+  const excluded = [...new Set([
+    ...portfolioTickers,
+    ...watchlistTickers,
+    ...recentRecs,
+  ])];
 
-  const prompt = `You are a technical stock analyst. Select the 5 best buy opportunities from the list below based on the computed technical indicators.
+  const portSummary = portfolioTickers.map(t => {
+    const ind = portfolioIndicators[t] || {};
+    return `${t} (RSI ${ind.rsi ?? 'N/A'})`;
+  }).join(', ');
 
-${portfolioContext}
+  const prompt = `You are a portfolio analyst selecting a diverse universe of US stocks to scan for buy opportunities today.
 
-Today's technical data:
-${marketSummary || 'No live data available — use your training knowledge for these tickers.'}
+Current portfolio: ${portSummary || 'none'}
+Portfolio sector weights: ${sectorSummary || 'unknown'}
+${heavySectors.length ? `AVOID these already-overweighted sectors: ${heavySectors.join(', ')}` : ''}
 
-Scoring rules:
-- 80–100: Multiple confirming buy signals (e.g. RSI oversold + near lower BB + MACD bullish + golden cross)
-- 65–79: 1–2 buy signals, no major sell signals
-- 50–64: Speculative or mixed signals
-- Penalise heavily for sell signals (RSI overbought, near upper BB, death cross)
-- Reward for volume confirmation of a move
+Return exactly 40 tickers as a JSON array of strings. Rules:
+- DO NOT include any of these (already held, on watchlist, or recommended recently): ${excluded.join(', ') || 'none'}
+- Maximum 4 tickers per sector — enforce diversity
+- ${heavySectors.length ? `Zero tickers from: ${heavySectors.join(', ')}` : 'Balance across all sectors'}
+- Include a mix of: large-cap blue chips, mid-cap growth, sector ETFs, dividend payers
+- Bias toward stocks that may be setting up technically (pullbacks, sector rotation, recent underperformance relative to fundamentals)
+- Include sectors like: Technology, Healthcare, Financials, Consumer Staples, Energy, Real Estate, Communication Services, Materials, Utilities
+- No ADRs, no penny stocks, US-listed only
 
-Respond with ONLY a valid JSON array, no markdown, no preamble:
-[
-  {
-    "ticker": "AAPL",
-    "name": "Apple Inc.",
-    "price": 178.50,
-    "change": "+1.2%",
-    "score": 82,
-    "tag": "Momentum",
-    "reason": "2-3 sentence rationale citing the specific indicator values above."
-  }
-]
-
-Tag must be one of: Momentum, Value, Sector, Dividend, Growth`;
+Respond with ONLY a JSON array: ["TICK1","TICK2",...]. No markdown, no explanation.`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -75,42 +247,87 @@ Tag must be one of: Momentum, Value, Sector, Dividend, Growth`;
         'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 400,
+        messages: [{ role: 'user', content: prompt }],
       })
     });
-    if (!res.ok) {
-      const errBody = await res.text();
-      console.error('Anthropic API error in generateBuyIdeasWithAI:', res.status, errBody);
-      return null;
-    }
+    if (!res.ok) { console.error('Universe API error', res.status); return null; }
     const data = await res.json();
-    const text = data.content?.map(c => c.text || '').join('');
-    const clean = text.replace(/```json|```/g, '').trim();
-    return JSON.parse(clean);
+    const text = data.content?.map(c => c.text || '').join('').replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(text);
+    return parsed.map(t => t.toUpperCase());
   } catch(e) {
-    console.error('AI generation failed:', e);
+    console.warn('Universe generation failed:', e);
     return null;
   }
 }
 
-async function askAIForUniverse(portfolioTickers, portfolioIndicators) {
+// ─── AI: score and select final picks ────────────────────────────────────────
+
+async function generateBuyIdeasWithAI(candidates, portfolioTickers, universeIndicators) {
   if (!settings.anthropicKey) return null;
-  const portSummary = portfolioTickers.map(t => {
-    const ind = portfolioIndicators[t] || {};
-    return `${t} (RSI ${ind.rsi ?? 'N/A'}, ${ind.sma50 && ind.sma200 ? (ind.sma50 > ind.sma200 ? 'golden cross' : 'death cross') : 'MA N/A'})`;
-  }).join(', ');
 
-  const prompt = `You are a portfolio analyst. A user holds: ${portSummary || 'no positions yet'}.
+  const heavySectors = overweightedSectors(20);
+  const sectorSummary = portfolioSectorSummary();
+  const excluded = [...new Set([
+    ...portfolioTickers,
+    ...(settings.watchlist || DEFAULT_WATCHLIST).split(',').map(t => t.trim().toUpperCase()),
+    ...recentlyRecommendedTickers(),
+  ])];
 
-Pick exactly 20 US stock tickers that would be worth scanning for buy opportunities today. Consider:
-- Sectors not already represented in the portfolio (diversification)
-- Stocks with current momentum or value setups based on your knowledge
-- Mix of large-cap, mid-cap, and sector ETFs
-- Avoid any tickers already held: ${portfolioTickers.join(', ') || 'none'}
+  const marketSummary = candidates.map(({ ticker, ind, macdTrough, preScore }) => {
+    const price  = universeIndicators[ticker]?._price?.toFixed(2) ?? 'N/A';
+    const rsi    = ind?.rsi    != null ? `RSI ${ind.rsi}` : '';
+    const bb     = ind?.bb     != null ? `BB%B ${ind.bb.pct}%` : '';
+    const ma     = (ind?.sma50 && ind?.sma200)
+      ? (ind.sma50 > ind.sma200 ? 'golden cross' : 'death cross') : '';
+    const vol    = ind?.volRatio != null ? `vol ${(ind.volRatio * 100).toFixed(0)}% of avg` : '';
+    const buys   = ind?.buySignals?.length  ? `buy: ${ind.buySignals.join(', ')}` : '';
+    const sells  = ind?.sellSignals?.length ? `⚠ sell: ${ind.sellSignals.join(', ')}` : '';
 
-Respond with ONLY a JSON array of ticker strings, e.g. ["AAPL","MSFT",...]. No markdown, no explanation.`;
+    // MACD: precise trough info instead of blunt ▲/▼
+    const macdStr = macdTrough?.isTrough
+      ? `MACD TROUGH (${macdTrough.summary})`
+      : ind?.macd?.histogram != null
+        ? `MACD hist ${ind.macd.histogram > 0 ? '▲' : '▼'} ${ind.macd.histogram.toFixed(3)}`
+        : '';
+
+    const parts = [rsi, bb, macdStr, ma, vol, buys, sells].filter(Boolean).join(' | ');
+    return `${ticker} [pre-score ${preScore}]: $${price}${parts ? ' — ' + parts : ''}`;
+  }).join('\n');
+
+  const prompt = `You are a technical stock analyst. Select exactly 10 buy opportunities from the candidates below.
+
+Portfolio sector weights: ${sectorSummary || 'unknown'}
+${heavySectors.length ? `Do NOT recommend any stock from these overweighted sectors: ${heavySectors.join(', ')}` : ''}
+Do NOT recommend: ${excluded.join(', ') || 'none'}
+Enforce maximum 2 pick per sector across your 10 selections.
+
+Candidates (pre-scored by local technical filters, higher = better setup):
+${marketSummary || 'No live data — use training knowledge.'}
+
+Scoring:
+- 85–100: MACD trough confirmed + RSI < 50 + near lower BB + golden cross or strong fundamentals
+- 70–84: 2+ confirming buy signals, no major sell signals
+- 55–69: 1 buy signal or neutral setup with sector/value case
+- Penalise: RSI > 65, upper BB > 80%, death cross, multiple sell signals
+- Bonus: MACD trough (most important timing signal), volume confirmation, RSI < 40
+
+Respond with ONLY a valid JSON array, no markdown, no preamble:
+[{
+  "ticker": "AAPL",
+  "name": "Apple Inc.",
+  "sector": "Technology",
+  "price": 178.50,
+  "change": "+1.2%",
+  "score": 82,
+  "tag": "Momentum",
+  "reason": "2–3 sentences citing specific indicator values. If MACD trough detected, explain the setup."
+}]
+
+Tag must be one of: Momentum, Value, Dividend, Growth, Turnaround
+Use "Turnaround" when the primary signal is a MACD trough or RSI recovery from oversold.`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -122,24 +339,25 @@ Respond with ONLY a JSON array of ticker strings, e.g. ["AAPL","MSFT",...]. No m
         'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 200,
-        messages: [{ role: 'user', content: prompt }]
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: prompt }],
       })
     });
     if (!res.ok) {
-      const errBody = await res.text();
-      console.error('Anthropic API error in askAIForUniverse:', res.status, errBody);
+      console.error('Anthropic scoring error', res.status, await res.text());
       return null;
     }
     const data = await res.json();
     const text = data.content?.map(c => c.text || '').join('').replace(/```json|```/g, '').trim();
     return JSON.parse(text);
   } catch(e) {
-    console.warn('Universe generation failed:', e);
+    console.error('AI scoring failed:', e);
     return null;
   }
 }
+
+// ─── Main load function ───────────────────────────────────────────────────────
 
 async function loadBuyIdeas(forceRefresh = false) {
   const el = $('buysList');
@@ -152,74 +370,179 @@ async function loadBuyIdeas(forceRefresh = false) {
   }
 
   if (!forceRefresh && !cached) {
-    el.innerHTML = `<div style="text-align:center;padding:50px 20px">
-      <div style="font-size:32px;margin-bottom:12px">🤖</div>
-      <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">Ready to generate today's picks</div>
-      <div style="font-size:13px;color:var(--text3);margin-bottom:24px;line-height:1.6">Claude will select a universe of stocks to scan based on your portfolio, fetch live data, and score each one using RSI, Bollinger Bands, MACD, and momentum.</div>
-      <button onclick="loadBuyIdeas(true)" style="background:var(--accent);color:#fff;border:none;border-radius:14px;padding:14px 28px;font-size:15px;font-weight:600;cursor:pointer">Generate today's picks</button>
-    </div>`;
+    el.innerHTML = `
+      <div style="text-align:center;padding:50px 20px">
+        <div style="font-size:32px;margin-bottom:12px">🤖</div>
+        <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">Ready to generate today's picks</div>
+        <div style="font-size:13px;color:var(--text3);margin-bottom:24px;line-height:1.6">
+          Claude selects a diverse 40-stock universe, filters by RSI, Bollinger Bands, and MACD trough detection,
+          then scores the best setups — avoiding your current holdings, watchlist, and recent recommendations.
+        </div>
+        <button onclick="loadBuyIdeas(true)" style="background:var(--accent);color:#fff;border:none;border-radius:14px;padding:14px 28px;font-size:15px;font-weight:600;cursor:pointer">
+          Generate today's picks
+        </button>
+      </div>`;
     return;
   }
 
-  el.innerHTML = `<div style="text-align:center;padding:40px 20px">
-    <div style="font-size:13px;color:var(--text3);margin-bottom:6px">Step 1/3 — AI selecting universe…</div>
-    <div id="buyLoadStatus" style="font-size:11px;color:var(--text3);margin-bottom:16px">Asking Claude which stocks to scan</div>
-    <div style="display:flex;justify-content:center;gap:6px">
-      <div style="width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.2s ease-in-out infinite"></div>
-      <div style="width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.2s ease-in-out 0.4s infinite"></div>
-      <div style="width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.2s ease-in-out 0.8s infinite"></div>
-    </div>
-  </div>
-  <style>@keyframes pulse{0%,100%{opacity:0.2}50%{opacity:1}}</style>`;
-
-  const setStatus = (step, msg) => {
-    const el2 = $('buyLoadStatus');
-    if (el2) { el2.previousElementSibling.textContent = `Step ${step}/3 — ${msg}`; }
+  // ── Loading UI ──
+  const setStatus = (step, total, msg) => {
+    const stepEl = document.getElementById('buyLoadStep');
+    const msgEl  = document.getElementById('buyLoadMsg');
+    if (stepEl) stepEl.textContent = `Step ${step}/${total}`;
+    if (msgEl)  msgEl.textContent  = msg;
   };
 
-  const portfolioTickers = positions.map(p => p.ticker.toUpperCase());
+  el.innerHTML = `
+    <div style="text-align:center;padding:40px 20px">
+      <div id="buyLoadStep" style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px">Step 1/4</div>
+      <div id="buyLoadMsg" style="font-size:12px;color:var(--text3);margin-bottom:20px">Asking Claude to select a diverse universe…</div>
+      <div style="display:flex;justify-content:center;gap:6px">
+        <div style="width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.2s ease-in-out infinite"></div>
+        <div style="width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.2s ease-in-out 0.4s infinite"></div>
+        <div style="width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.2s ease-in-out 0.8s infinite"></div>
+      </div>
+    </div>
+    <style>@keyframes pulse{0%,100%{opacity:0.2}50%{opacity:1}}</style>`;
 
+  const portfolioTickers = positions.map(p => p.ticker.toUpperCase());
+  const watchlistTickers = (settings.watchlist || DEFAULT_WATCHLIST)
+    .split(',').map(t => t.trim().toUpperCase()).filter(Boolean);
+
+  // ── Step 1: AI universe selection ──
   let universe = await askAIForUniverse(portfolioTickers, currentIndicators);
   if (!universe || universe.length === 0) {
-    universe = (settings.watchlist || DEFAULT_WATCHLIST).split(',').map(t => t.trim().toUpperCase()).filter(Boolean);
+    // Fallback: a broad hard-coded list excluding portfolio + watchlist
+    const excluded = new Set([...portfolioTickers, ...watchlistTickers]);
+    universe = [
+      'ABBV','ACN','ADBE','ADI','ADP','AFL','AIG','AIZ','ALB','ALL',
+      'AMAT','AMD','AME','AMGN','AMT','ANET','ANSS','AON','APD','APH',
+      'ARE','AVB','AVGO','AXP','AZO','BAC','BAX','BDX','BIIB','BK',
+      'BKNG','BLK','BMY','BR','BRO','BSX','BX','C','CB','CDNS',
+      'CDW','CFG','CHD','CHRW','CI','CINF','CL','CLX','CMA','CME',
+      'CMG','CMS','CNC','CNP','COF','CPRT','CRM','CSCO','CSX','CTAS',
+      'CVS','DFS','DG','DHI','DHR','DLR','DLTR','DOV','DPZ','DRI',
+      'DTE','DUK','DVN','EA','ECL','ED','EFX','EIX','ELV','EMN',
+      'EMR','EOG','EQIX','EQR','ES','ESS','ETN','ETR','EVRG','EW',
+      'EXC','EXPD','EXPE','EXR','F','FAST','FCX','FDS','FE','FFIV',
+      'FIS','FITB','FLT','FMC','FNF','FOX','FOXA','FRC','FTNT','GD',
+      'GE','GEHC','GEN','GIS','GL','GLW','GM','GPC','GPN','GRMN',
+      'HAL','HAS','HBAN','HCA','HES','HIG','HII','HLT','HOLX','HPE',
+      'HPQ','HRL','HSIC','HST','HSY','HUM','HWM','IBM','ICE','IDXX',
+      'IEX','IFF','ILMN','INCY','IQV','IR','IRM','ISRG','ITW','IVZ',
+      'J','JBHT','JCI','JKHY','JNPR','K','KEY','KEYS','KHC','KIM',
+      'KLAC','KMB','KMX','KR','L','LEN','LH','LHX','LKQ','LLY',
+      'LMT','LNC','LNT','LOW','LRCX','LUMN','LUV','LVS','LW','LYB',
+      'LYV','MAA','MAR','MAS','MCD','MCK','MCO','MCHP','MET','MGM',
+      'MHK','MKC','MKTX','MLM','MMC','MMM','MNST','MOH','MOS','MPC',
+      'MPWR','MRK','MRNA','MS','MSCI','MTB','MTCH','MTD','MU','NDAQ',
+      'NEE','NEM','NI','NKE','NOC','NOW','NRG','NSC','NTAP','NTRS',
+      'NUE','NVR','NWL','NWS','NWSA','O','ODFL','OKE','OMC','ORCL',
+      'ORLY','OXY','PARA','PAYC','PAYX','PCAR','PCG','PEAK','PEG',
+      'PFE','PFG','PGR','PH','PHM','PKG','PKI','PLD','PM','PNC',
+      'PNR','PNW','POOL','PPG','PPL','PRU','PSA','PSX','PTC','PVH',
+      'PWR','QCOM','QRVO','RCL','RE','REG','REGN','RF','RHI','RJF',
+      'RL','RMD','ROK','ROL','ROP','ROST','RSG','RTX','SBAC','SHW',
+      'SJM','SLB','SNA','SNPS','SO','SPG','STE','STT','STX','STZ',
+      'SWK','SWKS','SYF','SYK','SYY','T','TAP','TDG','TDY','TECH',
+      'TEL','TER','TFC','TFX','TGT','TJX','TMO','TMUS','TPR','TRMB',
+      'TROW','TRV','TSCO','TT','TTWO','TXN','TXT','TYL','UAL','UDR',
+      'UHS','ULTA','UNM','UPS','URI','USB','VFC','VLO','VMC','VNO',
+      'VRSK','VRSN','VRTX','VTR','WAB','WAT','WBA','WBD','WDC','WEC',
+      'WELL','WFC','WHR','WM','WMB','WRB','WRK','WST','WY','XEL','XOM',
+      'XYL','YUM','ZBH','ZBRA','ZION','ZTS',
+    ].filter(t => !excluded.has(t));
   }
-  universe = universe.slice(0, 20);
-  setStatus(2, `Fetching live data for ${universe.length} stocks…`);
 
+  // Deduplicate and exclude held/watchlist/recently recommended
+  const excluded = new Set([
+    ...portfolioTickers,
+    ...watchlistTickers,
+    ...recentlyRecommendedTickers(),
+  ]);
+  universe = [...new Set(universe)].filter(t => !excluded.has(t)).slice(0, 40);
+
+  setStatus(2, 4, `Fetching live data for ${universe.length} stocks…`);
+
+  // ── Step 2: Fetch market data + indicators ──
   let marketData = [];
   let universeIndicators = {};
-  if (settings.apiKey) {
+
+  if (settings.apiKey && settings.pwaSecret) {
     marketData = await fetchMarketDataForWatchlist(universe);
-    const indResults = await fetchAllIndicators(universe);
-    universeIndicators = indResults;
+    universeIndicators = await fetchAllIndicators(universe);
+    // Attach ticker to each indicator object so detectMACDTrough can look up cache
+    Object.keys(universeIndicators).forEach(t => {
+      if (universeIndicators[t]) universeIndicators[t]._ticker = t;
+    });
   }
 
-  setStatus(3, 'Scoring picks with AI…');
+  setStatus(3, 4, 'Pre-filtering by RSI, Bollinger, MACD trough…');
 
+  // ── Step 3: Local pre-filter ──
+  const allCandidates = universe.map(ticker => {
+    const ind = universeIndicators[ticker] || null;
+    const trough = ind ? detectMACDTrough({ ...ind, _ticker: ticker }) : null;
+    return { ticker, ind, macdTrough: trough };
+  });
+
+  const preFiltered = preFilterUniverse(allCandidates.map(c => c.ticker), universeIndicators)
+    .map(pf => ({
+      ...pf,
+      macdTrough: allCandidates.find(c => c.ticker === pf.ticker)?.macdTrough || null,
+    }));
+
+  // Pass top 20 pre-filtered candidates to AI (or all if < 20 pass)
+  const topCandidates = preFiltered.slice(0, 20);
+
+  // If fewer than 10 pass pre-filter, relax and use unfiltered
+  const candidatesForAI = topCandidates.length >= 10
+    ? topCandidates
+    : allCandidates.slice(0, 20).map(c => ({ ...c, preScore: 50 }));
+
+  setStatus(4, 4, 'Claude scoring top candidates…');
+
+  // ── Step 4: AI scoring ──
   let ideas = null;
   if (settings.anthropicKey) {
-    ideas = await generateBuyIdeasWithAI(marketData, portfolioTickers, universeIndicators);
+    ideas = await generateBuyIdeasWithAI(candidatesForAI, portfolioTickers, universeIndicators);
   }
 
   if (ideas && ideas.length > 0) {
-    setStatus(3, 'Fetching fundamentals…');
-    const pickedTickers = ideas.map(i => i.ticker);
-    const fundamentals = settings.apiKey ? await fetchFundamentals(pickedTickers) : {};
+    // Filter out any excluded tickers the AI may have slipped in
+    ideas = ideas.filter(i => !excluded.has(i.ticker.toUpperCase()));
 
-    ideas = ideas.map(idea => ({
-      ...idea,
-      indicators: universeIndicators[idea.ticker] || null,
-      fundamentals: fundamentals[idea.ticker] || null,
-    }));
+    // Attach local indicators + MACD trough info
+    const fundamentals = settings.apiKey ? await fetchFundamentals(ideas.map(i => i.ticker)) : {};
+    ideas = ideas.map(idea => {
+      const t = idea.ticker.toUpperCase();
+      const ind = universeIndicators[t] || null;
+      const trough = allCandidates.find(c => c.ticker === t)?.macdTrough || null;
+      return {
+        ...idea,
+        indicators: ind,
+        macdTrough: trough,
+        fundamentals: fundamentals[t] || null,
+      };
+    });
+
+    // Save recommended tickers to history
+    saveRecoHistory(ideas.map(i => i.ticker));
 
     saveBuyCache(ideas);
     cachedBuyIdeas = ideas;
     renderBuyCards(ideas);
-    showToast('Buy ideas ready ✓');
+    showToast(`${ideas.length} buy ideas ready ✓`);
   } else {
-    el.innerHTML = `<div class="empty"> <div class="empty-icon">🤖</div> <div class="empty-title">Add API keys to enable AI picks</div> <div class="empty-sub">Go to Settings and add your Anthropic API key (for AI analysis) and configure your Schwab Worker URL to enable live market data.</div> </div>`;
+    el.innerHTML = `<div class="empty">
+      <div class="empty-icon">🤖</div>
+      <div class="empty-title">Add API keys to enable AI picks</div>
+      <div class="empty-sub">Go to Settings and add your Anthropic API key (for AI analysis) and configure your Schwab Worker URL to enable live market data.</div>
+    </div>`;
   }
 }
+
+function renderBuys() { loadBuyIdeas(false); }
 
 function renderBuyCards(ideas) {
   const el = $('buysList');
@@ -236,7 +559,7 @@ function renderBuyCards(ideas) {
     const arc = 2 * Math.PI * 16;
     const dash = (score / 100) * arc;
     const chgColor = (b.change || '').startsWith('+') ? 'var(--green)' : 'var(--red)';
-    const tagClass = b.tag === 'Momentum' || b.tag === 'Growth' ? 'pill-green' : b.tag === 'Value' || b.tag === 'Dividend' ? 'pill-amber' : 'pill-blue';
+    const tagClass = b.tag === 'Momentum' || b.tag === 'Growth' || b.tag === 'Turnaround' ? 'pill-green' : b.tag === 'Value' || b.tag === 'Dividend' ? 'pill-amber' : 'pill-blue';
     const priceStr = b.price ? '$' + parseFloat(b.price).toFixed(2) : 'N/A';
     return `<div class="buy-card" onclick="openBuyDetail(${idx})" style="cursor:pointer">
       <div class="buy-top">
@@ -372,7 +695,12 @@ function openBuyDetail(idx) {
     ${chartControlsHTML('buy')}
   </div>
 
-  <button class="btn-watchlist ${isOnWatchlist(b.ticker) ? 'added' : ''}" onclick="openWlAddModal('${b.ticker}','${b.name}','${b.fundamentals?.sector || ''}','${ind}')">
+  ${b.macdTrough?.isTrough ? `
+        <div style="margin-top:10px;background:var(--green-bg);border:0.5px solid rgba(0,201,122,0.25);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--green)">
+          ↗ <strong>MACD Trough Detected</strong> — ${b.macdTrough.summary}. Histogram rising from low, potential momentum shift.
+        </div>` : ''}
+
+      <button class="btn-watchlist ${isOnWatchlist(b.ticker) ? 'added' : ''}" onclick="openWlAddModal('${b.ticker}','${b.name}','${b.fundamentals?.sector || ''}','${ind}')">
     ${isOnWatchlist(b.ticker) ? '✓ On Watchlist' : '+ Add to Watchlist'}
   </button>
 
