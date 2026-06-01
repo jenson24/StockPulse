@@ -59,7 +59,7 @@ function svgPolyline(pairs, xFn, yFn) {
     .map(([i,v])=>`${xFn(i).toFixed(2)},${yFn(v).toFixed(2)}`).join(' ');
 }
 
-function buildPricePanel(raw, sma50All, sma200All, bollingerAll, sliceStart, W, H, PAD, id) {
+function buildPricePanel(raw, sma50All, sma200All, bollingerAll, sliceStart, W, H, PAD, id, purchaseDate) {
   const cW=W-PAD.l-PAD.r, cH=H-PAD.t-PAD.b;
   const data=raw.slice(sliceStart), sma50=sma50All.slice(sliceStart);
   const sma200=sma200All.slice(sliceStart), bollinger=bollingerAll.slice(sliceStart);
@@ -78,7 +78,41 @@ function buildPricePanel(raw, sma50All, sma200All, bollingerAll, sliceStart, W, 
   const yTicks=[0,0.25,0.5,0.75,1].map(p=>minY+p*(maxY-minY));
   const xLabels=data.reduce((acc,d,i)=>{const dt=new Date(d.t);if(i===0||dt.getDate()===1)acc.push({i,label:dt.toLocaleDateString('en-US',{month:'short'})});return acc;},[]).slice(0,5);
   const legend=[{c:priceC,l:'Price',dash:false},{c:'#4a9eff',l:'SMA 50',dash:false},{c:'#f5a623',l:'SMA 200',dash:false},{c:'#7c6fcd',l:'BB',dash:true}];
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible"> <defs> <linearGradient id="pGrad${id}" x1="0" y1="0" x2="0" y2="1"> <stop offset="0%" stop-color="${priceC}" stop-opacity="0.2"/><stop offset="100%" stop-color="${priceC}" stop-opacity="0"/> </linearGradient> <clipPath id="pClip${id}"><rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${cH}"/></clipPath> </defs> ${yTicks.map(v=>`<line x1="${PAD.l}" y1="${yFn(v).toFixed(2)}" x2="${PAD.l+cW}" y2="${yFn(v).toFixed(2)}" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>`).join('')} ${yTicks.map(v=>`<text x="${PAD.l-4}" y="${(yFn(v)+3.5).toFixed(2)}" text-anchor="end" font-size="9" fill="rgba(255,255,255,0.35)">$${v.toFixed(0)}</text>`).join('')} ${xLabels.map(({i,label})=>`<text x="${xFn(i).toFixed(2)}" y="${H-5}" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">${label}</text>`).join('')} <line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <line x1="${PAD.l}" y1="${PAD.t+cH}" x2="${PAD.l+cW}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <g clip-path="url(#pClip${id})"> ${bbFillPts?`<polygon points="${bbFillPts}" fill="rgba(124,111,205,0.07)"/>`:''} <polyline points="${bbUpPts}"  fill="none" stroke="#7c6fcd" stroke-width="0.75" stroke-dasharray="3,2"/> <polyline points="${bbLoPts}"  fill="none" stroke="#7c6fcd" stroke-width="0.75" stroke-dasharray="3,2"/> <polyline points="${bbMidPts}" fill="none" stroke="#7c6fcd" stroke-width="0.5" stroke-opacity="0.5"/> <polyline points="${svgPolyline(sma200.map((v,i)=>[i,v]),xFn,yFn)}" fill="none" stroke="#f5a623" stroke-width="1.2" stroke-opacity="0.85"/> <polyline points="${svgPolyline(sma50.map((v,i)=>[i,v]),xFn,yFn)}"  fill="none" stroke="#4a9eff" stroke-width="1.2"/> <polygon points="${fillPts}" fill="url(#pGrad${id})"/> <polyline points="${pricePts}" fill="none" stroke="${priceC}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/> </g> ${legend.map(({c,l,dash},i)=>`<g transform="translate(${PAD.l+i*76},${PAD.t-3})"><line x1="0" y1="0" x2="13" y2="0" stroke="${c}" stroke-width="${dash?1:1.5}" stroke-dasharray="${dash?'3,2':'none'}"/><text x="17" y="3.5" font-size="8.5" fill="rgba(255,255,255,0.4)">${l}</text></g>`).join('')} </svg>`;
+
+  // ── Purchase date marker ──
+  let purchaseMarkerSVG = '';
+  if (purchaseDate) {
+    const purchaseTs = new Date(purchaseDate + 'T00:00:00').getTime();
+    // Find the data index closest to the purchase date within the sliced window
+    let markerIdx = -1;
+    let minDiff = Infinity;
+    data.forEach((d, i) => {
+      const diff = Math.abs(d.t - purchaseTs);
+      if (diff < minDiff) { minDiff = diff; markerIdx = i; }
+    });
+    // Only draw if the purchase date falls within the visible window
+    // (allow up to 3 days outside the start to catch weekends/holidays)
+    const windowStart = data[0]?.t - 3 * 86400000;
+    const windowEnd   = data[data.length - 1]?.t;
+    if (markerIdx >= 0 && purchaseTs >= windowStart && purchaseTs <= windowEnd) {
+      const mx = xFn(markerIdx).toFixed(2);
+      const labelY = (PAD.t + 14).toFixed(2);
+      const lineTop = PAD.t.toFixed(2);
+      const lineBot = (PAD.t + cH).toFixed(2);
+      purchaseMarkerSVG = [
+        // Dashed vertical line
+        `<line x1="${mx}" y1="${lineTop}" x2="${mx}" y2="${lineBot}"`,
+        ` stroke="#f5a623" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.9"/>`,
+        // Diamond marker on the price line
+        `<polygon points="${mx},${(yFn(closes[markerIdx])-7).toFixed(2)} ${(parseFloat(mx)+5).toFixed(2)},${yFn(closes[markerIdx]).toFixed(2)} ${mx},${(yFn(closes[markerIdx])+7).toFixed(2)} ${(parseFloat(mx)-5).toFixed(2)},${yFn(closes[markerIdx]).toFixed(2)}"`,
+        ` fill="#f5a623" stroke="#0a0a0a" stroke-width="1"/>`,
+        // "Bought" label pill
+        `<rect x="${(parseFloat(mx) - 18).toFixed(2)}" y="${(PAD.t + 3).toFixed(2)}" width="36" height="13" rx="3" fill="rgba(245,166,35,0.18)" stroke="rgba(245,166,35,0.5)" stroke-width="0.5"/>`,
+        `<text x="${mx}" y="${labelY}" text-anchor="middle" font-size="8" font-weight="600" fill="#f5a623">Bought</text>`,
+      ].join('');
+    }
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible"> <defs> <linearGradient id="pGrad${id}" x1="0" y1="0" x2="0" y2="1"> <stop offset="0%" stop-color="${priceC}" stop-opacity="0.2"/><stop offset="100%" stop-color="${priceC}" stop-opacity="0"/> </linearGradient> <clipPath id="pClip${id}"><rect x="${PAD.l}" y="${PAD.t}" width="${cW}" height="${cH}"/></clipPath> </defs> ${yTicks.map(v=>`<line x1="${PAD.l}" y1="${yFn(v).toFixed(2)}" x2="${PAD.l+cW}" y2="${yFn(v).toFixed(2)}" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>`).join('')} ${yTicks.map(v=>`<text x="${PAD.l-4}" y="${(yFn(v)+3.5).toFixed(2)}" text-anchor="end" font-size="9" fill="rgba(255,255,255,0.35)">$${v.toFixed(0)}</text>`).join('')} ${xLabels.map(({i,label})=>`<text x="${xFn(i).toFixed(2)}" y="${H-5}" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">${label}</text>`).join('')} <line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <line x1="${PAD.l}" y1="${PAD.t+cH}" x2="${PAD.l+cW}" y2="${PAD.t+cH}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/> <g clip-path="url(#pClip${id})"> ${bbFillPts?`<polygon points="${bbFillPts}" fill="rgba(124,111,205,0.07)"/>`:''} <polyline points="${bbUpPts}"  fill="none" stroke="#7c6fcd" stroke-width="0.75" stroke-dasharray="3,2"/> <polyline points="${bbLoPts}"  fill="none" stroke="#7c6fcd" stroke-width="0.75" stroke-dasharray="3,2"/> <polyline points="${bbMidPts}" fill="none" stroke="#7c6fcd" stroke-width="0.5" stroke-opacity="0.5"/> <polyline points="${svgPolyline(sma200.map((v,i)=>[i,v]),xFn,yFn)}" fill="none" stroke="#f5a623" stroke-width="1.2" stroke-opacity="0.85"/> <polyline points="${svgPolyline(sma50.map((v,i)=>[i,v]),xFn,yFn)}"  fill="none" stroke="#4a9eff" stroke-width="1.2"/> <polygon points="${fillPts}" fill="url(#pGrad${id})"/> <polyline points="${pricePts}" fill="none" stroke="${priceC}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/> </g> ${legend.map(({c,l,dash},i)=>`<g transform="translate(${PAD.l+i*76},${PAD.t-3})"><line x1="0" y1="0" x2="13" y2="0" stroke="${c}" stroke-width="${dash?1:1.5}" stroke-dasharray="${dash?'3,2':'none'}"/><text x="17" y="3.5" font-size="8.5" fill="rgba(255,255,255,0.4)">${l}</text></g>`).join('')} <g clip-path="url(#pClip${id})">${purchaseMarkerSVG}</g> </svg>`;
 }
 
 function buildMomentumPanel(raw, rsiAll, macdAll, sliceStart, mode, W, H, PAD, id) {
@@ -118,7 +152,11 @@ function renderTwoPanel(ticker, months, momentumMode, prefix) {
   const bollingerAll=chartBollinger(closes), rsiAll=chartRSI(closes), macdAll=chartMACD(closes);
   const sliceStart=getSliceStart(raw,months);
   const W=340, PAD={t:20,r:8,b:24,l:44}, id=prefix+months;
-  priceEl.innerHTML=buildPricePanel(raw,sma50All,sma200All,bollingerAll,sliceStart,W,185,PAD,id);
+  // Resolve purchaseDate for 'pos' prefix from the currently open position
+  const _purchaseDate = (prefix === 'pos' && posChartTicker)
+    ? (positions.find(p => p.ticker.toUpperCase() === posChartTicker.toUpperCase())?.purchaseDate || null)
+    : null;
+  priceEl.innerHTML=buildPricePanel(raw,sma50All,sma200All,bollingerAll,sliceStart,W,185,PAD,id,_purchaseDate);
   momEl.innerHTML=buildMomentumPanel(raw,rsiAll,macdAll,sliceStart,momentumMode,W,100,PAD,id+momentumMode);
   ['1','3','6'].forEach(m=>{
     const btn=$(`${prefix}RangeBtn${m}`); if(!btn) return;
