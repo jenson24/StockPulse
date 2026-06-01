@@ -370,24 +370,37 @@ function perfCalcMetrics(sellTrades) {
 // ─── S&P 500 Benchmark ────────────────────────────────────────────────────────
 
 let spyPriceCache = null;
-let spyCacheDate = null;
+let spyCacheDate  = null;
 
-async function fetchSPYHistory(days = 365) {
+async function fetchSPYHistory(days = 730) {
   const today = new Date().toISOString().slice(0, 10);
-  if (spyPriceCache && spyCacheDate === today) return spyPriceCache;
+  if (spyPriceCache && spyCacheDate === today && spyPriceCache._days >= days) return spyPriceCache;
 
   if (!settings.apiKey || !settings.pwaSecret) return null;
 
   try {
     const data = await workerGet(`/history?symbol=SPY&days=${days}`);
-    if (!data.ok || !data.c) return null;
+    if (!data.ok || !data.c || !data.t) return null;
+    data._days = days;
     spyPriceCache = data;
-    spyCacheDate = today;
+    spyCacheDate  = today;
     return data;
   } catch(e) {
     console.warn('SPY fetch failed', e);
     return null;
   }
+}
+
+// Returns SPY % return from startDate to today using cached data.
+// spyData must already be fetched. Returns null if date not in range.
+function spyReturnFrom(spyData, startDate) {
+  if (!spyData || !spyData.t || !spyData.c) return null;
+  // Find first trading day on or after startDate
+  const startIdx = spyData.t.findIndex(t => new Date(t).toISOString().slice(0, 10) >= startDate);
+  if (startIdx < 0 || startIdx >= spyData.c.length - 1) return null;
+  const startPrice = spyData.c[startIdx];
+  const endPrice   = spyData.c[spyData.c.length - 1];
+  return ((endPrice - startPrice) / startPrice) * 100;
 }
 
 // ─── Performance Page Rendering ───────────────────────────────────────────────
@@ -396,205 +409,296 @@ async function renderPerformancePage() {
   const el = document.getElementById('page-performance');
   if (!el) return;
 
-  const allTracked = trackedPositions();
-  const trades = perfGetTrades();
+  const allTracked   = trackedPositions();
+  const trades       = perfGetTrades();
   const trackedTrades = trades.filter(t => t.tracked !== false);
-  const sellTrades = trackedTrades.filter(t => t.type === 'sell');
+  const sellTrades   = trackedTrades.filter(t => t.type === 'sell');
 
   if (allTracked.length === 0 && trackedTrades.length === 0) {
-    el.innerHTML = `
-      <div class="section">
-        <div class="section-label">Performance</div>
-        <div class="empty" style="padding:60px 20px">
-          <div class="empty-icon">📊</div>
-          <div class="empty-title">No tracked positions yet</div>
-          <div class="empty-sub">Add positions and toggle "Track with StockPulse" to start measuring your performance. Only positions you actively manage with StockPulse are included.</div>
-        </div>
+    el.querySelector('#perf-section').innerHTML = `
+      <div class="section-label">Performance</div>
+      <div class="empty" style="padding:60px 20px">
+        <div class="empty-icon">📊</div>
+        <div class="empty-title">No tracked positions yet</div>
+        <div class="empty-sub">Add positions and toggle "Track with StockPulse" to start measuring your performance.</div>
       </div>`;
     return;
   }
 
   const metrics = perfCalcMetrics(sellTrades);
 
-  // Fetch SPY for benchmark
-  const firstTradeDate = trackedTrades.length
-    ? trackedTrades.slice().sort((a, b) => a.date.localeCompare(b.date))[0].date
-    : null;
+  // ── Determine date range: earliest purchase date across open + closed tracked ──
+  const openDates  = allTracked.map(p => p.purchaseDate).filter(Boolean);
+  const tradeDates = trackedTrades.map(t => t.date).filter(Boolean);
+  const allDates   = [...openDates, ...tradeDates].sort();
+  const firstDate  = allDates[0] || null;
 
-  const daysSinceStart = firstTradeDate
-    ? Math.ceil((Date.now() - new Date(firstTradeDate + 'T00:00:00').getTime()) / 86400000)
-    : 0;
+  const oldestDays = firstDate
+    ? Math.ceil((Date.now() - new Date(firstDate + 'T00:00:00').getTime()) / 86400000) + 10
+    : 60;
 
-  const spyData = await fetchSPYHistory(Math.max(daysSinceStart + 10, 60));
-  let spyReturn = null;
-  if (spyData && spyData.c && spyData.c.length >= 2 && firstTradeDate && spyData.t) {
-    const startIdx = spyData.t.findIndex(t => {
-      const d = new Date(t).toISOString().slice(0, 10);
-      return d >= firstTradeDate;
-    });
-    if (startIdx >= 0 && startIdx < spyData.c.length - 1) {
-      spyReturn = ((spyData.c[spyData.c.length - 1] - spyData.c[startIdx]) / spyData.c[startIdx]) * 100;
-    }
-  }
+  // ── Fetch SPY once, slice per-position ──
+  const spyData = await fetchSPYHistory(Math.max(oldestDays, 60));
 
-  // Open positions gain
-  const openGain = allTracked.reduce((s, p) => s + (p.price - p.cost) * p.shares, 0);
-  const openCost = allTracked.reduce((s, p) => s + p.cost * p.shares, 0);
+  // ── Open positions: per-position benchmark comparison ──
+  const openWithBenchmark = allTracked.map(p => {
+    const posReturn  = p.cost > 0 ? ((p.price - p.cost) / p.cost) * 100 : 0;
+    const spyRet     = p.purchaseDate ? spyReturnFrom(spyData, p.purchaseDate) : null;
+    const alpha      = spyRet !== null ? posReturn - spyRet : null;
+    const gain       = (p.price - p.cost) * p.shares;
+
+    // Annualized return
+    const days = p.purchaseDate
+      ? Math.ceil((Date.now() - new Date(p.purchaseDate + 'T00:00:00').getTime()) / 86400000)
+      : null;
+    const annualized = (days && days > 30)
+      ? (Math.pow(1 + posReturn / 100, 365 / days) - 1) * 100
+      : null;
+
+    return { ...p, posReturn, spyRet, alpha, gain, annualized, days };
+  });
+
+  // ── Portfolio-level benchmark: weighted avg return vs SPY from earliest date ──
+  const openCost      = allTracked.reduce((s, p) => s + p.cost * p.shares, 0);
+  const openGain      = allTracked.reduce((s, p) => s + (p.price - p.cost) * p.shares, 0);
   const openReturnPct = openCost > 0 ? (openGain / openCost) * 100 : 0;
 
-  // Combined return: closed realized + open unrealized
-  const closedNet = metrics ? metrics.netGain : 0;
-  const totalNet = closedNet + openGain;
-  const totalCost = openCost + (metrics ? trackedTrades.filter(t => t.type === 'buy').reduce((s, t) => s + t.shares * t.price, 0) : 0);
+  // Weighted SPY return: each position's SPY return weighted by its cost basis
+  let weightedSpyReturn = null;
+  if (spyData && openCost > 0) {
+    let weightedSum = 0, weightedTotal = 0;
+    allTracked.forEach(p => {
+      if (!p.purchaseDate) return;
+      const sr = spyReturnFrom(spyData, p.purchaseDate);
+      if (sr === null) return;
+      const w = p.cost * p.shares;
+      weightedSum   += sr * w;
+      weightedTotal += w;
+    });
+    if (weightedTotal > 0) weightedSpyReturn = weightedSum / weightedTotal;
+  }
+  // Fall back to single SPY return from earliest date if weighting unavailable
+  const portfolioSpyReturn = weightedSpyReturn !== null
+    ? weightedSpyReturn
+    : (firstDate ? spyReturnFrom(spyData, firstDate) : null);
 
-  // Build the HTML
-  el.innerHTML = `
-    <div class="section">
-      <div class="perf-header-card">
-        <div style="font-size:11px;font-weight:600;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">StockPulse Performance</div>
-        ${firstTradeDate ? `<div style="font-size:11px;color:var(--text3);margin-bottom:12px">Since ${new Date(firstTradeDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>` : ''}
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px">
-          <div class="perf-big-stat">
-            <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Open Positions</div>
-            <div style="font-size:22px;font-weight:700;color:${openGain >= 0 ? 'var(--green)' : 'var(--red)'}">
-              ${openGain >= 0 ? '+' : ''}${fmtUSD(openGain)}
-            </div>
-            <div style="font-size:12px;color:${openReturnPct >= 0 ? 'var(--green)' : 'var(--red)'}">
-              ${openReturnPct >= 0 ? '+' : ''}${fmt(openReturnPct, 1)}% unrealized
-            </div>
+  const portfolioAlpha = (portfolioSpyReturn !== null)
+    ? openReturnPct - portfolioSpyReturn
+    : null;
+
+  const closedNet  = metrics ? metrics.netGain : 0;
+  const noApiKey   = !settings.apiKey || !settings.pwaSecret;
+
+  // ── Build HTML ──────────────────────────────────────────────────────────────
+  const section = el.querySelector('#perf-section') || el;
+  section.innerHTML = `
+
+    <div class="section-label">Performance</div>
+
+    <!-- ── Header summary card ── -->
+    <div class="perf-header-card">
+      <div style="font-size:11px;font-weight:600;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:6px">StockPulse Picks</div>
+      ${firstDate ? `<div style="font-size:11px;color:var(--text3);margin-bottom:12px">Since ${new Date(firstDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>` : ''}
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div class="perf-big-stat">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px">Open P&L</div>
+          <div style="font-size:22px;font-weight:700;color:${openGain >= 0 ? 'var(--green)' : 'var(--red)'}">
+            ${openGain >= 0 ? '+' : ''}${fmtUSD(openGain)}
           </div>
-          <div class="perf-big-stat">
-            <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Realized (Closed)</div>
-            <div style="font-size:22px;font-weight:700;color:${closedNet >= 0 ? 'var(--green)' : 'var(--red)'}">
-              ${closedNet >= 0 ? '+' : ''}${fmtUSD(closedNet)}
-            </div>
-            <div style="font-size:12px;color:var(--text3)">${sellTrades.length} closed trade${sellTrades.length !== 1 ? 's' : ''}</div>
+          <div style="font-size:12px;color:${openReturnPct >= 0 ? 'var(--green)' : 'var(--red)'}">
+            ${openReturnPct >= 0 ? '+' : ''}${fmt(openReturnPct, 1)}% unrealized
           </div>
         </div>
-        ${spyReturn !== null ? `
-        <div style="margin-top:12px;padding:10px 12px;background:var(--bg3);border-radius:10px;display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:12px;color:var(--text2)">vs. S&P 500 (same period)</span>
-          <span style="font-size:13px;font-weight:600;color:${spyReturn >= 0 ? 'var(--green)' : 'var(--red)'}">
-            ${spyReturn >= 0 ? '+' : ''}${fmt(spyReturn, 1)}%
-            <span style="font-size:11px;font-weight:400;color:${openReturnPct - spyReturn >= 0 ? 'var(--green)' : 'var(--red)'}">
-              (you: ${openReturnPct >= 0 ? '+' : ''}${fmt(openReturnPct, 1)}%)
-            </span>
-          </span>
-        </div>` : ''}
+        <div class="perf-big-stat">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px">Realized</div>
+          <div style="font-size:22px;font-weight:700;color:${closedNet >= 0 ? 'var(--green)' : 'var(--red)'}">
+            ${closedNet >= 0 ? '+' : ''}${fmtUSD(closedNet)}
+          </div>
+          <div style="font-size:12px;color:var(--text3)">${sellTrades.length} closed trade${sellTrades.length !== 1 ? 's' : ''}</div>
+        </div>
       </div>
 
-      ${metrics && metrics.tradeCount > 0 ? `
-      <div class="section-label" style="margin-top:16px">Trade Metrics</div>
-      <div class="perf-metrics-grid">
-
-        <div class="perf-metric-card">
-          <div class="perf-metric-label">Win Rate</div>
-          <div class="perf-metric-val" style="color:${metrics.winRate >= 50 ? 'var(--green)' : 'var(--red)'}">
-            ${fmt(metrics.winRate, 0)}%
-          </div>
-          <div class="perf-metric-sub">${metrics.wins}W · ${metrics.losses}L</div>
-          <div class="perf-bar-track"><div class="perf-bar-fill" style="width:${metrics.winRate}%;background:${metrics.winRate >= 50 ? 'var(--green)' : 'var(--red)'}"></div></div>
+      <!-- Portfolio vs S&P benchmark row -->
+      ${portfolioSpyReturn !== null ? `
+      <div style="background:var(--bg3);border-radius:12px;padding:12px 14px">
+        <div style="font-size:10px;font-weight:600;letter-spacing:0.8px;color:var(--text3);text-transform:uppercase;margin-bottom:10px">
+          Your Picks vs. S&P 500 (cost-weighted)
         </div>
-
-        <div class="perf-metric-card">
-          <div class="perf-metric-label">Profit Factor</div>
-          <div class="perf-metric-val" style="color:${metrics.profitFactor >= 1.5 ? 'var(--green)' : metrics.profitFactor >= 1 ? 'var(--amber)' : 'var(--red)'}">
-            ${metrics.profitFactor >= 99 ? '∞' : fmt(metrics.profitFactor, 2)}
-          </div>
-          <div class="perf-metric-sub">${metrics.profitFactor >= 1.5 ? 'Strong edge' : metrics.profitFactor >= 1 ? 'Slight edge' : 'No edge'}</div>
-          <div class="perf-bar-track"><div class="perf-bar-fill" style="width:${Math.min(metrics.profitFactor/3*100, 100)}%;background:${metrics.profitFactor >= 1.5 ? 'var(--green)' : metrics.profitFactor >= 1 ? 'var(--amber)' : 'var(--red)'}"></div></div>
-        </div>
-
-        ${metrics.sharpe !== null ? `
-        <div class="perf-metric-card">
-          <div class="perf-metric-label">Sharpe Ratio</div>
-          <div class="perf-metric-val" style="color:${metrics.sharpe >= 1 ? 'var(--green)' : metrics.sharpe >= 0 ? 'var(--amber)' : 'var(--red)'}">
-            ${fmt(metrics.sharpe, 2)}
-          </div>
-          <div class="perf-metric-sub">${metrics.sharpe >= 2 ? 'Excellent' : metrics.sharpe >= 1 ? 'Good' : metrics.sharpe >= 0 ? 'Marginal' : 'Underperforming'}</div>
-          <div class="perf-bar-track"><div class="perf-bar-fill" style="width:${Math.min(Math.max(metrics.sharpe/3*100,0),100)}%;background:${metrics.sharpe >= 1 ? 'var(--green)' : 'var(--amber)'}"></div></div>
-        </div>` : ''}
-
-        ${metrics.maxDrawdown > 0 ? `
-        <div class="perf-metric-card">
-          <div class="perf-metric-label">Max Drawdown</div>
-          <div class="perf-metric-val" style="color:${metrics.maxDrawdown < 10 ? 'var(--green)' : metrics.maxDrawdown < 20 ? 'var(--amber)' : 'var(--red)'}">
-            -${fmt(metrics.maxDrawdown, 1)}%
-          </div>
-          <div class="perf-metric-sub">${metrics.maxDrawdown < 10 ? 'Well controlled' : metrics.maxDrawdown < 20 ? 'Moderate risk' : 'High drawdown'}</div>
-          <div class="perf-bar-track"><div class="perf-bar-fill" style="width:${Math.min(metrics.maxDrawdown/50*100,100)}%;background:${metrics.maxDrawdown < 10 ? 'var(--green)' : metrics.maxDrawdown < 20 ? 'var(--amber)' : 'var(--red)'}"></div></div>
-        </div>` : ''}
-
-      </div>` : `
-      <div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:16px;margin-top:12px;font-size:13px;color:var(--text3);text-align:center;line-height:1.6">
-        Trade metrics appear once you record your first sale.<br>
-        Use the <strong style="color:var(--text2)">Record Trade</strong> button on any position.
-      </div>`}
-
-      ${sellTrades.length > 0 ? `
-      <div class="section-label" style="margin-top:16px">Closed Trades</div>
-      <div id="perf-trades-list">
-        ${sellTrades.slice().sort((a, b) => b.date.localeCompare(a.date)).map(t => {
-          const gain = (t.price - t.costAtTrade) * t.shares;
-          const gainPct = (t.price - t.costAtTrade) / t.costAtTrade * 100;
-          const isWin = gain >= 0;
-          return `
-          <div class="perf-trade-card">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start">
-              <div>
-                <div style="display:flex;align-items:center;gap:7px">
-                  <span style="font-size:16px;font-weight:700">${t.ticker}</span>
-                  <span class="pill ${isWin ? 'pill-green' : 'pill-red'}" style="font-size:10px">${isWin ? 'Win' : 'Loss'}</span>
-                  <span class="pill pill-blue" style="font-size:10px">${t.isFull ? 'Full exit' : 'Partial'}</span>
-                </div>
-                <div style="font-size:11px;color:var(--text3);margin-top:3px">
-                  ${new Date(t.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
-                  · ${fmt(t.shares, 4)} shares @ ${fmtUSD(t.price)}
-                </div>
-                ${t.notes ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;font-style:italic">${t.notes}</div>` : ''}
-              </div>
-              <div style="text-align:right">
-                <div style="font-size:16px;font-weight:700;color:${isWin ? 'var(--green)' : 'var(--red)'}">
-                  ${gain >= 0 ? '+' : ''}${fmtUSD(gain)}
-                </div>
-                <div style="font-size:11px;color:${isWin ? 'var(--green)' : 'var(--red)'}">
-                  ${gainPct >= 0 ? '+' : ''}${fmt(gainPct, 1)}%
-                </div>
-              </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
+          <div>
+            <div style="font-size:18px;font-weight:700;color:${openReturnPct >= 0 ? 'var(--green)' : 'var(--red)'}">
+              ${openReturnPct >= 0 ? '+' : ''}${fmt(openReturnPct, 1)}%
             </div>
-          </div>`;
-        }).join('')}
+            <div style="font-size:10px;color:var(--text3);margin-top:2px">Your return</div>
+          </div>
+          <div>
+            <div style="font-size:18px;font-weight:700;color:${portfolioSpyReturn >= 0 ? 'var(--text2)' : 'var(--red)'}">
+              ${portfolioSpyReturn >= 0 ? '+' : ''}${fmt(portfolioSpyReturn, 1)}%
+            </div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px">S&P 500</div>
+          </div>
+          <div>
+            <div style="font-size:18px;font-weight:700;color:${portfolioAlpha >= 0 ? 'var(--green)' : 'var(--red)'}">
+              ${portfolioAlpha >= 0 ? '+' : ''}${fmt(portfolioAlpha, 1)}%
+            </div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px">Alpha</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;height:3px;background:var(--bg4);border-radius:99px;overflow:hidden">
+          <div style="height:100%;border-radius:99px;background:${portfolioAlpha >= 0 ? 'var(--green)' : 'var(--red)'};width:${Math.min(Math.abs(portfolioAlpha)/Math.max(Math.abs(openReturnPct),Math.abs(portfolioSpyReturn),1)*100,100)}%"></div>
+        </div>
+      </div>` : noApiKey ? `
+      <div style="background:var(--bg3);border-radius:12px;padding:10px 14px;font-size:12px;color:var(--text3);text-align:center">
+        Connect your Schwab Worker in Settings to unlock S&P 500 benchmark comparison
+      </div>` : `
+      <div style="background:var(--bg3);border-radius:12px;padding:10px 14px;font-size:12px;color:var(--text3);text-align:center">
+        Loading S&P 500 benchmark…
+      </div>`}
+    </div>
+
+    <!-- ── Trade metrics (closed trades only) ── -->
+    ${metrics && metrics.tradeCount > 0 ? `
+    <div class="section-label" style="margin-top:16px">Trade Metrics <span style="font-size:10px;font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0">(from closed trades)</span></div>
+    <div class="perf-metrics-grid">
+
+      <div class="perf-metric-card">
+        <div class="perf-metric-label">Win Rate</div>
+        <div class="perf-metric-val" style="color:${metrics.winRate >= 50 ? 'var(--green)' : 'var(--red)'}">
+          ${fmt(metrics.winRate, 0)}%
+        </div>
+        <div class="perf-metric-sub">${metrics.wins}W · ${metrics.losses}L</div>
+        <div class="perf-bar-track"><div class="perf-bar-fill" style="width:${metrics.winRate}%;background:${metrics.winRate >= 50 ? 'var(--green)' : 'var(--red)'}"></div></div>
+      </div>
+
+      <div class="perf-metric-card">
+        <div class="perf-metric-label">Profit Factor</div>
+        <div class="perf-metric-val" style="color:${metrics.profitFactor >= 1.5 ? 'var(--green)' : metrics.profitFactor >= 1 ? 'var(--amber)' : 'var(--red)'}">
+          ${metrics.profitFactor >= 99 ? '∞' : fmt(metrics.profitFactor, 2)}
+        </div>
+        <div class="perf-metric-sub">${metrics.profitFactor >= 1.5 ? 'Strong edge' : metrics.profitFactor >= 1 ? 'Slight edge' : 'No edge'}</div>
+        <div class="perf-bar-track"><div class="perf-bar-fill" style="width:${Math.min(metrics.profitFactor/3*100,100)}%;background:${metrics.profitFactor >= 1.5 ? 'var(--green)' : metrics.profitFactor >= 1 ? 'var(--amber)' : 'var(--red)'}"></div></div>
+      </div>
+
+      ${metrics.sharpe !== null ? `
+      <div class="perf-metric-card">
+        <div class="perf-metric-label">Sharpe Ratio</div>
+        <div class="perf-metric-val" style="color:${metrics.sharpe >= 1 ? 'var(--green)' : metrics.sharpe >= 0 ? 'var(--amber)' : 'var(--red)'}">
+          ${fmt(metrics.sharpe, 2)}
+        </div>
+        <div class="perf-metric-sub">${metrics.sharpe >= 2 ? 'Excellent' : metrics.sharpe >= 1 ? 'Good' : metrics.sharpe >= 0 ? 'Marginal' : 'Underperforming'}</div>
+        <div class="perf-bar-track"><div class="perf-bar-fill" style="width:${Math.min(Math.max(metrics.sharpe/3*100,0),100)}%;background:${metrics.sharpe >= 1 ? 'var(--green)' : 'var(--amber)'}"></div></div>
       </div>` : ''}
 
-      ${allTracked.length > 0 ? `
-      <div class="section-label" style="margin-top:16px">Open Tracked Positions</div>
-      ${allTracked.map(p => {
-        const gain = (p.price - p.cost) * p.shares;
-        const gainPct = (p.price - p.cost) / p.cost * 100;
-        return `
-        <div class="perf-trade-card">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div>
-              <div style="font-size:15px;font-weight:700">${p.ticker}
-                <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">${p.name || ''}</span>
-              </div>
-              <div style="font-size:11px;color:var(--text3);margin-top:2px">
-                ${fmt(p.shares, 4)} shares · avg cost ${fmtUSD(p.cost)} · held ${holdingLabel(p.purchaseDate)}
-              </div>
+      ${metrics.maxDrawdown > 0 ? `
+      <div class="perf-metric-card">
+        <div class="perf-metric-label">Max Drawdown</div>
+        <div class="perf-metric-val" style="color:${metrics.maxDrawdown < 10 ? 'var(--green)' : metrics.maxDrawdown < 20 ? 'var(--amber)' : 'var(--red)'}">
+          -${fmt(metrics.maxDrawdown, 1)}%
+        </div>
+        <div class="perf-metric-sub">${metrics.maxDrawdown < 10 ? 'Well controlled' : metrics.maxDrawdown < 20 ? 'Moderate risk' : 'High drawdown'}</div>
+        <div class="perf-bar-track"><div class="perf-bar-fill" style="width:${Math.min(metrics.maxDrawdown/50*100,100)}%;background:${metrics.maxDrawdown < 10 ? 'var(--green)' : metrics.maxDrawdown < 20 ? 'var(--amber)' : 'var(--red)'}"></div></div>
+      </div>` : ''}
+
+    </div>` : `
+    <div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:14px 16px;margin-top:12px">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px">Win Rate · Profit Factor · Sharpe · Sortino</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.6">These metrics unlock once you record your first sale via <strong style="color:var(--text2)">↕ Record Trade</strong> on any position.</div>
+    </div>`}
+
+    <!-- ── Per-position benchmark table ── -->
+    ${openWithBenchmark.length > 0 ? `
+    <div class="section-label" style="margin-top:16px">Position vs. S&P 500</div>
+    ${openWithBenchmark.map(p => {
+      const alphaColor = p.alpha === null ? 'var(--text3)'
+        : p.alpha >= 0 ? 'var(--green)' : 'var(--red)';
+      const retColor = p.posReturn >= 0 ? 'var(--green)' : 'var(--red)';
+      return `
+      <div class="perf-trade-card" style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div>
+            <div style="font-size:15px;font-weight:700">${p.ticker}
+              <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">${p.name || ''}</span>
             </div>
-            <div style="text-align:right">
-              <div style="font-size:15px;font-weight:600;color:${gain >= 0 ? 'var(--green)' : 'var(--red)'}">
-                ${gain >= 0 ? '+' : ''}${fmtUSD(gain)}
-              </div>
-              <div style="font-size:11px;color:${gainPct >= 0 ? 'var(--green)' : 'var(--red)'}">
-                ${gainPct >= 0 ? '+' : ''}${fmt(gainPct, 1)}%
-              </div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">
+              Held ${holdingLabel(p.purchaseDate)}
+              ${p.annualized !== null ? `· <span style="color:${p.annualized >= 0 ? 'var(--green)' : 'var(--red)'}">${p.annualized >= 0 ? '+' : ''}${fmt(p.annualized, 1)}% ann.</span>` : ''}
             </div>
           </div>
-        </div>`;
-      }).join('')}` : ''}
+          <div style="text-align:right">
+            <div style="font-size:15px;font-weight:700;color:${retColor}">
+              ${p.posReturn >= 0 ? '+' : ''}${fmt(p.posReturn, 1)}%
+            </div>
+            <div style="font-size:11px;color:${p.gain >= 0 ? 'var(--green)' : 'var(--red)'}">
+              ${p.gain >= 0 ? '+' : ''}${fmtUSD(p.gain)}
+            </div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center;background:var(--bg3);border-radius:10px;padding:8px">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:${retColor}">${p.posReturn >= 0 ? '+' : ''}${fmt(p.posReturn, 1)}%</div>
+            <div style="font-size:9px;color:var(--text3);margin-top:2px">YOUR RETURN</div>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:${p.spyRet === null ? 'var(--text3)' : p.spyRet >= 0 ? 'var(--text2)' : 'var(--red)'}">
+              ${p.spyRet !== null ? (p.spyRet >= 0 ? '+' : '') + fmt(p.spyRet, 1) + '%' : '—'}
+            </div>
+            <div style="font-size:9px;color:var(--text3);margin-top:2px">S&P 500</div>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:${alphaColor}">
+              ${p.alpha !== null ? (p.alpha >= 0 ? '+' : '') + fmt(p.alpha, 1) + '%' : '—'}
+            </div>
+            <div style="font-size:9px;color:var(--text3);margin-top:2px">ALPHA</div>
+          </div>
+        </div>
+        ${p.alpha !== null ? `
+        <div style="margin-top:8px;display:flex;align-items:center;gap:6px">
+          <div style="flex:1;height:3px;background:var(--bg4);border-radius:99px;overflow:hidden">
+            <div style="height:100%;border-radius:99px;background:${alphaColor};width:${Math.min(Math.abs(p.alpha)/Math.max(Math.abs(p.posReturn),Math.abs(p.spyRet||1),1)*100,100)}%"></div>
+          </div>
+          <span style="font-size:10px;color:${alphaColor};white-space:nowrap">
+            ${p.alpha >= 0 ? '▲ Outperforming' : '▼ Underperforming'} S&P by ${fmt(Math.abs(p.alpha), 1)}pts
+          </span>
+        </div>` : ''}
+      </div>`;
+    }).join('')}` : ''}
 
-    </div>`;
+    <!-- ── Closed trades log ── -->
+    ${sellTrades.length > 0 ? `
+    <div class="section-label" style="margin-top:16px">Closed Trades</div>
+    ${sellTrades.slice().sort((a, b) => b.date.localeCompare(a.date)).map(t => {
+      const gain    = (t.price - t.costAtTrade) * t.shares;
+      const gainPct = (t.price - t.costAtTrade) / t.costAtTrade * 100;
+      const isWin   = gain >= 0;
+      return `
+      <div class="perf-trade-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="display:flex;align-items:center;gap:7px">
+              <span style="font-size:16px;font-weight:700">${t.ticker}</span>
+              <span class="pill ${isWin ? 'pill-green' : 'pill-red'}" style="font-size:10px">${isWin ? 'Win' : 'Loss'}</span>
+              <span class="pill pill-blue" style="font-size:10px">${t.isFull ? 'Full exit' : 'Partial'}</span>
+            </div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">
+              ${new Date(t.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+              · ${fmt(t.shares, 4)} shares @ ${fmtUSD(t.price)}
+            </div>
+            ${t.notes ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;font-style:italic">${t.notes}</div>` : ''}
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:16px;font-weight:700;color:${isWin ? 'var(--green)' : 'var(--red)'}">
+              ${gain >= 0 ? '+' : ''}${fmtUSD(gain)}
+            </div>
+            <div style="font-size:11px;color:${isWin ? 'var(--green)' : 'var(--red)'}">
+              ${gainPct >= 0 ? '+' : ''}${fmt(gainPct, 1)}%
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}` : ''}
+
+  `;
 }
 
 // ─── CSS for performance page (injected once) ─────────────────────────────────
