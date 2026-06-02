@@ -167,6 +167,14 @@ function renderWatchlistCards() {
 function openWlDetail(ticker) {
   const w = watchlist.find(x => x.ticker === ticker.toUpperCase());
   if (!w) return;
+  // Set wl chart state so range/mom toggles work
+  wlChartTicker = w.ticker.toUpperCase();
+  wlChartRange  = 1;
+  wlChartMom    = 'rsi';
+  // Convert addedAt timestamp to YYYY-MM-DD for the marker
+  wlChartAddedDate = w.addedAt
+    ? new Date(w.addedAt).toISOString().slice(0, 10)
+    : null;
   const fields = [
     { key:'price',  label:'Price',      fmt: v => v ? '$'+v.toFixed(2) : '—' },
     { key:'rsi',    label:'RSI (14)',    fmt: v => v ?? '—' },
@@ -212,6 +220,7 @@ function openWlDetail(ticker) {
   $('wlDetailContent').innerHTML = `
     <div class="modal-title">${w.ticker} <span style="font-size:14px;color:var(--text3);font-weight:400">${w.name}</span></div>
     <div class="modal-subtitle" style="display:flex;align-items:center;justify-content:space-between">${w.sector} · Added ${addedDate} (${daysAgo} day${daysAgo!==1?'s':''} ago)<button class="edit-meta-btn" onclick="openEditWatchlistModal('${w.ticker}')">✏️ Edit</button></div>
+    <div style="margin-bottom:14px">${chartControlsHTML('wl')}</div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
       <div style="flex:1">
         <div style="font-size:28px;font-weight:700;color:${priceColor}">${w.current?.price ? '$'+w.current.price.toFixed(2) : '—'}</div>
@@ -235,6 +244,20 @@ function openWlDetail(ticker) {
   `;
   $('wlDetailModal').classList.add('open');
   $('wlDetailModal').onclick = e => { if (e.target === $('wlDetailModal')) $('wlDetailModal').classList.remove('open'); };
+  // Render chart and style initial active buttons
+  renderTwoPanel(wlChartTicker, wlChartRange, wlChartMom, 'wl');
+  ['1','3','6'].forEach(m => {
+    const btn = document.getElementById('wlRangeBtn'+m);
+    if (btn) btn.style.cssText = m == wlChartRange
+      ? 'padding:4px 12px;border-radius:8px;border:0.5px solid var(--accent);font-size:11px;font-weight:600;cursor:pointer;background:var(--accent);color:#fff'
+      : 'padding:4px 12px;border-radius:8px;border:0.5px solid var(--border2);font-size:11px;font-weight:600;cursor:pointer;background:var(--bg3);color:var(--text2)';
+  });
+  ['rsi','macd'].forEach(m => {
+    const btn = document.getElementById('wlMomBtn'+m);
+    if (btn) btn.style.cssText = m === wlChartMom
+      ? 'padding:4px 11px;border-radius:8px;border:0.5px solid var(--accent);font-size:11px;font-weight:600;cursor:pointer;text-transform:uppercase;background:var(--accent);color:#fff'
+      : 'padding:4px 11px;border-radius:8px;border:0.5px solid var(--border2);font-size:11px;font-weight:600;cursor:pointer;text-transform:uppercase;background:var(--bg3);color:var(--text2)';
+  });
 }
 
 function openWlAddModal(ticker, name, sector, ind) {
@@ -295,26 +318,124 @@ async function openDirectAddWatchlistModal() {
 
 async function submitDirectAdd() {
   const ticker = ($('dw-ticker')?.value || '').trim().toUpperCase();
-  const name = ($('dw-name')?.value || '').trim();
+  const name   = ($('dw-name')?.value  || '').trim();
   const sector = $('dw-sector')?.value || 'Other';
   if (!ticker) { showToast('Enter a ticker symbol'); return; }
   if (isOnWatchlist(ticker)) { showToast(`${ticker} is already on watchlist`); return; }
 
   const btn = $('dw-addBtn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Fetching…'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Fetching data…'; }
 
-  // Fetch live indicators first to show a preview before adding
+  // Show loading state inside the modal
+  $('directWlContent').innerHTML = `
+    <div class="modal-title">Preview: ${ticker}</div>
+    <div style="text-align:center;padding:40px 0;color:var(--text3)">
+      <div style="font-size:28px;margin-bottom:12px">⏳</div>
+      <div style="font-size:13px">Fetching live data…</div>
+    </div>`;
+
+  // Fetch price + indicators
   let ind = currentIndicators[ticker] || null;
-  let price = null;
+  let price = null, change = null;
   if (settings.apiKey && settings.pwaSecret) {
-    try { const pd = await fetchPrices([ticker]); price = pd[ticker] ?? null; } catch(e) {}
+    try {
+      const quotes = await fetchMarketDataForWatchlist([ticker]);
+      if (quotes.length) { price = quotes[0].price; change = quotes[0].change; }
+    } catch(e) {}
     if (!ind) ind = await fetchIndicators(ticker);
+    if (!price && ind?.price) price = ind.price;
   }
 
-  $('directWlModal').classList.remove('open');
+  // Build buy-ideas-style preview directly in directWlContent
+  const resolvedName   = name || ind?.name || ticker;
+  const resolvedSector = sector !== 'Other' ? sector : (ind?.sector || getSector(ticker) || 'Other');
+  const priceColor = change?.startsWith('+') ? 'var(--green)' : change?.startsWith('-') ? 'var(--red)' : 'var(--text)';
 
-  // Show the existing confirm modal so user sees the snapshot values
-  openWlAddModal(ticker, name || ticker, sector, ind ? { ...ind, price: price ?? ind.price } : null);
+  const indRows = [
+    { label: 'RSI (14)',   val: ind?.rsi != null ? ind.rsi : '—',
+      color: ind?.rsi != null ? (ind.rsi < 35 ? 'var(--green)' : ind.rsi > 65 ? 'var(--red)' : 'var(--text)') : 'var(--text3)' },
+    { label: 'BB %B',      val: ind?.bb?.pct != null ? ind.bb.pct + '%' : '—',
+      color: ind?.bb?.pct != null ? (ind.bb.pct < 20 ? 'var(--green)' : ind.bb.pct > 80 ? 'var(--red)' : 'var(--text)') : 'var(--text3)' },
+    { label: 'MACD Hist',  val: ind?.macd?.histogram != null ? (ind.macd.histogram > 0 ? '▲ ' : '▼ ') + ind.macd.histogram.toFixed(3) : '—',
+      color: ind?.macd?.histogram != null ? (ind.macd.histogram > 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)' },
+    { label: 'SMA 50',     val: ind?.sma50 != null ? '$' + ind.sma50.toFixed(2) : '—', color: 'var(--text)' },
+    { label: 'SMA 200',    val: ind?.sma200 != null ? '$' + ind.sma200.toFixed(2) : '—', color: 'var(--text)' },
+    { label: 'Vol ratio',  val: ind?.volRatio != null ? (ind.volRatio * 100).toFixed(0) + '% of avg' : '—',
+      color: ind?.volRatio > 1.3 ? 'var(--green)' : 'var(--text)' },
+  ];
+
+  // Signal pills
+  const buySigs  = ind?.buySignals  || [];
+  const sellSigs = ind?.sellSignals || [];
+
+  // Set up wl chart state for the preview chart
+  wlChartTicker    = ticker;
+  wlChartRange     = 1;
+  wlChartMom       = 'rsi';
+  wlChartAddedDate = null; // not added yet — no marker
+
+  $('directWlContent').innerHTML = `
+    <div class="modal-title">${ticker}
+      <span style="font-size:14px;color:var(--text3);font-weight:400;margin-left:6px">${resolvedName}</span>
+    </div>
+    <div class="modal-subtitle" style="margin-bottom:12px">${resolvedSector}</div>
+
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px">
+      <div>
+        <div style="font-size:30px;font-weight:700;color:${priceColor}">
+          ${price != null ? '$' + price.toFixed(2) : '—'}
+        </div>
+        ${change ? `<div style="font-size:13px;color:${priceColor}">${change} today</div>` : ''}
+      </div>
+      ${buySigs.length || sellSigs.length ? `
+      <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">
+        ${buySigs.map(s => `<span class="pill pill-green" style="font-size:10px">${s}</span>`).join('')}
+        ${sellSigs.map(s => `<span class="pill pill-red" style="font-size:10px">⚠ ${s}</span>`).join('')}
+      </div>` : ''}
+    </div>
+
+    <!-- Chart -->
+    <div style="margin-bottom:14px">${chartControlsHTML('wl')}</div>
+
+    <!-- Indicator grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      ${indRows.map(r => `
+      <div style="background:var(--bg3);border-radius:10px;padding:10px 12px">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:3px">${r.label}</div>
+        <div style="font-size:15px;font-weight:600;color:${r.color}">${r.val}</div>
+      </div>`).join('')}
+    </div>
+
+    <div style="background:var(--bg3);border-radius:12px;padding:11px 13px;margin-bottom:16px;font-size:12px;color:var(--text3)">
+      These indicator values will be saved as your <strong style="color:var(--text2)">baseline</strong> so StockPulse can track changes over time after you add this ticker.
+    </div>
+
+    <button class="btn-primary" onclick="confirmAddToWatchlist('${ticker}','${resolvedName.replace(/'/g,"\'")}','${resolvedSector}')">
+      + Add ${ticker} to Watchlist
+    </button>
+    <button class="btn-secondary" style="margin-top:8px" onclick="$('directWlModal').classList.remove('open')">Cancel</button>
+  `;
+
+  // Render the preview chart
+  renderTwoPanel(wlChartTicker, wlChartRange, wlChartMom, 'wl');
+  ['1','3','6'].forEach(m => {
+    const b = document.getElementById('wlRangeBtn'+m);
+    if (b) b.style.cssText = m == wlChartRange
+      ? 'padding:4px 12px;border-radius:8px;border:0.5px solid var(--accent);font-size:11px;font-weight:600;cursor:pointer;background:var(--accent);color:#fff'
+      : 'padding:4px 12px;border-radius:8px;border:0.5px solid var(--border2);font-size:11px;font-weight:600;cursor:pointer;background:var(--bg3);color:var(--text2)';
+  });
+  ['rsi','macd'].forEach(m => {
+    const b = document.getElementById('wlMomBtn'+m);
+    if (b) b.style.cssText = m === wlChartMom
+      ? 'padding:4px 11px;border-radius:8px;border:0.5px solid var(--accent);font-size:11px;font-weight:600;cursor:pointer;text-transform:uppercase;background:var(--accent);color:#fff'
+      : 'padding:4px 11px;border-radius:8px;border:0.5px solid var(--border2);font-size:11px;font-weight:600;cursor:pointer;text-transform:uppercase;background:var(--bg3);color:var(--text2)';
+  });
+}
+
+// Called from the preview — adds to watchlist then closes the modal
+async function confirmAddToWatchlist(ticker, name, sector) {
+  await addToWatchlist(ticker, name, sector);
+  $('directWlModal').classList.remove('open');
 }
 
 // ─── Edit Watchlist Entry Metadata ────────────────────────────────────────────
