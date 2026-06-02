@@ -342,14 +342,17 @@ async function submitDirectAdd() {
     </div>`;
 
   // Fetch price + indicators
-  let ind = currentIndicators[ticker] || null;
+  let ind = null;
   let price = null, change = null;
   if (settings.apiKey && settings.pwaSecret) {
     try {
       const quotes = await fetchMarketDataForWatchlist([ticker]);
       if (quotes.length) { price = quotes[0].price; change = quotes[0].change; }
     } catch(e) {}
-    if (!ind) ind = await fetchIndicators(ticker);
+    // Always call fetchIndicators so indicatorCache gets raw price history for the chart.
+    // currentIndicators only holds computed values, not the raw OHLCV data the chart needs.
+    ind = await fetchIndicators(ticker);
+    if (!ind) ind = currentIndicators[ticker] || null;
     if (!price && ind?.price) price = ind.price;
   }
 
