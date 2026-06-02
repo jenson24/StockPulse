@@ -3,7 +3,7 @@
 const DEFAULT_WATCHLIST = 'AAPL,MSFT,NVDA,AMZN,GOOGL,META,TSLA,JPM,BRK.B,XLV,V,UNH,HD,PG,JNJ';
 
 // How many days of recommendation history to remember (prevents repeat picks)
-const RECO_HISTORY_DAYS = 7;
+const RECO_HISTORY_DAYS = 3;
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -526,8 +526,11 @@ async function loadBuyIdeas(forceRefresh = false) {
       // Always use live price/change from priceMap — overrides whatever Claude returned
       const livePrice  = priceMap[t]?.price  ?? idea.price  ?? null;
       const liveChange = priceMap[t]?.change ?? idea.change ?? '';
+      // Hard clamp score to 0–100 regardless of what Claude returns
+      const clampedScore = Math.min(100, Math.max(0, Math.round(idea.score ?? 50)));
       return {
         ...idea,
+        score: clampedScore,
         price: livePrice,
         change: liveChange,
         indicators: ind,
