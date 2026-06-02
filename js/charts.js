@@ -59,7 +59,7 @@ function svgPolyline(pairs, xFn, yFn) {
     .map(([i,v])=>`${xFn(i).toFixed(2)},${yFn(v).toFixed(2)}`).join(' ');
 }
 
-function buildPricePanel(raw, sma50All, sma200All, bollingerAll, sliceStart, W, H, PAD, id, purchaseDate) {
+function buildPricePanel(raw, sma50All, sma200All, bollingerAll, sliceStart, W, H, PAD, id, purchaseDate, markerLabel = "Bought") {
   const cW=W-PAD.l-PAD.r, cH=H-PAD.t-PAD.b;
   const data=raw.slice(sliceStart), sma50=sma50All.slice(sliceStart);
   const sma200=sma200All.slice(sliceStart), bollinger=bollingerAll.slice(sliceStart);
@@ -108,7 +108,7 @@ function buildPricePanel(raw, sma50All, sma200All, bollingerAll, sliceStart, W, 
         ` fill="#f5a623" stroke="#0a0a0a" stroke-width="1"/>`,
         // "Bought" label pill
         `<rect x="${(parseFloat(mx) - 18).toFixed(2)}" y="${(PAD.t + 3).toFixed(2)}" width="36" height="13" rx="3" fill="rgba(245,166,35,0.18)" stroke="rgba(245,166,35,0.5)" stroke-width="0.5"/>`,
-        `<text x="${mx}" y="${labelY}" text-anchor="middle" font-size="8" font-weight="600" fill="#f5a623">Bought</text>`,
+        `<text x="${mx}" y="${labelY}" text-anchor="middle" font-size="8" font-weight="600" fill="#f5a623">${markerLabel}</text>`,
       ].join('');
     }
   }
@@ -152,11 +152,15 @@ function renderTwoPanel(ticker, months, momentumMode, prefix) {
   const bollingerAll=chartBollinger(closes), rsiAll=chartRSI(closes), macdAll=chartMACD(closes);
   const sliceStart=getSliceStart(raw,months);
   const W=340, PAD={t:20,r:8,b:24,l:44}, id=prefix+months;
-  // Resolve purchaseDate for 'pos' prefix from the currently open position
-  const _purchaseDate = (prefix === 'pos' && posChartTicker)
-    ? (positions.find(p => p.ticker.toUpperCase() === posChartTicker.toUpperCase())?.purchaseDate || null)
-    : null;
-  priceEl.innerHTML=buildPricePanel(raw,sma50All,sma200All,bollingerAll,sliceStart,W,185,PAD,id,_purchaseDate);
+  // Resolve marker date: purchaseDate for portfolio, addedAt date for watchlist
+  let _purchaseDate = null;
+  if (prefix === 'pos' && posChartTicker) {
+    _purchaseDate = positions.find(p => p.ticker.toUpperCase() === posChartTicker.toUpperCase())?.purchaseDate || null;
+  } else if (prefix === 'wl' && wlChartAddedDate) {
+    _purchaseDate = wlChartAddedDate; // ISO date string YYYY-MM-DD
+  }
+  const _markerLabel = prefix === 'wl' ? 'Added' : 'Bought';
+  priceEl.innerHTML=buildPricePanel(raw,sma50All,sma200All,bollingerAll,sliceStart,W,185,PAD,id,_purchaseDate,_markerLabel);
   momEl.innerHTML=buildMomentumPanel(raw,rsiAll,macdAll,sliceStart,momentumMode,W,100,PAD,id+momentumMode);
   ['1','3','6'].forEach(m=>{
     const btn=$(`${prefix}RangeBtn${m}`); if(!btn) return;
@@ -186,3 +190,7 @@ function onposRange(m) { posChartRange = m; renderTwoPanel(posChartTicker, posCh
 function onposMom(m)   { posChartMom   = m; renderTwoPanel(posChartTicker, posChartRange, posChartMom, 'pos'); }
 function onbuyRange(m) { buyChartRange = m; renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, 'buy'); }
 function onbuyMom(m)   { buyChartMom   = m; renderTwoPanel(buyChartTicker, buyChartRange, buyChartMom, 'buy'); }
+// Watchlist chart state
+let wlChartRange = 1, wlChartMom = 'rsi', wlChartTicker = null, wlChartAddedDate = null;
+function onwlRange(m) { wlChartRange = m; renderTwoPanel(wlChartTicker, wlChartRange, wlChartMom, 'wl'); }
+function onwlMom(m)   { wlChartMom   = m; renderTwoPanel(wlChartTicker, wlChartRange, wlChartMom, 'wl'); }
