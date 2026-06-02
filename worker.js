@@ -584,7 +584,7 @@ export default {
 
     // ── Health check ──────────────────────────────────────────────────────────
     if (path === '/health') {
-      return json({ ok: true, version: '2.3.4', ts: Date.now() }, 200, request);
+      return json({ ok: true, version: '2.3.5', ts: Date.now() }, 200, request);
     }
 
     // ── All data routes require PWA secret header ─────────────────────────────
