@@ -164,7 +164,7 @@ function renderWatchlistCards() {
   }).join('');
 }
 
-function openWlDetail(ticker) {
+async function openWlDetail(ticker) {
   const w = watchlist.find(x => x.ticker === ticker.toUpperCase());
   if (!w) return;
   // Set wl chart state so range/mom toggles work
@@ -244,6 +244,13 @@ function openWlDetail(ticker) {
   `;
   $('wlDetailModal').classList.add('open');
   $('wlDetailModal').onclick = e => { if (e.target === $('wlDetailModal')) $('wlDetailModal').classList.remove('open'); };
+  // Ensure indicatorCache is warm for this ticker before rendering chart
+  if (settings.apiKey && settings.pwaSecret) {
+    const upper = w.ticker.toUpperCase();
+    if (!indicatorCache[upper] || Date.now() - indicatorCache[upper].ts > 3600000) {
+      await fetchIndicators(upper);
+    }
+  }
   // Render chart and style initial active buttons
   renderTwoPanel(wlChartTicker, wlChartRange, wlChartMom, 'wl');
   ['1','3','6'].forEach(m => {
@@ -416,6 +423,14 @@ async function submitDirectAdd() {
     <button class="btn-secondary" style="margin-top:8px" onclick="$('directWlModal').classList.remove('open')">Cancel</button>
   `;
 
+  // Ensure indicatorCache is warm (fetchIndicators above populates it,
+  // but call again in case it returned from a non-caching path)
+  if (settings.apiKey && settings.pwaSecret) {
+    const upper = ticker.toUpperCase();
+    if (!indicatorCache[upper] || Date.now() - indicatorCache[upper].ts > 3600000) {
+      await fetchIndicators(upper);
+    }
+  }
   // Render the preview chart
   renderTwoPanel(wlChartTicker, wlChartRange, wlChartMom, 'wl');
   ['1','3','6'].forEach(m => {
