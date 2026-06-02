@@ -3,7 +3,7 @@
 const DEFAULT_WATCHLIST = 'AAPL,MSFT,NVDA,AMZN,GOOGL,META,TSLA,JPM,BRK.B,XLV,V,UNH,HD,PG,JNJ';
 
 // How many days of recommendation history to remember (prevents repeat picks)
-const RECO_HISTORY_DAYS = 3;
+const RECO_HISTORY_DAYS = 7;
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -228,7 +228,7 @@ ${heavySectors.length ? `AVOID these already-overweighted sectors: ${heavySector
 
 Return exactly 40 tickers as a JSON array of strings. Rules:
 - DO NOT include any of these (already held, on watchlist, or recommended recently): ${excluded.join(', ') || 'none'}
-- Maximum 4 tickers per sector — enforce diversity
+- Maximum 2 tickers per sector — enforce diversity
 - ${heavySectors.length ? `Zero tickers from: ${heavySectors.join(', ')}` : 'Balance across all sectors'}
 - Include a mix of: large-cap blue chips, mid-cap growth, sector ETFs, dividend payers
 - Bias toward stocks that may be setting up technically (pullbacks, sector rotation, recent underperformance relative to fundamentals)
@@ -247,7 +247,7 @@ Respond with ONLY a JSON array: ["TICK1","TICK2",...]. No markdown, no explanati
         'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 400,
         messages: [{ role: 'user', content: prompt }],
       })
@@ -302,7 +302,7 @@ async function generateBuyIdeasWithAI(candidates, portfolioTickers, universeIndi
 Portfolio sector weights: ${sectorSummary || 'unknown'}
 ${heavySectors.length ? `Do NOT recommend any stock from these overweighted sectors: ${heavySectors.join(', ')}` : ''}
 Do NOT recommend: ${excluded.join(', ') || 'none'}
-Enforce maximum 2 pick per sector across your 10 selections.
+Enforce maximum 1 pick per sector across your 10 selections.
 
 Candidates (pre-scored by local technical filters, higher = better setup):
 ${marketSummary || 'No live data — use training knowledge.'}
@@ -339,7 +339,7 @@ Use "Turnaround" when the primary signal is a MACD trough or RSI recovery from o
         'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 2000,
         messages: [{ role: 'user', content: prompt }],
       })
