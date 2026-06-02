@@ -265,7 +265,7 @@ Respond with ONLY a JSON array: ["TICK1","TICK2",...]. No markdown, no explanati
 
 // ─── AI: score and select final picks ────────────────────────────────────────
 
-async function generateBuyIdeasWithAI(candidates, portfolioTickers, universeIndicators) {
+async function generateBuyIdeasWithAI(candidates, portfolioTickers, universeIndicators, priceMap = {}) {
   if (!settings.anthropicKey) return null;
 
   const heavySectors = overweightedSectors(20);
@@ -277,7 +277,8 @@ async function generateBuyIdeasWithAI(candidates, portfolioTickers, universeIndi
   ])];
 
   const marketSummary = candidates.map(({ ticker, ind, macdTrough, preScore }) => {
-    const price  = universeIndicators[ticker]?._price?.toFixed(2) ?? 'N/A';
+    const price  = priceMap[ticker]?.price != null ? priceMap[ticker].price.toFixed(2) : 'N/A';
+    const change  = priceMap[ticker]?.change ?? '';
     const rsi    = ind?.rsi    != null ? `RSI ${ind.rsi}` : '';
     const bb     = ind?.bb     != null ? `BB%B ${ind.bb.pct}%` : '';
     const ma     = (ind?.sma50 && ind?.sma200)
@@ -294,7 +295,7 @@ async function generateBuyIdeasWithAI(candidates, portfolioTickers, universeIndi
         : '';
 
     const parts = [rsi, bb, macdStr, ma, vol, buys, sells].filter(Boolean).join(' | ');
-    return `${ticker} [pre-score ${preScore}]: $${price}${parts ? ' — ' + parts : ''}`;
+    return `${ticker} [pre-score ${preScore}]: $${price} ${change}${parts ? ' — ' + parts : ''}`;
   }).join('\n');
 
   const prompt = `You are a technical stock analyst. Select exactly 10 buy opportunities from the candidates below.
@@ -467,6 +468,7 @@ async function loadBuyIdeas(forceRefresh = false) {
   // ── Step 2: Fetch market data + indicators ──
   let marketData = [];
   let universeIndicators = {};
+  let priceMap = {};
 
   if (settings.apiKey && settings.pwaSecret) {
     marketData = await fetchMarketDataForWatchlist(universe);
@@ -475,6 +477,9 @@ async function loadBuyIdeas(forceRefresh = false) {
     Object.keys(universeIndicators).forEach(t => {
       if (universeIndicators[t]) universeIndicators[t]._ticker = t;
     });
+    // Build a price/change lookup map from marketData
+    priceMap = {};
+    marketData.forEach(d => { priceMap[d.ticker.toUpperCase()] = { price: d.price, change: d.change }; });
   }
 
   setStatus(3, 4, 'Pre-filtering by RSI, Bollinger, MACD trough…');
@@ -505,7 +510,7 @@ async function loadBuyIdeas(forceRefresh = false) {
   // ── Step 4: AI scoring ──
   let ideas = null;
   if (settings.anthropicKey) {
-    ideas = await generateBuyIdeasWithAI(candidatesForAI, portfolioTickers, universeIndicators);
+    ideas = await generateBuyIdeasWithAI(candidatesForAI, portfolioTickers, universeIndicators, priceMap);
   }
 
   if (ideas && ideas.length > 0) {
@@ -518,8 +523,13 @@ async function loadBuyIdeas(forceRefresh = false) {
       const t = idea.ticker.toUpperCase();
       const ind = universeIndicators[t] || null;
       const trough = allCandidates.find(c => c.ticker === t)?.macdTrough || null;
+      // Always use live price/change from priceMap — overrides whatever Claude returned
+      const livePrice  = priceMap[t]?.price  ?? idea.price  ?? null;
+      const liveChange = priceMap[t]?.change ?? idea.change ?? '';
       return {
         ...idea,
+        price: livePrice,
+        change: liveChange,
         indicators: ind,
         macdTrough: trough,
         fundamentals: fundamentals[t] || null,
