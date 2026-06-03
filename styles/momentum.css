@@ -1,0 +1,230 @@
+/* ─── StockPulse Momentum Screener — momentum.css ───────────────────────────
+   Uses existing CSS vars: --bg2/3/4, --border1/2, --accent, --green,
+   --red, --amber, --blue, --text1/2/3
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* ── Status bar ──────────────────────────────────────────────────────────── */
+.mom-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--bg2, #111);
+  border-bottom: 0.5px solid var(--border1, #1e1e1e);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.mom-status-left  { display:flex; align-items:center; gap:8px; }
+.mom-status-right { display:flex; align-items:center; gap:8px; }
+
+.mom-dot {
+  width:8px; height:8px; border-radius:50%; flex-shrink:0;
+}
+.mom-dot-live {
+  background: var(--green, #00c97a);
+  animation: mom-pulse 1.6s infinite;
+}
+.mom-dot-paused { background: var(--text3, #555); }
+
+@keyframes mom-pulse {
+  0%   { box-shadow: 0 0 0 0   rgba(0,201,122,.6); }
+  70%  { box-shadow: 0 0 0 7px rgba(0,201,122,0);  }
+  100% { box-shadow: 0 0 0 0   rgba(0,201,122,0);  }
+}
+
+.mom-status-label { font-size:12px; font-weight:600; color:var(--text2,#ccc); letter-spacing:.3px; }
+.mom-last-poll    { font-size:11px; color:var(--text3,#555); }
+
+.mom-ctrl-btn {
+  font-size:12px; font-weight:600; padding:5px 14px;
+  border-radius:8px; border:0.5px solid var(--border2,#333);
+  cursor:pointer; transition:opacity .15s;
+}
+.mom-ctrl-btn:active { opacity:.7; }
+.mom-btn-start { background:var(--green,#00c97a); color:#000; border-color:var(--green,#00c97a); }
+.mom-btn-pause { background:var(--amber,#f5a623); color:#000; border-color:var(--amber,#f5a623); }
+.mom-btn-ghost { background:var(--bg4,#1c1c1c);  color:var(--text3,#888); }
+
+/* ── Discovery status bar ────────────────────────────────────────────────── */
+.mom-disc-bar {
+  display:flex; align-items:center; gap:6px;
+  padding:7px 16px;
+  background:var(--bg2,#111);
+  border-bottom:0.5px solid var(--border1,#1e1e1e);
+  font-size:11px;
+}
+.mom-disc-label   { color:var(--text3,#555); font-weight:600; text-transform:uppercase; letter-spacing:.6px; }
+.mom-disc-idle    { color:var(--text3,#555); }
+.mom-disc-loading { color:var(--amber,#f5a623); }
+.mom-disc-ok      { color:var(--green,#00c97a); }
+.mom-disc-err     { color:var(--red,#ff4d4d); }
+
+/* ── Signal cards ────────────────────────────────────────────────────────── */
+.mom-empty {
+  padding:20px 0 8px; font-size:13px;
+  color:var(--text3,#555); text-align:center;
+}
+
+#mom-signals-list { display:flex; flex-direction:column; gap:10px; padding-top:6px; }
+
+.mom-signal-card {
+  background:var(--bg3,#161616);
+  border-radius:12px; padding:12px 14px;
+  border-left:3px solid transparent;
+  animation:mom-slide .25s ease;
+  position:relative; overflow:hidden;
+}
+@keyframes mom-slide {
+  from { opacity:0; transform:translateY(-5px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.mom-sev-medium { border-left-color:var(--amber,#f5a623); }
+.mom-sev-high   { border-left-color:var(--red,#ff4d4d);   }
+
+.mom-combo {
+  background:linear-gradient(135deg,rgba(255,77,77,.07) 0%,var(--bg3,#161616) 60%);
+}
+.mom-combo::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg,var(--red,#ff4d4d),transparent);
+}
+
+.mom-sig-top {
+  display:flex; align-items:center; gap:8px; margin-bottom:5px;
+}
+.mom-sig-ticker {
+  font-size:15px; font-weight:700;
+  color:var(--text1,#f0f0f0);
+  font-family:'SF Mono','Fira Code',monospace; letter-spacing:.5px;
+}
+.mom-sig-badge {
+  font-size:11px; font-weight:600; padding:2px 8px;
+  border-radius:20px; white-space:nowrap;
+}
+.mom-badge-price  { background:rgba(74,158,255,.15); color:var(--blue,#4a9eff);   }
+.mom-badge-volume { background:rgba(245,166,35,.15);  color:var(--amber,#f5a623); }
+.mom-badge-combo  { background:rgba(255,77,77,.15);   color:var(--red,#ff4d4d);   }
+
+.mom-sig-time  { margin-left:auto; font-size:11px; color:var(--text3,#555); }
+.mom-sig-label { font-size:14px; font-weight:600; color:var(--text1,#f0f0f0); margin-bottom:4px; }
+.mom-sig-meta  {
+  display:flex; gap:12px; flex-wrap:wrap;
+  font-size:12px; color:var(--text3,#666);
+}
+.mom-sig-meta strong { font-weight:600; }
+
+/* ── Hot list table ──────────────────────────────────────────────────────── */
+.mom-hot-header {
+  display:flex; flex-direction:column; gap:3px; margin-bottom:8px;
+}
+.mom-hot-count {
+  font-size:11px; font-weight:600;
+  color:var(--text3,#555); margin-left:6px;
+}
+.mom-hot-sub {
+  font-size:11px; color:var(--text3,#555); line-height:1.4;
+}
+
+.mom-table-wrap {
+  overflow-x:auto; border-radius:12px;
+  border:0.5px solid var(--border1,#1e1e1e);
+  margin-bottom:12px;
+}
+.mom-table { width:100%; border-collapse:collapse; font-size:13px; }
+.mom-table thead tr { background:var(--bg3,#161616); }
+.mom-table th {
+  padding:8px 10px; text-align:left;
+  font-size:10px; font-weight:600; color:var(--text3,#666);
+  letter-spacing:.8px; text-transform:uppercase;
+  border-bottom:0.5px solid var(--border1,#1e1e1e);
+  white-space:nowrap;
+}
+
+.mom-row {
+  border-bottom:0.5px solid var(--border1,#1e1e1e);
+  transition:background .2s;
+}
+.mom-row:last-child      { border-bottom:none; }
+.mom-row:hover           { background:var(--bg3,#161616); }
+.mom-row-active          { background:rgba(255,77,77,.04); }
+
+.mom-table td { padding:9px 10px; color:var(--text2,#ccc); vertical-align:middle; }
+
+.mom-td-ticker {
+  display:flex; align-items:center; gap:5px;
+  white-space:nowrap;
+}
+.mom-tkr {
+  font-family:'SF Mono','Fira Code',monospace;
+  font-weight:700; color:var(--text1,#f0f0f0); font-size:13px;
+}
+.mom-td-num {
+  font-family:'SF Mono','Fira Code',monospace;
+  text-align:right; white-space:nowrap;
+}
+.mom-muted { color:var(--text3,#666) !important; }
+
+/* Source badges */
+.mom-src {
+  font-size:9px; font-weight:700; padding:1px 5px;
+  border-radius:4px; letter-spacing:.3px; text-transform:uppercase;
+}
+.mom-src-manual { background:rgba(74,158,255,.12); color:var(--blue,#4a9eff);   }
+.mom-src-yahoo  { background:rgba(168,85,247,.12); color:#a855f7;              }
+.mom-src-finviz { background:rgba(245,166,35,.12);  color:var(--amber,#f5a623); }
+.mom-src-both   { background:rgba(255,77,77,.12);   color:var(--red,#ff4d4d);   }
+
+/* Volume coloring */
+.mom-spike-med  { color:var(--amber,#f5a623) !important; font-weight:700; }
+.mom-spike-high { color:var(--red,#ff4d4d) !important;   font-weight:700; }
+
+/* Up / Down */
+.mom-up   { color:var(--green,#00c97a); }
+.mom-down { color:var(--red,#ff4d4d);   }
+
+.mom-empty-row {
+  text-align:center; color:var(--text3,#555);
+  padding:24px 0 !important; font-size:13px;
+}
+.mom-td-action { text-align:right; padding-right:8px !important; }
+
+.mom-rm-btn {
+  background:none; border:none; color:var(--text3,#555);
+  font-size:18px; line-height:1; cursor:pointer;
+  padding:2px 6px; border-radius:6px;
+  transition:color .15s, background .15s;
+}
+.mom-rm-btn:hover { color:var(--red,#ff4d4d); background:rgba(255,77,77,.1); }
+
+.mom-auto-label { font-size:10px; color:var(--text3,#555); font-style:italic; }
+
+.mom-flash {
+  font-size:12px; animation:mom-blink 1s step-start infinite;
+}
+@keyframes mom-blink { 50% { opacity:0; } }
+
+/* ── Add ticker form ─────────────────────────────────────────────────────── */
+.mom-add-row  { display:flex; gap:8px; margin-top:4px; }
+.mom-manual-hint { font-size:11px; color:var(--text3,#555); margin-top:7px; }
+
+.mom-input {
+  flex:1; background:var(--bg3,#161616);
+  border:0.5px solid var(--border2,#2a2a2a); border-radius:10px;
+  padding:10px 12px; color:var(--text1,#f0f0f0);
+  font-size:13px; font-family:'SF Mono','Fira Code',monospace;
+  text-transform:uppercase; outline:none; transition:border-color .15s;
+}
+.mom-input::placeholder { color:var(--text3,#555); text-transform:none; }
+.mom-input:focus        { border-color:var(--accent,#4a9eff); }
+
+.mom-add-btn {
+  display:flex; align-items:center; gap:6px;
+  background:var(--bg4,#1c1c1c);
+  border:0.5px solid var(--border2,#2a2a2a); border-radius:10px;
+  padding:10px 16px; color:var(--text2,#ccc);
+  font-size:13px; font-weight:600; cursor:pointer;
+  white-space:nowrap; transition:border-color .15s, color .15s;
+}
+.mom-add-btn:hover  { border-color:var(--accent,#4a9eff); color:var(--accent,#4a9eff); }
+.mom-add-btn:active { opacity:.7; }
