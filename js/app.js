@@ -13,7 +13,8 @@ function navigateTo(tab) {
   if (tab === 'buys') renderBuys();
   if (tab === 'settings') renderSettings();
   if (tab === 'watchlist') renderWatchlist();
-  if (tab === 'performance') renderPerformancePage(); // ← NEW
+  if (tab === 'performance') renderPerformancePage();
+  if (tab === 'momentum')    renderMomentumPage();
 }
 
 // ─── Event Listeners ──────────────────────────────────────────────────────────
@@ -118,3 +119,5 @@ if (settings.apiKey && settings.pwaSecret && positions.length > 0) {
   refreshPrices();
   positions.filter(p => !p.sector).forEach(p => enrichPositionSector(p.ticker));
 }
+
+initMomentum();
