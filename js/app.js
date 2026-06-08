@@ -8,6 +8,10 @@ function navigateTo(tab) {
   if (navItem) navItem.classList.add('active');
   $('page-' + tab).classList.add('active');
   activeTab = tab;
+  
+  // Highlight settings gear when on settings tab
+  const settingsBtn = document.getElementById('settingsBtn');
+  if (settingsBtn) settingsBtn.style.opacity = tab === 'settings' ? '1' : '0.7';
 
   if (tab === 'alerts') renderAlerts();
   if (tab === 'buys') renderBuys();
