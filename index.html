@@ -227,7 +227,7 @@
 
       <div class="section-label" style="margin-top:16px">About</div>
       <div class="settings-card">
-        <div class="settings-row"><div class="settings-label">Version</div><div style="font-size:13px;color:var(--text3)">2.3.5</div></div>
+        <div class="settings-row"><div class="settings-label">Version</div><div style="font-size:13px;color:var(--text3)">2.4.0</div></div>
         <div class="settings-row"><div class="settings-label">Data source</div><div style="font-size:13px;color:var(--text3)">Charles Schwab API</div></div>
         <div class="settings-row"><div><div class="settings-label">Disclaimer</div><div class="settings-sub" style="max-width:220px">Not financial advice. For informational use only.</div></div></div>
       </div>
@@ -239,6 +239,12 @@
     <div class="section" id="perf-section">
     <!-- Rendered by renderPerformancePage() in performance.js -->
   </div>
+  
+  <!-- MOMENTUM SCREENER -->
+  <div class="page" id="page-momentum">
+    <!-- Rendered by renderMomentumPage() in momentum.js -->
+  </div>
+
   
 </div>
 
@@ -263,6 +269,17 @@
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
     <span id="badge-watchlist" style="display:none;position:absolute;top:2px;right:10px;background:var(--blue);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px"></span>
     <span class="nav-label">Watchlist</span>
+  </div>
+  <div class="nav-item" data-nav="momentum" style="position:relative">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="white"
+       stroke-width="1.8" stroke-linecap="round">
+      <polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+    </svg>
+    <span id="badge-momentum"
+      style="display:none;position:absolute;top:2px;right:10px;
+           background:var(--red);color:#fff;font-size:9px;font-weight:700;
+           padding:1px 5px;border-radius:99px"></span>
+    <span class="nav-label">Momentum</span>
   </div>
   <div class="nav-item" data-nav="performance">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round">
@@ -387,6 +404,7 @@
 <script src="js/portfolio.js"></script>
 <script src="js/buyIdeas.js"></script>
 <script src="js/watchlist.js"></script>
+<script src="js/momentum.js"></script>
 <script src="js/app.js"></script>
 <script src="js/performance.js"></script>
 
