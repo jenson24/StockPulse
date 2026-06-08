@@ -17,7 +17,7 @@
 
 <div class="header">
   <div class="app-name">StockPulse</div>
-  <div class="header-row">
+    <div class="header-row">
     <div>
       <div class="portfolio-value" id="totalValue">$0.00</div>
       <div class="portfolio-sub">
@@ -25,12 +25,20 @@
         <span id="alertPill" class="pill pill-red" style="display:none"></span>
       </div>
     </div>
-    <button class="refresh-btn" id="refreshBtn" title="Refresh prices">
-      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" id="refreshIcon">
-        <path d="M23 4v6h-6M1 20v-6h6"/>
-        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-      </svg>
-    </button>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="refresh-btn" id="settingsBtn" title="Settings" onclick="navigateTo('settings')" style="opacity:0.7">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+        </svg>
+      </button>
+      <button class="refresh-btn" id="refreshBtn" title="Refresh prices">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" id="refreshIcon">
+          <path d="M23 4v6h-6M1 20v-6h6"/>
+          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+        </svg>
+      </button>
+    </div>
   </div>
 </div>
 
@@ -227,7 +235,7 @@
 
       <div class="section-label" style="margin-top:16px">About</div>
       <div class="settings-card">
-        <div class="settings-row"><div class="settings-label">Version</div><div style="font-size:13px;color:var(--text3)">2.4.0</div></div>
+        <div class="settings-row"><div class="settings-label">Version</div><div style="font-size:13px;color:var(--text3)">2.4.1</div></div>
         <div class="settings-row"><div class="settings-label">Data source</div><div style="font-size:13px;color:var(--text3)">Charles Schwab API</div></div>
         <div class="settings-row"><div><div class="settings-label">Disclaimer</div><div class="settings-sub" style="max-width:220px">Not financial advice. For informational use only.</div></div></div>
       </div>
@@ -238,6 +246,7 @@
   <div class="page" id="page-performance">
     <div class="section" id="perf-section">
     <!-- Rendered by renderPerformancePage() in performance.js -->
+    </div>
   </div>
   
   <!-- MOMENTUM SCREENER -->
@@ -288,10 +297,6 @@
       <line x1="3" y1="21" x2="21" y2="21"/>
     </svg>
     <span class="nav-label">Performance</span>
-  </div>
-  <div class="nav-item" data-nav="settings">
-    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-    <span class="nav-label">Settings</span>
   </div>
 </nav>
 
